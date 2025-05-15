@@ -1,5 +1,5 @@
-import * as React from "react";
-import { useRouter } from "next/navigation";
+import * as React from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Card,
   CardContent,
@@ -7,13 +7,8 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import {
-  HoveredLink,
-  Menu,
-  MenuItem,
-  ProductItem,
-} from "@/components/ui/navbar-menu";
+} from '@/components/ui/card';
+import { HoveredLink, Menu, MenuItem, ProductItem } from '@/components/ui/navbar-menu';
 
 function ReserveOfficer({ className }: { className?: string }) {
   const router = useRouter();
@@ -29,14 +24,12 @@ function ReserveOfficer({ className }: { className?: string }) {
           <div className="max-w-full">
             <ul className="list-none pl-4">
               <li>
-                Reserve Level 1 Officers CAN Purchase Non-Roster Firearms AND
-                They Are FSC Exempt
+                Reserve Level 1 Officers CAN Purchase Non-Roster Firearms AND They Are FSC Exempt
               </li>
               <ul className="list-none pl-4">
                 <li>
-                  - Reserve Level 2 & 3 Officers{" "}
-                  <span className="text-red-500">CANNOT</span> Purchase
-                  Non-Roster Firearms
+                  - Reserve Level 2 & 3 Officers <span className="text-red-500">CANNOT</span>{' '}
+                  Purchase Non-Roster Firearms
                 </li>
               </ul>
               <hr className="my-4" />
@@ -50,9 +43,8 @@ function ReserveOfficer({ className }: { className?: string }) {
               </ul>
               <hr className="my-4" />
               <p>
-                If The Transaction Is For A{" "}
-                <span className="text-blue-500">Blue Label</span> Firearm, Fill
-                Out The <span className="text-blue-500">Blue Label</span> Form
+                If The Transaction Is For A <span className="text-blue-500">Blue Label</span>{' '}
+                Firearm, Fill Out The <span className="text-blue-500">Blue Label</span> Form
               </p>
               <p>& Include It In The Pending Packet</p>
             </ul>

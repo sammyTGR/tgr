@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
+import { NextResponse } from 'next/server';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
 
 export async function POST(request: Request) {
   const supabase = createRouteHandlerClient({ cookies });
@@ -12,30 +12,30 @@ export async function POST(request: Request) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Get active employees first
     const { data: activeEmployees } = await supabase
-      .from("employees")
-      .select("name")
-      .eq("status", "active");
+      .from('employees')
+      .select('name')
+      .eq('status', 'active');
 
     const activeEmployeeNames = activeEmployees?.map((emp) => emp.name) || [];
 
     // Query certifications for active employees
-    let query = supabase.from("certifications").select("*", { count: "exact" });
+    let query = supabase.from('certifications').select('*', { count: 'exact' });
 
     // Only include certifications for active employees
     if (activeEmployeeNames.length > 0) {
-      query = query.in("name", activeEmployeeNames);
+      query = query.in('name', activeEmployeeNames);
     }
 
     // Apply filters
     filters.forEach((filter: { id: string; value: string | string[] }) => {
-      if (filter.id === "action_status" && Array.isArray(filter.value)) {
-        query = query.in("action_status", filter.value);
-      } else if (typeof filter.value === "string") {
+      if (filter.id === 'action_status' && Array.isArray(filter.value)) {
+        query = query.in('action_status', filter.value);
+      } else if (typeof filter.value === 'string') {
         query = query.ilike(filter.id, `%${filter.value}%`);
       }
     });
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
         query = query.order(sort.id, { ascending: !sort.desc });
       });
     } else {
-      query = query.order("expiration", { ascending: false });
+      query = query.order('expiration', { ascending: false });
     }
 
     // Apply pagination
@@ -59,9 +59,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ data, count });
   } catch (error) {
-    console.error("Error fetching filtered certifications data:", error);
+    console.error('Error fetching filtered certifications data:', error);
     return NextResponse.json(
-      { error: "Failed to fetch filtered certifications data" },
+      { error: 'Failed to fetch filtered certifications data' },
       { status: 500 }
     );
   }
@@ -71,10 +71,9 @@ export async function OPTIONS() {
   return new NextResponse(null, {
     status: 200,
     headers: {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "POST, OPTIONS",
-      "Access-Control-Allow-Headers":
-        "authorization, x-client-info, apikey, content-type",
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
     },
   });
 }

@@ -1,29 +1,19 @@
-"use client";
+'use client';
 
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-  CardFooter,
-} from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Plus, Minus, X, Dot } from "lucide-react";
-import { useMemo, useRef } from "react";
-import DOMPurify from "dompurify";
-import { toast } from "sonner";
-import RoleBasedWrapper from "@/components/RoleBasedWrapper";
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Plus, Minus, X, Dot } from 'lucide-react';
+import { useMemo, useRef } from 'react';
+import DOMPurify from 'dompurify';
+import { toast } from 'sonner';
+import RoleBasedWrapper from '@/components/RoleBasedWrapper';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,8 +24,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { debounce } from "lodash";
+} from '@/components/ui/alert-dialog';
+import { debounce } from 'lodash';
 import {
   getCurrentEmployee,
   getTeamMembers,
@@ -48,17 +38,17 @@ import {
   dismissNote,
   DiscussedNote,
   removeDiscussedNote,
-} from "./actions";
+} from './actions';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { format, toZonedTime } from "date-fns-tz";
-import { parseISO, format as formatDate } from "date-fns";
-import { formatInTimeZone } from "date-fns-tz";
-import { useSidebar } from "@/components/ui/sidebar";
+} from '@/components/ui/dropdown-menu';
+import { format, toZonedTime } from 'date-fns-tz';
+import { parseISO, format as formatDate } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
+import { useSidebar } from '@/components/ui/sidebar';
 
 type NoteItem = {
   id: string;
@@ -79,30 +69,30 @@ type TeamMember = {
 };
 
 type NoteType =
-  | "range_notes"
-  | "inventory_notes"
-  | "store_notes"
-  | "employees_notes"
-  | "safety_notes"
-  | "general_notes";
+  | 'range_notes'
+  | 'inventory_notes'
+  | 'store_notes'
+  | 'employees_notes'
+  | 'safety_notes'
+  | 'general_notes';
 
 const topics: NoteType[] = [
-  "range_notes",
-  "inventory_notes",
-  "store_notes",
-  "employees_notes",
-  "safety_notes",
-  "general_notes",
+  'range_notes',
+  'inventory_notes',
+  'store_notes',
+  'employees_notes',
+  'safety_notes',
+  'general_notes',
 ];
 type TopicType = (typeof topics)[number];
 
 const topicDisplayNames: Record<NoteType, string> = {
-  range_notes: "Range",
-  inventory_notes: "Inventory",
-  store_notes: "Store",
-  employees_notes: "Employees",
-  safety_notes: "Safety",
-  general_notes: "General",
+  range_notes: 'Range',
+  inventory_notes: 'Inventory',
+  store_notes: 'Store',
+  employees_notes: 'Employees',
+  safety_notes: 'Safety',
+  general_notes: 'General',
 };
 
 type Employee = {
@@ -133,7 +123,7 @@ type DiscussedNotes = {
 };
 
 // Add timezone constant
-const TIME_ZONE = "America/Los_Angeles";
+const TIME_ZONE = 'America/Los_Angeles';
 
 export default function TeamWeeklyNotes() {
   const { state } = useSidebar();
@@ -142,7 +132,7 @@ export default function TeamWeeklyNotes() {
   const popoverRef = useRef<HTMLButtonElement>(null);
 
   const { data: user } = useQuery({
-    queryKey: ["user"],
+    queryKey: ['user'],
     queryFn: async () => {
       const {
         data: { user },
@@ -152,72 +142,71 @@ export default function TeamWeeklyNotes() {
   });
 
   const draftQuery = useQuery({
-    queryKey: ["noteDrafts"],
+    queryKey: ['noteDrafts'],
     queryFn: () => ({}) as DraftNote,
     staleTime: Infinity,
   });
 
   const { data: currentEmployee } = useQuery<Employee | null>({
-    queryKey: ["currentEmployee", user?.id],
+    queryKey: ['currentEmployee', user?.id],
     queryFn: async () => {
-      if (!user?.id) throw new Error("User not authenticated");
+      if (!user?.id) throw new Error('User not authenticated');
       return await getCurrentEmployee(user.id);
     },
     enabled: !!user?.id,
   });
 
   const { data: teamMembers = [] } = useQuery<TeamMember[]>({
-    queryKey: ["teamMembers"],
+    queryKey: ['teamMembers'],
     queryFn: async () => await getTeamMembers(),
   });
 
   const { data: employees = [] } = useQuery<Employee[]>({
-    queryKey: ["employees"],
+    queryKey: ['employees'],
     queryFn: async () => await getEmployees(),
   });
 
   const { data: discussedNotes = [] } = useQuery<DiscussedNote[]>({
-    queryKey: ["discussedNotes"],
+    queryKey: ['discussedNotes'],
     queryFn: async () => await getDiscussedNotes(),
   });
 
   const addTeamMemberMutation = useMutation({
-    mutationFn: (
-      newNotes: Omit<TeamMember, "note_id" | "created_at" | "updated_at">
-    ) => addTeamMember(newNotes),
+    mutationFn: (newNotes: Omit<TeamMember, 'note_id' | 'created_at' | 'updated_at'>) =>
+      addTeamMember(newNotes),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["teamMembers"] });
+      queryClient.invalidateQueries({ queryKey: ['teamMembers'] });
       if (popoverRef.current) {
         popoverRef.current.click();
       }
     },
     onError: (error) => {
-      console.error("Mutation error:", error);
-      toast.error("Failed to add team member");
+      console.error('Mutation error:', error);
+      toast.error('Failed to add team member');
     },
   });
 
   const updateNoteMutation = useMutation({
     mutationFn: (member: TeamMember) => updateTeamMemberNotes(member),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["teamMembers"] });
+      queryClient.invalidateQueries({ queryKey: ['teamMembers'] });
       // toast.success("Notes saved successfully");
     },
     onError: (error) => {
-      console.error("Error updating notes:", error);
-      toast.error("Failed to save notes");
+      console.error('Error updating notes:', error);
+      toast.error('Failed to save notes');
     },
   });
 
   const removeEmployeeMutation = useMutation({
     mutationFn: (employeeId: number) => removeEmployee(employeeId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["teamMembers"] });
-      toast.success("Employee and notes removed successfully");
+      queryClient.invalidateQueries({ queryKey: ['teamMembers'] });
+      toast.success('Employee and notes removed successfully');
     },
     onError: (error) => {
-      console.error("Error removing employee:", error);
-      toast.error("Failed to remove employee");
+      console.error('Error removing employee:', error);
+      toast.error('Failed to remove employee');
     },
   });
 
@@ -238,13 +227,13 @@ export default function TeamWeeklyNotes() {
         topic,
         employeeId,
         employeeName,
-        format(new Date(), "yyyy-MM-dd")
+        format(new Date(), 'yyyy-MM-dd')
       ),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["discussedNotes"] });
-      queryClient.invalidateQueries({ queryKey: ["teamMembers"] });
+      queryClient.invalidateQueries({ queryKey: ['discussedNotes'] });
+      queryClient.invalidateQueries({ queryKey: ['teamMembers'] });
 
-      queryClient.setQueryData<TeamMember[]>(["teamMembers"], (oldData) => {
+      queryClient.setQueryData<TeamMember[]>(['teamMembers'], (oldData) => {
         if (!oldData) return oldData;
         return oldData.map((member) => {
           if (member.employee_id === variables.employeeId) {
@@ -257,11 +246,11 @@ export default function TeamWeeklyNotes() {
           return member;
         });
       });
-      toast.success("Note marked as discussed");
+      toast.success('Note marked as discussed');
     },
     onError: (error) => {
-      console.error("Error marking note as discussed:", error);
-      toast.error("Failed to mark note as discussed");
+      console.error('Error marking note as discussed:', error);
+      toast.error('Failed to mark note as discussed');
     },
   });
 
@@ -276,8 +265,8 @@ export default function TeamWeeklyNotes() {
       noteId: string;
     }) => dismissNote(memberId, topic, noteId),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["teamMembers"] });
-      queryClient.setQueryData<TeamMember[]>(["teamMembers"], (oldData) => {
+      queryClient.invalidateQueries({ queryKey: ['teamMembers'] });
+      queryClient.setQueryData<TeamMember[]>(['teamMembers'], (oldData) => {
         if (!oldData) return oldData;
         return oldData.map((member) => {
           if (member.note_id === variables.memberId) {
@@ -289,15 +278,15 @@ export default function TeamWeeklyNotes() {
           return member;
         });
       });
-      toast.success("Note dismissed");
+      toast.success('Note dismissed');
     },
   });
 
   const removeDiscussedNoteMutation = useMutation({
     mutationFn: (noteId: number) => removeDiscussedNote(noteId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["discussedNotes"] });
-      toast.success("Note removed successfully");
+      queryClient.invalidateQueries({ queryKey: ['discussedNotes'] });
+      toast.success('Note removed successfully');
     },
   });
 
@@ -315,57 +304,43 @@ export default function TeamWeeklyNotes() {
 
         if (
           existingEntry &&
-          currentEmployee.role !== "super admin" &&
-          currentEmployee.role !== "dev"
+          currentEmployee.role !== 'super admin' &&
+          currentEmployee.role !== 'dev'
         ) {
-          toast.error("You have already added yourself to this meeting.");
+          toast.error('You have already added yourself to this meeting.');
           return;
         }
 
         // Prepare new team weekly notes
-        const newNotes: Omit<
-          TeamMember,
-          "note_id" | "created_at" | "updated_at"
-        > = {
+        const newNotes: Omit<TeamMember, 'note_id' | 'created_at' | 'updated_at'> = {
           employee_id: currentEmployee.employee_id,
-          range_notes: [{ id: Date.now().toString(), content: "" }],
-          inventory_notes: [{ id: Date.now().toString(), content: "" }],
-          store_notes: [{ id: Date.now().toString(), content: "" }],
-          employees_notes: [{ id: Date.now().toString(), content: "" }],
-          safety_notes: [{ id: Date.now().toString(), content: "" }],
-          general_notes: [{ id: Date.now().toString(), content: "" }],
+          range_notes: [{ id: Date.now().toString(), content: '' }],
+          inventory_notes: [{ id: Date.now().toString(), content: '' }],
+          store_notes: [{ id: Date.now().toString(), content: '' }],
+          employees_notes: [{ id: Date.now().toString(), content: '' }],
+          safety_notes: [{ id: Date.now().toString(), content: '' }],
+          general_notes: [{ id: Date.now().toString(), content: '' }],
         };
 
         // console.log("New notes data:", newNotes);
         addTeamMemberMutation.mutate(newNotes);
       } else {
-        console.error(
-          "Cannot add notes: user is not logged in or employee data is not available"
-        );
-        toast.error(
-          "Unable to add you to the meeting. Please try again later."
-        );
+        console.error('Cannot add notes: user is not logged in or employee data is not available');
+        toast.error('Unable to add you to the meeting. Please try again later.');
       }
     });
   };
 
-  const updateLocalNote = (
-    noteId: number,
-    topic: NoteType,
-    itemId: string,
-    content: string
-  ) => {
+  const updateLocalNote = (noteId: number, topic: NoteType, itemId: string, content: string) => {
     // Debounce the queryClient updates to prevent rapid re-renders
     const debouncedUpdate = debounce(() => {
-      queryClient.setQueryData<TeamMember[]>(["teamMembers"], (oldData) => {
+      queryClient.setQueryData<TeamMember[]>(['teamMembers'], (oldData) => {
         if (!oldData) return oldData;
         return oldData.map((member) => {
           if (member.note_id === noteId) {
             const updatedNotes =
               member[topic]?.map((item) =>
-                item.id === itemId
-                  ? { ...item, content: DOMPurify.sanitize(content) }
-                  : item
+                item.id === itemId ? { ...item, content: DOMPurify.sanitize(content) } : item
               ) || [];
             return { ...member, [topic]: updatedNotes };
           }
@@ -384,19 +359,19 @@ export default function TeamWeeklyNotes() {
 
   const addLocalItem = (noteId: number, topic: NoteType) => {
     const optimisticUpdate = {
-      type: "addItem",
+      type: 'addItem',
       noteId,
       topic,
       itemId: Date.now().toString(),
     };
 
-    queryClient.setQueryData<TeamMember[]>(["teamMembers"], (oldData) => {
+    queryClient.setQueryData<TeamMember[]>(['teamMembers'], (oldData) => {
       if (!oldData) return oldData;
       return oldData.map((member) => {
         if (member.note_id === noteId) {
           const updatedNotes = [
             ...(member[topic] || []),
-            { id: optimisticUpdate.itemId, content: "" },
+            { id: optimisticUpdate.itemId, content: '' },
           ];
           return { ...member, [topic]: updatedNotes };
         }
@@ -405,18 +380,16 @@ export default function TeamWeeklyNotes() {
     });
 
     // Store the optimistic update
-    const previousData = queryClient.getQueryData<TeamMember[]>([
-      "teamMembers",
-    ]);
-    queryClient.setQueryData(["optimisticUpdates"], (old: any[] = []) => [
+    const previousData = queryClient.getQueryData<TeamMember[]>(['teamMembers']);
+    queryClient.setQueryData(['optimisticUpdates'], (old: any[] = []) => [
       ...old,
       optimisticUpdate,
     ]);
 
     // Revert if needed
     return () => {
-      queryClient.setQueryData<TeamMember[]>(["teamMembers"], previousData);
-      queryClient.setQueryData(["optimisticUpdates"], (updates: any[] = []) =>
+      queryClient.setQueryData<TeamMember[]>(['teamMembers'], previousData);
+      queryClient.setQueryData(['optimisticUpdates'], (updates: any[] = []) =>
         updates.filter((u) => u !== optimisticUpdate)
       );
     };
@@ -424,12 +397,11 @@ export default function TeamWeeklyNotes() {
 
   const removeLocalItem = (noteId: number, topic: NoteType, itemId: string) => {
     const debouncedRemove = debounce(() => {
-      queryClient.setQueryData<TeamMember[]>(["teamMembers"], (oldData) => {
+      queryClient.setQueryData<TeamMember[]>(['teamMembers'], (oldData) => {
         if (!oldData) return oldData;
         return oldData.map((member) => {
           if (member.note_id === noteId) {
-            const updatedNotes =
-              member[topic]?.filter((item) => item.id !== itemId) || [];
+            const updatedNotes = member[topic]?.filter((item) => item.id !== itemId) || [];
             return { ...member, [topic]: updatedNotes };
           }
           return member;
@@ -446,7 +418,7 @@ export default function TeamWeeklyNotes() {
       updateNoteMutation.mutate(member, {
         onSuccess: () => {
           // console.log("Mutation successful, showing toast");
-          toast.success("Notes saved successfully");
+          toast.success('Notes saved successfully');
         },
       });
     }
@@ -454,21 +426,14 @@ export default function TeamWeeklyNotes() {
 
   const filteredTeamMembers = useMemo(() => {
     if (!currentEmployee) return [];
-    if (
-      currentEmployee.role === "super admin" ||
-      currentEmployee.role === "dev"
-    ) {
+    if (currentEmployee.role === 'super admin' || currentEmployee.role === 'dev') {
       return teamMembers;
     }
-    return teamMembers.filter(
-      (member) => member.employee_id === currentEmployee.employee_id
-    );
+    return teamMembers.filter((member) => member.employee_id === currentEmployee.employee_id);
   }, [teamMembers, currentEmployee]);
 
   const hasAddedSelf = useMemo(() => {
-    return teamMembers.some(
-      (member) => member.employee_id === currentEmployee?.employee_id
-    );
+    return teamMembers.some((member) => member.employee_id === currentEmployee?.employee_id);
   }, [teamMembers, currentEmployee]);
 
   const groupedDiscussedNotes = useMemo(() => {
@@ -497,14 +462,12 @@ export default function TeamWeeklyNotes() {
   }, [discussedNotes]);
 
   return (
-    <RoleBasedWrapper
-      allowedRoles={["auditor", "admin", "ceo", "super admin", "dev"]}
-    >
+    <RoleBasedWrapper allowedRoles={['auditor', 'admin', 'ceo', 'super admin', 'dev']}>
       <div
         className={`relative ${
-          state === "collapsed"
-            ? "w-full md:w-[calc(100vw-20rem)] lg:w-[calc(100vw-20rem)]"
-            : "w-full md:w-[calc(100vw-25rem)] lg:w-[calc(100vw-25rem)]"
+          state === 'collapsed'
+            ? 'w-full md:w-[calc(100vw-20rem)] lg:w-[calc(100vw-20rem)]'
+            : 'w-full md:w-[calc(100vw-25rem)] lg:w-[calc(100vw-25rem)]'
         } mx-auto ml-0 md:ml-4 h-full overflow-auto flex-1 transition-all duration-300`}
       >
         <main className="grid flex-1 items-start my-4 mb-4 max-w-8xl gap-4 p-2 sm:p-4 sm:px-6 sm:py-0 md:gap-8">
@@ -517,16 +480,16 @@ export default function TeamWeeklyNotes() {
                 onClick={addYourself}
                 disabled={
                   hasAddedSelf &&
-                  currentEmployee?.role !== "super admin" &&
-                  currentEmployee?.role !== "dev"
+                  currentEmployee?.role !== 'super admin' &&
+                  currentEmployee?.role !== 'dev'
                 }
               >
                 Add Yourself
               </Button>
               <label>
                 <span>
-                  If this is your first time, add yourself to the meeting by
-                  clicking the button above.
+                  If this is your first time, add yourself to the meeting by clicking the button
+                  above.
                 </span>
               </label>
             </div>
@@ -537,9 +500,7 @@ export default function TeamWeeklyNotes() {
               <TabsList>
                 <TabsTrigger value="weekly-notes">Team Updates</TabsTrigger>
                 <TabsTrigger value="edit-notes">Edit Your Notes</TabsTrigger>
-                <TabsTrigger value="discussed-notes">
-                  Discussed Topics
-                </TabsTrigger>
+                <TabsTrigger value="discussed-notes">Discussed Topics</TabsTrigger>
               </TabsList>
             </div>
 
@@ -548,25 +509,20 @@ export default function TeamWeeklyNotes() {
                 <TabsContent value="weekly-notes">
                   <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                     {teamMembers.map((member) => {
-                      const employee = employees.find(
-                        (e) => e.employee_id === member.employee_id
-                      );
+                      const employee = employees.find((e) => e.employee_id === member.employee_id);
                       return (
                         <Card key={member.note_id}>
                           <CardHeader>
                             <CardTitle>
                               <span className="text-xl font-semibold">
-                                {employee?.name ||
-                                  `Employee ID: ${member.employee_id}`}
+                                {employee?.name || `Employee ID: ${member.employee_id}`}
                               </span>
                             </CardTitle>
                           </CardHeader>
                           <CardContent className="ml-6">
                             {topics.map((topic) => (
                               <div key={topic} className="mb-2">
-                                <h3 className="font-semibold">
-                                  {topicDisplayNames[topic]}
-                                </h3>
+                                <h3 className="font-semibold">{topicDisplayNames[topic]}</h3>
                                 <ul className="list-none ml-2">
                                   {member[topic]?.length ? (
                                     member[topic].map((item) => (
@@ -575,10 +531,9 @@ export default function TeamWeeklyNotes() {
                                         className="flex items-start text-sm group relative"
                                       >
                                         <Dot className="h-4 w-4 mt-1 mr-1 flex-shrink-0" />
-                                        <span>{item.content || ""}</span>
-                                        {(currentEmployee?.role === "dev" ||
-                                          currentEmployee?.role ===
-                                            "admin") && (
+                                        <span>{item.content || ''}</span>
+                                        {(currentEmployee?.role === 'dev' ||
+                                          currentEmployee?.role === 'admin') && (
                                           <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
                                               <Button
@@ -594,21 +549,15 @@ export default function TeamWeeklyNotes() {
                                                 onClick={() => {
                                                   const employeeName =
                                                     employees.find(
-                                                      (e) =>
-                                                        e.employee_id ===
-                                                        member.employee_id
-                                                    )?.name || "Unknown";
+                                                      (e) => e.employee_id === member.employee_id
+                                                    )?.name || 'Unknown';
 
-                                                  markAsDiscussedMutation.mutate(
-                                                    {
-                                                      content: item.content,
-                                                      topic,
-                                                      employeeId:
-                                                        member.employee_id,
-                                                      employeeName:
-                                                        employeeName,
-                                                    }
-                                                  );
+                                                  markAsDiscussedMutation.mutate({
+                                                    content: item.content,
+                                                    topic,
+                                                    employeeId: member.employee_id,
+                                                    employeeName: employeeName,
+                                                  });
                                                 }}
                                               >
                                                 Mark as Discussed
@@ -647,16 +596,13 @@ export default function TeamWeeklyNotes() {
                 <TabsContent value="edit-notes">
                   <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {filteredTeamMembers.map((member) => {
-                      const employee = employees.find(
-                        (e) => e.employee_id === member.employee_id
-                      );
+                      const employee = employees.find((e) => e.employee_id === member.employee_id);
                       return (
                         <Card key={member.note_id} className="relative">
                           <CardHeader>
                             <CardTitle>
                               <p className="text-xl font-semibold">
-                                {employee?.name ||
-                                  `Employee ID: ${member.employee_id}`}
+                                {employee?.name || `Employee ID: ${member.employee_id}`}
                               </p>
                             </CardTitle>
                           </CardHeader>
@@ -665,15 +611,12 @@ export default function TeamWeeklyNotes() {
                               <div key={topic} className="mb-4">
                                 <Label>{topicDisplayNames[topic]}</Label>
                                 <div className="mt-1">
-                                  {" "}
+                                  {' '}
                                   {/* Add this wrapper div */}
                                   {(member[topic]?.length ?? 0) > 0 ? (
                                     // Render existing notes if they exist
                                     member[topic]?.map((item) => (
-                                      <div
-                                        key={item.id}
-                                        className="mt-1 flex items-center gap-2"
-                                      >
+                                      <div key={item.id} className="mt-1 flex items-center gap-2">
                                         <Textarea
                                           defaultValue={item.content}
                                           onChange={(e) => {
@@ -692,11 +635,7 @@ export default function TeamWeeklyNotes() {
                                           variant="ghost"
                                           size="icon"
                                           onClick={() =>
-                                            removeLocalItem(
-                                              member.note_id,
-                                              topic,
-                                              item.id
-                                            )
+                                            removeLocalItem(member.note_id, topic, item.id)
                                           }
                                         >
                                           <Minus className="h-4 w-4" />
@@ -712,9 +651,7 @@ export default function TeamWeeklyNotes() {
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() =>
-                                      addLocalItem(member.note_id, topic)
-                                    }
+                                    onClick={() => addLocalItem(member.note_id, topic)}
                                     className="mt-2"
                                   >
                                     <Plus className="h-4 w-4 mr-1" /> Add Item
@@ -724,33 +661,24 @@ export default function TeamWeeklyNotes() {
                             ))}
                           </CardContent>
                           <CardFooter className="flex justify-between">
-                            {(currentEmployee?.role === "super admin" ||
-                              currentEmployee?.role === "dev") && (
+                            {(currentEmployee?.role === 'super admin' ||
+                              currentEmployee?.role === 'dev') && (
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                  <Button variant="destructive">
-                                    Remove Employee
-                                  </Button>
+                                  <Button variant="destructive">Remove Employee</Button>
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
                                   <AlertDialogHeader>
-                                    <AlertDialogTitle>
-                                      Are you absolutely sure?
-                                    </AlertDialogTitle>
+                                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      This action cannot be undone. This will
-                                      permanently delete the employee&apos;s
-                                      notes and remove them from the team.
+                                      This action cannot be undone. This will permanently delete the
+                                      employee&apos;s notes and remove them from the team.
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
-                                    <AlertDialogCancel>
-                                      Cancel
-                                    </AlertDialogCancel>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
                                     <AlertDialogAction
-                                      onClick={() =>
-                                        handleRemoveEmployee(member.employee_id)
-                                      }
+                                      onClick={() => handleRemoveEmployee(member.employee_id)}
                                     >
                                       Remove
                                     </AlertDialogAction>
@@ -758,10 +686,7 @@ export default function TeamWeeklyNotes() {
                                 </AlertDialogContent>
                               </AlertDialog>
                             )}
-                            <Button
-                              variant="outline"
-                              onClick={() => saveChanges(member.note_id)}
-                            >
+                            <Button variant="outline" onClick={() => saveChanges(member.note_id)}>
                               Save Changes
                             </Button>
                           </CardFooter>
@@ -776,8 +701,7 @@ export default function TeamWeeklyNotes() {
                     {Object.values(groupedDiscussedNotes)
                       .sort(
                         (a, b) =>
-                          new Date(b.meeting_date).getTime() -
-                          new Date(a.meeting_date).getTime()
+                          new Date(b.meeting_date).getTime() - new Date(a.meeting_date).getTime()
                       )
                       .map((dateGroup) => {
                         // Convert UTC date from Supabase to Pacific time
@@ -788,15 +712,13 @@ export default function TeamWeeklyNotes() {
                         const formattedDate = formatInTimeZone(
                           utcDate,
                           TIME_ZONE,
-                          "EEEE, MMMM d, yyyy"
+                          'EEEE, MMMM d, yyyy'
                         );
 
                         return (
                           <Card key={dateGroup.meeting_date}>
                             <CardHeader>
-                              <CardTitle>
-                                Meeting Notes - {formattedDate}
-                              </CardTitle>
+                              <CardTitle>Meeting Notes - {formattedDate}</CardTitle>
                             </CardHeader>
                             <CardContent>
                               {topics.map((topic) => (
@@ -817,17 +739,14 @@ export default function TeamWeeklyNotes() {
                                         <span className="text-sm text-muted-foreground ml-2">
                                           {note.employee_name}
                                         </span>
-                                        {(currentEmployee?.role === "dev" ||
-                                          currentEmployee?.role ===
-                                            "admin") && (
+                                        {(currentEmployee?.role === 'dev' ||
+                                          currentEmployee?.role === 'admin') && (
                                           <Button
                                             variant="outline"
                                             size="sm"
                                             className="opacity-0 group-hover:opacity-100 absolute right-0"
                                             onClick={() =>
-                                              removeDiscussedNoteMutation.mutate(
-                                                note.id
-                                              )
+                                              removeDiscussedNoteMutation.mutate(note.id)
                                             }
                                           >
                                             Remove

@@ -1,9 +1,9 @@
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
-import { toZonedTime, format as formatTZ } from "date-fns-tz";
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
+import { NextResponse } from 'next/server';
+import { toZonedTime, format as formatTZ } from 'date-fns-tz';
 
-const timeZone = "America/Los_Angeles";
+const timeZone = 'America/Los_Angeles';
 
 // Helper functions
 function calculateMonthlyGrowthRate(salesData: any[]) {
@@ -25,7 +25,7 @@ function calculateMonthlyGrowthRate(salesData: any[]) {
 // Revenue endpoint
 export async function GET(req: Request) {
   const url = new URL(req.url);
-  const endpoint = url.pathname.split("/").pop();
+  const endpoint = url.pathname.split('/').pop();
   const supabase = createRouteHandlerClient({ cookies });
 
   try {
@@ -34,19 +34,15 @@ export async function GET(req: Request) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Handle revenue endpoint
-    if (endpoint === "revenue") {
-      const startDate = "2024-01-01";
-      const endDate = formatTZ(
-        toZonedTime(new Date(), timeZone),
-        "yyyy-MM-dd",
-        { timeZone }
-      );
+    if (endpoint === 'revenue') {
+      const startDate = '2024-01-01';
+      const endDate = formatTZ(toZonedTime(new Date(), timeZone), 'yyyy-MM-dd', { timeZone });
 
-      const { data, error } = await supabase.rpc("calculate_monthly_revenue", {
+      const { data, error } = await supabase.rpc('calculate_monthly_revenue', {
         start_date: startDate,
         end_date: endDate,
       });
@@ -54,29 +50,32 @@ export async function GET(req: Request) {
       if (error) throw error;
 
       const months = [
-        "Jan 2024",
-        "Feb 2024",
-        "Mar 2024",
-        "Apr 2024",
-        "May 2024",
-        "Jun 2024",
-        "Jul 2024",
-        "Aug 2024",
-        "Sep 2024",
-        "Oct 2024",
-        "Nov 2024",
-        "Dec 2024",
+        'Jan 2024',
+        'Feb 2024',
+        'Mar 2024',
+        'Apr 2024',
+        'May 2024',
+        'Jun 2024',
+        'Jul 2024',
+        'Aug 2024',
+        'Sep 2024',
+        'Oct 2024',
+        'Nov 2024',
+        'Dec 2024',
       ];
 
-      const monthlyRevenue = months.reduce((acc, month) => {
-        acc[month] = 0;
-        return acc;
-      }, {} as Record<string, number>);
+      const monthlyRevenue = months.reduce(
+        (acc, month) => {
+          acc[month] = 0;
+          return acc;
+        },
+        {} as Record<string, number>
+      );
 
       data?.forEach((row: any) => {
         const date = toZonedTime(new Date(row.month), timeZone);
         date.setDate(date.getDate() + 1);
-        const monthKey = formatTZ(date, "MMM yyyy", { timeZone });
+        const monthKey = formatTZ(date, 'MMM yyyy', { timeZone });
         monthlyRevenue[monthKey] = Number(row.revenue);
       });
 
@@ -89,11 +88,11 @@ export async function GET(req: Request) {
     }
 
     // Handle metrics endpoint
-    if (endpoint === "metrics") {
+    if (endpoint === 'metrics') {
       const { data: salesData, error } = await supabase
-        .from("sales_data")
-        .select("*")
-        .order("date", { ascending: true });
+        .from('sales_data')
+        .select('*')
+        .order('date', { ascending: true });
 
       if (error) {
         return NextResponse.json({ error: error.message }, { status: 500 });
@@ -103,19 +102,15 @@ export async function GET(req: Request) {
         revenue: salesData.reduce((acc, curr) => acc + curr.amount, 0),
         totalTransactions: salesData.length,
         avgTransactionValue:
-          salesData.reduce((acc, curr) => acc + curr.amount, 0) /
-          salesData.length,
+          salesData.reduce((acc, curr) => acc + curr.amount, 0) / salesData.length,
         monthlyGrowthRate: calculateMonthlyGrowthRate(salesData),
       };
 
       return NextResponse.json(metrics);
     }
 
-    return NextResponse.json({ error: "Invalid endpoint" }, { status: 404 });
+    return NextResponse.json({ error: 'Invalid endpoint' }, { status: 404 });
   } catch (error) {
-    return NextResponse.json(
-      { error: "Failed to fetch data" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to fetch data' }, { status: 500 });
   }
 }

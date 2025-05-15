@@ -1,29 +1,25 @@
-"use client";
+'use client';
 
-import { useEffect, useRef, useState } from "react";
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-} from "@/components/ui/popover";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+import { useEffect, useRef, useState } from 'react';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { toast } from "sonner";
-import { CustomCalendar } from "@/components/ui/calendar";
-import { CalendarIcon } from "@radix-ui/react-icons";
-import { format } from "date-fns";
-import { supabase } from "@/utils/supabase/client";
-import { Task } from "../review/data-schema";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+} from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { toast } from 'sonner';
+import { CustomCalendar } from '@/components/ui/calendar';
+import { CalendarIcon } from '@radix-ui/react-icons';
+import { format } from 'date-fns';
+import { supabase } from '@/utils/supabase/client';
+import { Task } from '../review/data-schema';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 interface PopoverFormProps {
   onSubmit: (formData: SubmitFormData) => void;
@@ -44,10 +40,7 @@ interface FormData {
   errorNotes: string;
 }
 
-export type SubmitFormData = Omit<
-  FormData,
-  "transDate" | "auditDate" | "drosCancel"
-> & {
+export type SubmitFormData = Omit<FormData, 'transDate' | 'auditDate' | 'drosCancel'> & {
   transDate: string;
   auditDate: string;
   drosCancel: string;
@@ -58,33 +51,25 @@ type OptionType = {
   value: string;
 };
 
-export const PopoverForm: React.FC<PopoverFormProps> = ({
-  onSubmit,
-  audit,
-  placeholder,
-}) => {
+export const PopoverForm: React.FC<PopoverFormProps> = ({ onSubmit, audit, placeholder }) => {
   const [formData, setFormData] = useState<FormData>(() => ({
     audits_id: audit?.audits_id || audit?.id || null,
-    drosNumber: audit?.dros_number || "",
-    salesRep: audit?.salesreps || "",
+    drosNumber: audit?.dros_number || '',
+    salesRep: audit?.salesreps || '',
     transDate: audit?.trans_date ? new Date(audit.trans_date) : new Date(),
     auditDate: audit?.audit_date ? new Date(audit.audit_date) : new Date(),
-    drosCancel: audit?.dros_cancel === "Yes",
-    auditType: audit?.audit_type || "",
-    errorLocation: audit?.error_location || "",
-    errorDetails: audit?.error_details || "",
-    errorNotes: audit?.error_notes || "",
+    drosCancel: audit?.dros_cancel === 'Yes',
+    auditType: audit?.audit_type || '',
+    errorLocation: audit?.error_location || '',
+    errorDetails: audit?.error_details || '',
+    errorNotes: audit?.error_notes || '',
   }));
 
   const [salesRepOptions, setSalesRepOptions] = useState<OptionType[]>([]);
   const [auditTypeOptions, setAuditTypeOptions] = useState<OptionType[]>([]);
-  const [errorLocationOptions, setErrorLocationOptions] = useState<
-    OptionType[]
-  >([]);
-  const [errorDetailsOptions, setErrorDetailsOptions] = useState<OptionType[]>(
-    []
-  );
-  const [popoverSide, setPopoverSide] = useState<"top" | "bottom">("bottom");
+  const [errorLocationOptions, setErrorLocationOptions] = useState<OptionType[]>([]);
+  const [errorDetailsOptions, setErrorDetailsOptions] = useState<OptionType[]>([]);
+  const [popoverSide, setPopoverSide] = useState<'top' | 'bottom'>('bottom');
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [position, setPosition] = useState({ top: 0, left: 0 });
@@ -114,12 +99,12 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
     };
 
     updatePosition();
-    window.addEventListener("scroll", updatePosition);
-    window.addEventListener("resize", updatePosition);
+    window.addEventListener('scroll', updatePosition);
+    window.addEventListener('resize', updatePosition);
 
     return () => {
-      window.removeEventListener("scroll", updatePosition);
-      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener('scroll', updatePosition);
+      window.removeEventListener('resize', updatePosition);
     };
   }, [isOpen]);
 
@@ -127,10 +112,10 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
 
   useEffect(() => {
     const fetchOptions = async () => {
-      const { data, error } = await supabase.from("Auditlists").select("*");
+      const { data, error } = await supabase.from('Auditlists').select('*');
       if (error) {
         //console.("Error fetching options:", error);
-        toast.error("Failed to fetch dropdown options");
+        toast.error('Failed to fetch dropdown options');
       } else if (data) {
         const options: {
           salesRep: Set<string>;
@@ -192,16 +177,16 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
       audits_id: formData.audits_id,
       drosNumber: formData.drosNumber,
       salesRep: formData.salesRep,
-      transDate: format(formData.transDate, "yyyy-MM-dd"),
-      auditDate: format(formData.auditDate, "yyyy-MM-dd"),
-      drosCancel: formData.drosCancel ? "Yes" : "",
+      transDate: format(formData.transDate, 'yyyy-MM-dd'),
+      auditDate: format(formData.auditDate, 'yyyy-MM-dd'),
+      drosCancel: formData.drosCancel ? 'Yes' : '',
       auditType: formData.auditType,
       errorLocation: formData.errorLocation,
       errorDetails: formData.errorDetails,
       errorNotes: formData.errorNotes,
     };
     onSubmit(submitData);
-    toast.success("Audit submitted successfully!");
+    toast.success('Audit submitted successfully!');
   };
 
   return (
@@ -219,9 +204,7 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
             <div className="flex items-center space-x-2">
               <Checkbox
                 checked={formData.drosCancel}
-                onCheckedChange={(checked) =>
-                  handleChange("drosCancel", checked)
-                }
+                onCheckedChange={(checked) => handleChange('drosCancel', checked)}
               />
               <Label>Cancelled DROS</Label>
             </div>
@@ -230,7 +213,7 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
               <Label>DROS Number</Label>
               <Input
                 value={formData.drosNumber}
-                onChange={(e) => handleChange("drosNumber", e.target.value)}
+                onChange={(e) => handleChange('drosNumber', e.target.value)}
                 placeholder="Enter DROS Number"
               />
             </div>
@@ -239,7 +222,7 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
               <Label>Sales Rep</Label>
               <Select
                 value={formData.salesRep}
-                onValueChange={(value) => handleChange("salesRep", value)}
+                onValueChange={(value) => handleChange('salesRep', value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select Sales Rep" />
@@ -258,12 +241,9 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
               <Label>Transaction Date</Label>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="w-full pl-3 text-left font-normal"
-                  >
+                  <Button variant="outline" className="w-full pl-3 text-left font-normal">
                     {formData.transDate ? (
-                      format(formData.transDate, "M/dd/yyyy")
+                      format(formData.transDate, 'M/dd/yyyy')
                     ) : (
                       <span>Pick a date</span>
                     )}
@@ -273,10 +253,8 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
                 <PopoverContent className="w-auto p-0" align="start">
                   <CustomCalendar
                     selectedDate={formData.transDate}
-                    onDateChange={(date) => handleChange("transDate", date)}
-                    disabledDays={(date) =>
-                      date > new Date() || date < new Date("1900-01-01")
-                    }
+                    onDateChange={(date) => handleChange('transDate', date)}
+                    disabledDays={(date) => date > new Date() || date < new Date('1900-01-01')}
                   />
                 </PopoverContent>
               </Popover>
@@ -286,7 +264,7 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
               <Label>Audit Type</Label>
               <Select
                 value={formData.auditType}
-                onValueChange={(value) => handleChange("auditType", value)}
+                onValueChange={(value) => handleChange('auditType', value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select Audit Type" />
@@ -305,7 +283,7 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
               <Label>Error Location</Label>
               <Select
                 value={formData.errorLocation}
-                onValueChange={(value) => handleChange("errorLocation", value)}
+                onValueChange={(value) => handleChange('errorLocation', value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select Error Location" />
@@ -324,7 +302,7 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
               <Label>Error Details</Label>
               <Select
                 value={formData.errorDetails}
-                onValueChange={(value) => handleChange("errorDetails", value)}
+                onValueChange={(value) => handleChange('errorDetails', value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select Error Details" />
@@ -343,7 +321,7 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
               <Label>Error Notes</Label>
               <Input
                 value={formData.errorNotes}
-                onChange={(e) => handleChange("errorNotes", e.target.value)}
+                onChange={(e) => handleChange('errorNotes', e.target.value)}
                 placeholder="Enter Error Notes"
               />
             </div>

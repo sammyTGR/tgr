@@ -1,4 +1,4 @@
-import { FC, useState, useEffect, useCallback, useMemo } from "react";
+import { FC, useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Table,
   TableBody,
@@ -6,31 +6,27 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { format, isSameDay, parse } from "date-fns";
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-} from "@/components/ui/popover";
-import { Button } from "@/components/ui/button";
-import { CalendarIcon } from "lucide-react";
-import { CustomCalendarMulti } from "@/components/ui/calendar";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+} from '@/components/ui/table';
+import { format, isSameDay, parse } from 'date-fns';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
+import { CalendarIcon } from 'lucide-react';
+import { CustomCalendarMulti } from '@/components/ui/calendar';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import {
   Select,
   SelectTrigger,
   SelectValue,
   SelectContent,
   SelectItem,
-} from "@/components/ui/select";
-import { supabase } from "@/utils/supabase/client";
-import { ChevronDown, ChevronRight } from "lucide-react";
-import React from "react";
-import { toast } from "sonner";
-import { TimesheetRowActions } from "./timesheet-row-actions";
-import { ReconcileDialogForm } from "./reconcile-popoverform";
-import { addDays, startOfWeek, endOfWeek } from "date-fns";
+} from '@/components/ui/select';
+import { supabase } from '@/utils/supabase/client';
+import { ChevronDown, ChevronRight } from 'lucide-react';
+import React from 'react';
+import { toast } from 'sonner';
+import { TimesheetRowActions } from './timesheet-row-actions';
+import { ReconcileDialogForm } from './reconcile-popoverform';
+import { addDays, startOfWeek, endOfWeek } from 'date-fns';
 
 export interface TimesheetReport {
   id: number;
@@ -55,9 +51,7 @@ export interface TimesheetReport {
 
 interface TimesheetTableProps {
   data: TimesheetReport[];
-  onDataUpdate: (
-    updater: (prevData: TimesheetReport[]) => TimesheetReport[]
-  ) => void;
+  onDataUpdate: (updater: (prevData: TimesheetReport[]) => TimesheetReport[]) => void;
   onFilteredDataUpdate: (filteredData: TimesheetReport[]) => void;
   selectedPayPeriod: string | null;
 }
@@ -68,9 +62,9 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({
   onFilteredDataUpdate,
   selectedPayPeriod: initialSelectedPayPeriod,
 }) => {
-  const [localSelectedPayPeriod, setLocalSelectedPayPeriod] = useState<
-    string | null
-  >(initialSelectedPayPeriod);
+  const [localSelectedPayPeriod, setLocalSelectedPayPeriod] = useState<string | null>(
+    initialSelectedPayPeriod
+  );
   const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
   const [isAllExpanded, setIsAllExpanded] = useState(false);
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
@@ -78,22 +72,14 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({
   const [sickTimeData, setSickTimeData] = useState<
     { employee_id: number; available_sick_time: number }[]
   >([]);
-  const [employees, setEmployees] = useState<
-    { employee_id: number; name: string }[]
-  >([]);
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | null>(
-    null
-  );
-  const [selectedPayPeriod, setSelectedPayPeriod] = useState<string | null>(
-    null
-  );
+  const [employees, setEmployees] = useState<{ employee_id: number; name: string }[]>([]);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | null>(null);
+  const [selectedPayPeriod, setSelectedPayPeriod] = useState<string | null>(null);
 
   // Fetch employee list
   useEffect(() => {
     const fetchEmployees = async () => {
-      const { data, error } = await supabase
-        .from("employees")
-        .select("employee_id, name");
+      const { data, error } = await supabase.from('employees').select('employee_id, name');
       if (error) {
         //console.("Error fetching employees:", error);
       } else {
@@ -106,7 +92,7 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({
   // Fetch sick time data
   useEffect(() => {
     const fetchSickTimeData = async () => {
-      const { data, error } = await supabase.rpc("get_all_sick_time_data");
+      const { data, error } = await supabase.rpc('get_all_sick_time_data');
       if (error) {
         //console.("Error fetching sick time data:", error);
       } else {
@@ -129,10 +115,7 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({
         weekStartsOn: 0,
       });
       periods.push({
-        label: `${format(periodStart, "MMM d")} - ${format(
-          periodEnd,
-          "MMM d, yyyy"
-        )}`,
+        label: `${format(periodStart, 'MMM d')} - ${format(periodEnd, 'MMM d, yyyy')}`,
         start: periodStart,
         end: periodEnd,
       });
@@ -149,9 +132,7 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({
     (data: TimesheetReport[]) => {
       if (!localSelectedPayPeriod) return data;
 
-      const selectedPeriod = payPeriods.find(
-        (p) => p.label === localSelectedPayPeriod
-      );
+      const selectedPeriod = payPeriods.find((p) => p.label === localSelectedPayPeriod);
       if (!selectedPeriod) return data;
 
       return data.filter((row) => {
@@ -163,16 +144,13 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({
     [localSelectedPayPeriod, payPeriods]
   );
 
-  const handleReconcileHours = async (
-    row: TimesheetReport,
-    hoursToReconcile: number
-  ) => {
+  const handleReconcileHours = async (row: TimesheetReport, hoursToReconcile: number) => {
     // console.log("Reconciling hours:", { row, hoursToReconcile });
     try {
-      const response = await fetch("/api/reconcile-hours", {
-        method: "POST",
+      const response = await fetch('/api/reconcile-hours', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           employeeId: row.employee_id,
@@ -185,7 +163,7 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to reconcile hours");
+        throw new Error(errorData.error || 'Failed to reconcile hours');
       }
 
       const updatedRow = await response.json();
@@ -207,23 +185,23 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({
       // Trigger a refresh of the data
       setLatestUpdate(Date.now());
 
-      toast.success("Hours reconciled successfully");
+      toast.success('Hours reconciled successfully');
     } catch (error: any) {
       //console.("Error reconciling hours:", error);
-      toast.error(error.message || "Failed to reconcile hours");
+      toast.error(error.message || 'Failed to reconcile hours');
     }
   };
 
   useEffect(() => {
     if (latestUpdate) {
       const refreshData = async () => {
-        const { data, error } = await supabase.rpc("get_timesheet_data");
+        const { data, error } = await supabase.rpc('get_timesheet_data');
         if (error) {
           // console.error(
           //   "Error fetching updated timesheet data:",
           //   error.message
           // );
-          toast.error("Failed to refresh data");
+          toast.error('Failed to refresh data');
         } else {
           onDataUpdate(() => data as TimesheetReport[]);
           // console.log("Data refreshed successfully");
@@ -236,12 +214,7 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({
 
   const handlePayPeriodChange = (value: string | null) => {
     setLocalSelectedPayPeriod(value);
-    const newFilteredData = filterData(
-      data,
-      value,
-      selectedDates,
-      selectedEmployeeId
-    );
+    const newFilteredData = filterData(data, value, selectedDates, selectedEmployeeId);
     onFilteredDataUpdate(newFilteredData);
   };
 
@@ -253,16 +226,13 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({
     employeeId: number | null
   ) => {
     return data.filter((row) => {
-      const rowDate = new Date(row.event_date || "");
+      const rowDate = new Date(row.event_date || '');
 
       // Pay period filter
-      const isPeriodMatch = payPeriod
-        ? isDateInPayPeriod(rowDate, payPeriod, payPeriods)
-        : true;
+      const isPeriodMatch = payPeriod ? isDateInPayPeriod(rowDate, payPeriod, payPeriods) : true;
 
       // Date range filter
-      const isInDateRange =
-        dates.length === 0 || dates.some((date) => isSameDay(date, rowDate));
+      const isInDateRange = dates.length === 0 || dates.some((date) => isSameDay(date, rowDate));
 
       // Employee filter
       const isEmployeeMatch = !employeeId || row.employee_id === employeeId;
@@ -272,33 +242,27 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({
   };
 
   // Helper function to check if a date is within a pay period
-  const isDateInPayPeriod = (
-    date: Date,
-    payPeriodLabel: string,
-    periods: any[]
-  ) => {
+  const isDateInPayPeriod = (date: Date, payPeriodLabel: string, periods: any[]) => {
     const period = periods.find((p) => p.label === payPeriodLabel);
     return period ? date >= period.start && date <= period.end : false;
   };
 
   // Filter data based on selected dates and employee
   const filteredData = useMemo(() => {
-    return filterData(
-      data,
-      localSelectedPayPeriod,
-      selectedDates,
-      selectedEmployeeId
-    );
+    return filterData(data, localSelectedPayPeriod, selectedDates, selectedEmployeeId);
   }, [data, localSelectedPayPeriod, selectedDates, selectedEmployeeId]);
 
   // Group and sort data by employee and event_date
-  const groupedData = filteredData.reduce((acc, row) => {
-    if (!acc[row.employee_id]) {
-      acc[row.employee_id] = [];
-    }
-    acc[row.employee_id].push(row);
-    return acc;
-  }, {} as Record<number, TimesheetReport[]>);
+  const groupedData = filteredData.reduce(
+    (acc, row) => {
+      if (!acc[row.employee_id]) {
+        acc[row.employee_id] = [];
+      }
+      acc[row.employee_id].push(row);
+      return acc;
+    },
+    {} as Record<number, TimesheetReport[]>
+  );
 
   Object.keys(groupedData).forEach((employee_id) => {
     groupedData[parseInt(employee_id)].sort((a, b) => {
@@ -320,10 +284,13 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({
     if (isAllExpanded) {
       setExpandedRows({});
     } else {
-      const expandAll = allEmployeeIds.reduce((acc, id) => {
-        acc[id] = true;
-        return acc;
-      }, {} as Record<number, boolean>);
+      const expandAll = allEmployeeIds.reduce(
+        (acc, id) => {
+          acc[id] = true;
+          return acc;
+        },
+        {} as Record<number, boolean>
+      );
       setExpandedRows(expandAll);
     }
     setIsAllExpanded(!isAllExpanded);
@@ -343,21 +310,13 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({
                   {selectedDates.length > 0 ? (
                     <>
                       {format(
-                        new Date(
-                          Math.min(
-                            ...selectedDates.map((date) => date.getTime())
-                          )
-                        ),
-                        "M/dd"
-                      )}{" "}
-                      -{" "}
+                        new Date(Math.min(...selectedDates.map((date) => date.getTime()))),
+                        'M/dd'
+                      )}{' '}
+                      -{' '}
                       {format(
-                        new Date(
-                          Math.max(
-                            ...selectedDates.map((date) => date.getTime())
-                          )
-                        ),
-                        "M/dd"
+                        new Date(Math.max(...selectedDates.map((date) => date.getTime()))),
+                        'M/dd'
                       )}
                     </>
                   ) : (
@@ -394,7 +353,7 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({
           </CardHeader>
           <CardContent>
             <Select
-              value={selectedEmployeeId ? selectedEmployeeId.toString() : ""}
+              value={selectedEmployeeId ? selectedEmployeeId.toString() : ''}
               onValueChange={(value) => {
                 const newEmployeeId = Number(value);
                 setSelectedEmployeeId(newEmployeeId);
@@ -409,10 +368,7 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({
               </SelectTrigger>
               <SelectContent>
                 {employees.map((employee) => (
-                  <SelectItem
-                    key={employee.employee_id}
-                    value={employee.employee_id.toString()}
-                  >
+                  <SelectItem key={employee.employee_id} value={employee.employee_id.toString()}>
                     {employee.name}
                   </SelectItem>
                 ))}
@@ -434,10 +390,7 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({
             <CardTitle>Select Pay Period</CardTitle>
           </CardHeader>
           <CardContent>
-            <Select
-              value={localSelectedPayPeriod || ""}
-              onValueChange={handlePayPeriodChange}
-            >
+            <Select value={localSelectedPayPeriod || ''} onValueChange={handlePayPeriodChange}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select Pay Period" />
               </SelectTrigger>
@@ -462,7 +415,7 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({
 
         <div className="mr-2 ml-auto">
           <Button variant="linkHover1" onClick={handleExpandCollapseAll}>
-            {isAllExpanded ? "Collapse All" : "Expand All"}
+            {isAllExpanded ? 'Collapse All' : 'Expand All'}
           </Button>
         </div>
       </div>
@@ -509,34 +462,22 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({
                   <TableRow key={row.id}>
                     <TableCell></TableCell>
                     <TableCell>
-                      {row.event_date
-                        ? format(new Date(row.event_date), "M-dd-yyyy")
-                        : "N/A"}
+                      {row.event_date ? format(new Date(row.event_date), 'M-dd-yyyy') : 'N/A'}
                     </TableCell>
                     <TableCell>{row.start_time}</TableCell>
                     <TableCell>{row.end_time}</TableCell>
-                    <TableCell>{row.calculated_total_hours || "N/A"}</TableCell>
+                    <TableCell>{row.calculated_total_hours || 'N/A'}</TableCell>
                     <TableCell>{row.scheduled_hours?.toFixed(2)}</TableCell>
-                    <TableCell>
-                      {row.sick_time_usage?.toFixed(2) || "N/A"}
-                    </TableCell>
-                    <TableCell>
-                      {row.vacation_time_usage?.toFixed(2) || "N/A"}
-                    </TableCell>
+                    <TableCell>{row.sick_time_usage?.toFixed(2) || 'N/A'}</TableCell>
+                    <TableCell>{row.vacation_time_usage?.toFixed(2) || 'N/A'}</TableCell>
                     <TableCell>{row.regular_time.toFixed(2)}</TableCell>
                     <TableCell>{row.overtime.toFixed(2)}</TableCell>
-                    <TableCell>
-                      {row.available_sick_time?.toFixed(2) || "N/A"}
-                    </TableCell>
-                    <TableCell>
-                      {row.total_hours_with_sick?.toFixed(2) || "N/A"}
-                    </TableCell>
+                    <TableCell>{row.available_sick_time?.toFixed(2) || 'N/A'}</TableCell>
+                    <TableCell>{row.total_hours_with_sick?.toFixed(2) || 'N/A'}</TableCell>
                     <TableCell>
                       <TimesheetRowActions
                         row={row}
-                        onReconcile={(row, hours) =>
-                          handleReconcileHours(row, hours)
-                        }
+                        onReconcile={(row, hours) => handleReconcileHours(row, hours)}
                       />
                     </TableCell>
                   </TableRow>

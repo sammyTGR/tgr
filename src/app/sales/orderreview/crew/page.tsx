@@ -1,21 +1,21 @@
-"use client";
-import { useCallback, useEffect, useState } from "react";
-import { supabase } from "@/utils/supabase/client";
-import { Order, createColumns } from "../crewcolumns";
-import { DataTable } from "../crew-data-table";
-import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
-import { OrderTableToolbar } from "../order-table-toolbar";
+'use client';
+import { useCallback, useEffect, useState } from 'react';
+import { supabase } from '@/utils/supabase/client';
+import { Order, createColumns } from '../crewcolumns';
+import { DataTable } from '../crew-data-table';
+import { TextGenerateEffect } from '@/components/ui/text-generate-effect';
+import { OrderTableToolbar } from '../order-table-toolbar';
 import {
   useReactTable,
   getCoreRowModel,
   getPaginationRowModel,
   getFilteredRowModel,
   getSortedRowModel,
-} from "@tanstack/react-table";
-import RoleBasedWrapper from "@/components/RoleBasedWrapper";
-import { useSidebar } from "@/components/ui/sidebar";
+} from '@tanstack/react-table';
+import RoleBasedWrapper from '@/components/RoleBasedWrapper';
+import { useSidebar } from '@/components/ui/sidebar';
 
-const title = "Check Order Status";
+const title = 'Check Order Status';
 
 export default function OrdersReviewPage() {
   const { state } = useSidebar();
@@ -24,12 +24,12 @@ export default function OrdersReviewPage() {
 
   const fetchOrderData = useCallback(async () => {
     const { data, error } = await supabase
-      .from("orders")
-      .select("*")
-      .order("created_at", { ascending: false });
+      .from('orders')
+      .select('*')
+      .order('created_at', { ascending: false });
 
     if (error) {
-      console.error("Error fetching initial data:", error.message);
+      console.error('Error fetching initial data:', error.message);
       throw new Error(error.message);
     }
     return data as Order[];
@@ -42,7 +42,7 @@ export default function OrdersReviewPage() {
       setData(fetchedData);
       setLoading(false);
     } catch (error) {
-      console.error("Failed to fetch data:", error);
+      console.error('Failed to fetch data:', error);
       setLoading(false);
     }
   }, [fetchOrderData]);
@@ -64,26 +64,20 @@ export default function OrdersReviewPage() {
 
   useEffect(() => {
     const OrdersTableSubscription = supabase
-      .channel("custom-all-orders-channel")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "orders" },
-        (payload) => {
-          if (payload.eventType === "INSERT") {
-            setData((currentData) => [payload.new as Order, ...currentData]);
-          } else if (payload.eventType === "UPDATE") {
-            setData((currentData) =>
-              currentData.map((order) =>
-                order.id === payload.new.id ? (payload.new as Order) : order
-              )
-            );
-          } else if (payload.eventType === "DELETE") {
-            setData((currentData) =>
-              currentData.filter((order) => order.id !== payload.old.id)
-            );
-          }
+      .channel('custom-all-orders-channel')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          setData((currentData) => [payload.new as Order, ...currentData]);
+        } else if (payload.eventType === 'UPDATE') {
+          setData((currentData) =>
+            currentData.map((order) =>
+              order.id === payload.new.id ? (payload.new as Order) : order
+            )
+          );
+        } else if (payload.eventType === 'DELETE') {
+          setData((currentData) => currentData.filter((order) => order.id !== payload.old.id));
         }
-      )
+      })
       .subscribe();
 
     return () => {
@@ -92,16 +86,7 @@ export default function OrdersReviewPage() {
   }, [fetchData]);
 
   return (
-    <RoleBasedWrapper
-      allowedRoles={[
-        "gunsmith",
-        "user",
-        "auditor",
-        "admin",
-        "super admin",
-        "dev",
-      ]}
-    >
+    <RoleBasedWrapper allowedRoles={['gunsmith', 'user', 'auditor', 'admin', 'super admin', 'dev']}>
       <div
         className={`relative w-full ml-6 md:w-[calc(100vw-15rem)] md:ml-6 lg:w-[calc(100vw-15rem)] lg:ml-6 h-full overflow-hidden flex-1 transition-all duration-300`}
       >

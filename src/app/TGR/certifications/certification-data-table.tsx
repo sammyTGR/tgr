@@ -1,10 +1,6 @@
 // src/app/TGR/certifications/certification-data-table.tsx
-import * as React from "react";
-import {
-  ColumnDef,
-  flexRender,
-  Table as TanstackTable,
-} from "@tanstack/react-table";
+import * as React from 'react';
+import { ColumnDef, flexRender, Table as TanstackTable } from '@tanstack/react-table';
 import {
   Table,
   TableBody,
@@ -12,24 +8,24 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
+} from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { ChevronDown } from "lucide-react";
-import { CertificationDataTablePagination } from "./data-table-pagination";
-import { PopoverForm } from "./PopoverForm";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/utils/supabase/client";
-import { useSidebar } from "@/components/ui/sidebar";
-import RoleBasedWrapper from "@/components/RoleBasedWrapper";
-import classNames from "classnames";
-import styles from "./table.module.css";
+} from '@/components/ui/dropdown-menu';
+import { ChevronDown } from 'lucide-react';
+import { CertificationDataTablePagination } from './data-table-pagination';
+import { PopoverForm } from './PopoverForm';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/utils/supabase/client';
+import { useSidebar } from '@/components/ui/sidebar';
+import RoleBasedWrapper from '@/components/RoleBasedWrapper';
+import classNames from 'classnames';
+import styles from './table.module.css';
 
 export interface CertificationData {
   id: string;
@@ -63,11 +59,11 @@ export function CertificationDataTable({
   onAddCertificate,
 }: CertificationDataTableProps) {
   const { data: userRole } = useQuery({
-    queryKey: ["userRole"],
+    queryKey: ['userRole'],
     queryFn: async () => {
-      const response = await fetch("/api/getUserRole");
+      const response = await fetch('/api/getUserRole');
       if (!response.ok) {
-        throw new Error("Failed to fetch user role");
+        throw new Error('Failed to fetch user role');
       }
       const data = await response.json();
       return data;
@@ -77,16 +73,14 @@ export function CertificationDataTable({
 
   const { state } = useSidebar();
 
-  const isAdmin = ["admin", "super admin", "dev", "ceo"].includes(
-    userRole?.role
-  );
+  const isAdmin = ['admin', 'super admin', 'dev', 'ceo'].includes(userRole?.role);
 
   return (
     <div
       className={`flex flex-col max-h-full w-full md:w-[calc(100vw-15rem)] lg:w-[calc(100vw-20rem)] overflow-hidden transition-all duration-300`}
     >
       <div className="flex items-center justify-between">
-        <RoleBasedWrapper allowedRoles={["admin", "super admin", "dev", "ceo"]}>
+        <RoleBasedWrapper allowedRoles={['admin', 'super admin', 'dev', 'ceo']}>
           <Button variant="outline">
             <PopoverForm
               onSubmit={(_, updates) => onAddCertificate(updates)}
@@ -129,7 +123,7 @@ export function CertificationDataTable({
           <ScrollArea
             className={classNames(
               styles.noScroll,
-              "h-[calc(100vh-20rem)] w-full md:w-[calc(100vw-15rem)] lg:w-[calc(100vw-20rem)] overflow-hidden relative"
+              'h-[calc(100vh-20rem)] w-full md:w-[calc(100vw-15rem)] lg:w-[calc(100vw-20rem)] overflow-hidden relative'
             )}
           >
             <Table className="w-full md:w-[calc(100vw-15rem)] lg:w-[calc(100vw-20rem)] overflow-hidden transition-all duration-300">
@@ -146,10 +140,7 @@ export function CertificationDataTable({
                         <TableHead key={header.id} style={metaStyle}>
                           {header.isPlaceholder
                             ? null
-                            : flexRender(
-                                header.column.columnDef.header,
-                                header.getContext()
-                              )}
+                            : flexRender(header.column.columnDef.header, header.getContext())}
                         </TableHead>
                       );
                     })}
@@ -159,10 +150,7 @@ export function CertificationDataTable({
               <TableBody>
                 {table.getRowModel().rows?.length ? (
                   table.getRowModel().rows.map((row) => (
-                    <TableRow
-                      key={row.id}
-                      data-state={row.getIsSelected() && "selected"}
-                    >
+                    <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'}>
                       {row.getVisibleCells().map((cell) => {
                         const metaStyle = (
                           cell.column.columnDef.meta as {
@@ -171,10 +159,7 @@ export function CertificationDataTable({
                         )?.style;
                         return (
                           <TableCell key={cell.id} style={metaStyle}>
-                            {flexRender(
-                              cell.column.columnDef.cell,
-                              cell.getContext()
-                            )}
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
                           </TableCell>
                         );
                       })}
@@ -182,10 +167,7 @@ export function CertificationDataTable({
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell
-                      colSpan={table.getAllColumns().length}
-                      className="h-24 text-center"
-                    >
+                    <TableCell colSpan={table.getAllColumns().length} className="h-24 text-center">
                       No results.
                     </TableCell>
                   </TableRow>

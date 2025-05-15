@@ -1,7 +1,7 @@
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 
 export interface Notification {
   id: string;
@@ -27,7 +27,7 @@ export function useRealTimeNotifications(): UseRealTimeNotificationsReturn {
 
   // Fetch unread notifications
   const { data: unreadNotifications = [] } = useQuery<Notification[]>({
-    queryKey: ["unreadNotifications"],
+    queryKey: ['unreadNotifications'],
     queryFn: async () => {
       const {
         data: { user },
@@ -35,11 +35,11 @@ export function useRealTimeNotifications(): UseRealTimeNotificationsReturn {
       if (!user) return [];
 
       const { data: notifications, error } = await supabase
-        .from("notifications")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("read", false)
-        .order("created_at", { ascending: false });
+        .from('notifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('read', false)
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       return notifications || [];
@@ -53,14 +53,14 @@ export function useRealTimeNotifications(): UseRealTimeNotificationsReturn {
   const markAsReadMutation = useMutation({
     mutationFn: async (notificationId: string) => {
       const { error } = await supabase
-        .from("notifications")
+        .from('notifications')
         .update({ read: true })
-        .eq("id", notificationId);
+        .eq('id', notificationId);
 
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["unreadNotifications"] });
+      queryClient.invalidateQueries({ queryKey: ['unreadNotifications'] });
     },
   });
 
@@ -73,30 +73,30 @@ export function useRealTimeNotifications(): UseRealTimeNotificationsReturn {
       if (!user) return;
 
       const { error } = await supabase
-        .from("notifications")
+        .from('notifications')
         .update({ read: true })
-        .eq("user_id", user.id)
-        .eq("read", false);
+        .eq('user_id', user.id)
+        .eq('read', false);
 
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["unreadNotifications"] });
+      queryClient.invalidateQueries({ queryKey: ['unreadNotifications'] });
     },
   });
 
   const markNotificationsAsReadMutation = useMutation({
     mutationFn: async (chatId: string) => {
       const { error } = await supabase
-        .from("notifications")
+        .from('notifications')
         .update({ read: true })
-        .eq("chat_id", chatId);
+        .eq('chat_id', chatId);
 
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["notifications"],
+        queryKey: ['notifications'],
         exact: true,
       });
     },
@@ -104,7 +104,7 @@ export function useRealTimeNotifications(): UseRealTimeNotificationsReturn {
 
   // Subscribe to new notifications
   useQuery({
-    queryKey: ["notificationsSubscription"],
+    queryKey: ['notificationsSubscription'],
     queryFn: async () => {
       const {
         data: { user },
@@ -114,29 +114,28 @@ export function useRealTimeNotifications(): UseRealTimeNotificationsReturn {
       const channel = supabase
         .channel(`notifications-${user.id}`)
         .on(
-          "postgres_changes",
+          'postgres_changes',
           {
-            event: "*",
-            schema: "public",
-            table: "notifications",
+            event: '*',
+            schema: 'public',
+            table: 'notifications',
             filter: `user_id=eq.${user.id}`,
           },
           async (payload) => {
             // Only refetch on INSERT or when read status changes
             if (
-              payload.eventType === "INSERT" ||
-              (payload.eventType === "UPDATE" && 
-               payload.old?.read !== payload.new?.read)
+              payload.eventType === 'INSERT' ||
+              (payload.eventType === 'UPDATE' && payload.old?.read !== payload.new?.read)
             ) {
               await queryClient.refetchQueries({
-                queryKey: ["unreadNotifications"],
+                queryKey: ['unreadNotifications'],
                 exact: true,
               });
 
-              if (payload.eventType === "INSERT") {
+              if (payload.eventType === 'INSERT') {
                 toast(payload.new.content, {
                   action: {
-                    label: "View",
+                    label: 'View',
                     onClick: () => router.push(`/messages?chat=${payload.new.chat_id}`),
                   },
                 });

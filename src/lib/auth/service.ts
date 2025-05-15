@@ -1,5 +1,5 @@
-import { IRequestInit, IReturn, JsonServiceClient } from "@servicestack/client";
-import https from "https";
+import { IRequestInit, IReturn, JsonServiceClient } from '@servicestack/client';
+import https from 'https';
 
 interface GetEndPointResponse {
   NewEndpointDomain?: string;
@@ -29,7 +29,7 @@ class SecurityRequest implements IReturn<SecurityResponse> {
   }
 
   getTypeName() {
-    return "Security";
+    return 'Security';
   }
   createResponse() {
     return {} as SecurityResponse;
@@ -43,9 +43,7 @@ interface AuthResult {
   oAuthToken?: string;
 }
 
-export async function getAuthenticatedClient(
-  retryCount = 0
-): Promise<AuthResult> {
+export async function getAuthenticatedClient(retryCount = 0): Promise<AuthResult> {
   try {
     // console.log('Initializing authentication client...');
 
@@ -55,15 +53,13 @@ export async function getAuthenticatedClient(
       timeout: 30000, // 30 second timeout
     });
 
-    const baseClient = new JsonServiceClient(
-      "https://active-ewebservice.biz/aeServices30/api"
-    );
+    const baseClient = new JsonServiceClient('https://active-ewebservice.biz/aeServices30/api');
 
     // Configure the client
     baseClient.bearerToken = process.env.API_KEY!;
     baseClient.headers = new Headers({
-      Accept: "application/json",
-      "Content-Type": "application/json",
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
       ApiKey: process.env.API_KEY!,
       AppId: process.env.APP_ID!,
     });
@@ -74,16 +70,13 @@ export async function getAuthenticatedClient(
     };
 
     // console.log('Getting endpoint...');
-    const endpointResponse =
-      await baseClient.get<GetEndPointResponse>("GetEndPoint");
+    const endpointResponse = await baseClient.get<GetEndPointResponse>('GetEndPoint');
 
     if (!endpointResponse?.NewEndpointDomain) {
-      throw new Error("Failed to get endpoint domain");
+      throw new Error('Failed to get endpoint domain');
     }
 
-    const formattedEndpoint = endpointResponse.NewEndpointDomain.startsWith(
-      "http"
-    )
+    const formattedEndpoint = endpointResponse.NewEndpointDomain.startsWith('http')
       ? endpointResponse.NewEndpointDomain
       : `https://${endpointResponse.NewEndpointDomain}`;
 
@@ -92,11 +85,11 @@ export async function getAuthenticatedClient(
     // Create final authenticated client
     const client = new JsonServiceClient(`${formattedEndpoint}/api`);
     client.headers = new Headers({
-      Accept: "application/json",
-      "Content-Type": "application/json",
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
       ApiKey: process.env.API_KEY!,
       AppId: process.env.APP_ID!,
-      OAuthToken: endpointResponse.OAuthToken || "",
+      OAuthToken: endpointResponse.OAuthToken || '',
     });
 
     // Add the agent to the fetch options for the authenticated client
@@ -110,12 +103,10 @@ export async function getAuthenticatedClient(
       oAuthToken: endpointResponse.OAuthToken,
     };
   } catch (error) {
-    console.error("Authentication error:", error);
+    console.error('Authentication error:', error);
     if (retryCount < 3) {
       // console.log(`Retrying authentication (attempt ${retryCount + 1})...`);
-      await new Promise((resolve) =>
-        setTimeout(resolve, Math.pow(2, retryCount) * 1000)
-      );
+      await new Promise((resolve) => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
       return getAuthenticatedClient(retryCount + 1);
     }
     throw error;

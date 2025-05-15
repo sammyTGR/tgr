@@ -1,4 +1,4 @@
-import React from "react";
+import React from 'react';
 
 interface ColumnDef {
   Header: string;
@@ -12,11 +12,7 @@ interface DataTableProps {
   rowClassName?: (row: { original: { isDivider?: boolean } }) => string;
 }
 
-const DataTableProfile: React.FC<DataTableProps> = ({
-  columns,
-  data,
-  rowClassName = () => "",
-}) => {
+const DataTableProfile: React.FC<DataTableProps> = ({ columns, data, rowClassName = () => '' }) => {
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full">

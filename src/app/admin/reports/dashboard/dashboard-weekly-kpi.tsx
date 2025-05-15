@@ -1,4 +1,4 @@
-import { TabsContent } from "@/components/ui/tabs";
+import { TabsContent } from '@/components/ui/tabs';
 import {
   format,
   startOfMonth,
@@ -7,11 +7,11 @@ import {
   endOfWeek,
   eachWeekOfInterval,
   isSameMonth,
-} from "date-fns";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import LoadingIndicator from "@/components/LoadingIndicator";
-import { useQuery } from "@tanstack/react-query";
-import { fetchKPIData, KPIResult } from "./api";
+} from 'date-fns';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import LoadingIndicator from '@/components/LoadingIndicator';
+import { useQuery } from '@tanstack/react-query';
+import { fetchKPIData, KPIResult } from './api';
 import {
   Bar,
   BarChart,
@@ -21,22 +21,20 @@ import {
   ResponsiveContainer,
   Legend,
   CartesianGrid,
-} from "recharts";
+} from 'recharts';
 import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
   ChartLegendContent,
   ChartConfig,
-} from "@/components/ui/chart";
-import React from "react";
-import { BarChart as RechartsBarChart } from "@/components/BarChart";
+} from '@/components/ui/chart';
+import React from 'react';
+import { BarChart as RechartsBarChart } from '@/components/BarChart';
 
 interface DashboardWeeklyKPIProps {
   dateRange: { from: Date | undefined; to: Date | undefined } | undefined;
-  setDateRange: (
-    range: { from: Date | undefined; to: Date | undefined } | undefined
-  ) => void;
+  setDateRange: (range: { from: Date | undefined; to: Date | undefined } | undefined) => void;
   getDefaultDateRange: () => { from: Date; to: Date };
   formatter: Intl.NumberFormat;
 }
@@ -83,9 +81,9 @@ function DashboardWeeklyKPI({
 
     return useQuery({
       queryKey: [
-        "weekly-kpi",
-        format(weekStart, "yyyy-MM-dd"),
-        format(adjustedWeekEnd, "yyyy-MM-dd"),
+        'weekly-kpi',
+        format(weekStart, 'yyyy-MM-dd'),
+        format(adjustedWeekEnd, 'yyyy-MM-dd'),
       ],
       queryFn: () => fetchKPIData(weekStart, adjustedWeekEnd),
     });
@@ -147,9 +145,7 @@ function DashboardWeeklyKPI({
   if (error) {
     return (
       <div className="p-4 text-center">
-        <h2 className="text-xl font-bold text-red-500 mb-2">
-          Error loading weekly KPI data
-        </h2>
+        <h2 className="text-xl font-bold text-red-500 mb-2">Error loading weekly KPI data</h2>
         <p className="text-muted-foreground">
           Please try again later or contact support if the issue persists.
         </p>
@@ -162,16 +158,14 @@ function DashboardWeeklyKPI({
     return (
       <div className="p-4 text-center">
         <h2 className="text-xl font-bold mb-2">No Weekly KPI Data Available</h2>
-        <p className="text-muted-foreground">
-          There is no data available for the current month.
-        </p>
+        <p className="text-muted-foreground">There is no data available for the current month.</p>
       </div>
     );
   }
 
   // Prepare data for charts
   const weeklyChartData = weeklyData.map((week, index) => ({
-    dateRange: `${format(week.weekStart, "MMM d")} - ${format(week.weekEnd, "MMM d")}`,
+    dateRange: `${format(week.weekStart, 'MMM d')} - ${format(week.weekEnd, 'MMM d')}`,
     weekQuantity: week.totals.qty,
     weekRevenue: week.totals.revenue,
   }));
@@ -180,7 +174,7 @@ function DashboardWeeklyKPI({
   const groupComparisonData = weeklyData.map((week, index) => {
     const result: any = {
       name: `Week ${index + 1}`,
-      dateRange: `${format(week.weekStart, "MMM d")} - ${format(week.weekEnd, "MMM d")}`,
+      dateRange: `${format(week.weekStart, 'MMM d')} - ${format(week.weekEnd, 'MMM d')}`,
     };
 
     // Group the data by group
@@ -202,12 +196,12 @@ function DashboardWeeklyKPI({
   // Define chart configurations
   const quantityRevenueConfig = {
     weekQuantity: {
-      label: "Quantity",
-      color: "hsl(var(--chart-1))",
+      label: 'Quantity',
+      color: 'hsl(var(--chart-1))',
     },
     weekRevenue: {
-      label: "Revenue",
-      color: "hsl(var(--chart-2))",
+      label: 'Revenue',
+      color: 'hsl(var(--chart-2))',
     },
   } satisfies ChartConfig;
 
@@ -221,12 +215,12 @@ function DashboardWeeklyKPI({
   }, {} as ChartConfig);
 
   const groupOrder = [
-    "Sales",
-    "Services",
-    "Classes",
-    "Range Protection",
-    "Range Rentals",
-    "Firearms",
+    'Sales',
+    'Services',
+    'Classes',
+    'Range Protection',
+    'Range Rentals',
+    'Firearms',
   ];
 
   // Helper function to group KPIs by their group property
@@ -234,7 +228,7 @@ function DashboardWeeklyKPI({
     const grouped: Record<string, { qty: number; revenue: number }> = {};
 
     Object.values(kpiData).forEach((data) => {
-      const group = data.group || "Other";
+      const group = data.group || 'Other';
       if (!grouped[group]) {
         grouped[group] = { qty: 0, revenue: 0 };
       }
@@ -251,9 +245,8 @@ function DashboardWeeklyKPI({
         {/* Monthly Summary */}
         <div>
           <h2 className="text-2xl font-bold mb-4">
-            Monthly Summary (
-            {format(effectiveDateRange.from || new Date(), "MMMM yyyy")} -{" "}
-            {format(effectiveDateRange.to || new Date(), "MMMM yyyy")})
+            Monthly Summary ({format(effectiveDateRange.from || new Date(), 'MMMM yyyy')} -{' '}
+            {format(effectiveDateRange.to || new Date(), 'MMMM yyyy')})
           </h2>
           <Card className="mb-6 overflow-hidden border-2 border-primary">
             <CardHeader className="bg-primary/10 p-4">
@@ -262,16 +255,12 @@ function DashboardWeeklyKPI({
             <CardContent className="p-4">
               <div className="flex justify-between items-center">
                 <div>
-                  <p className="text-sm text-muted-foreground">
-                    Total Quantity
-                  </p>
+                  <p className="text-sm text-muted-foreground">Total Quantity</p>
                   <p className="text-2xl font-bold">{monthlyTotals.qty}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-sm text-muted-foreground">Total Revenue</p>
-                  <p className="text-2xl font-bold">
-                    {formatter.format(monthlyTotals.revenue)}
-                  </p>
+                  <p className="text-2xl font-bold">{formatter.format(monthlyTotals.revenue)}</p>
                 </div>
               </div>
             </CardContent>
@@ -285,9 +274,7 @@ function DashboardWeeklyKPI({
           {/* Quantity and Revenue Chart */}
           <Card className="mb-6 overflow-hidden">
             <CardHeader className="bg-muted/50 p-4">
-              <CardTitle className="text-lg">
-                Weekly Quantity & Revenue
-              </CardTitle>
+              <CardTitle className="text-lg">Weekly Quantity & Revenue</CardTitle>
             </CardHeader>
             <CardContent className="p-4">
               <ChartContainer
@@ -299,18 +286,8 @@ function DashboardWeeklyKPI({
                   margin={{ top: 10, right: 10, left: 10, bottom: 10 }}
                 >
                   <CartesianGrid vertical={false} />
-                  <XAxis
-                    dataKey="dateRange"
-                    tickLine={false}
-                    tickMargin={10}
-                    axisLine={false}
-                  />
-                  <YAxis
-                    tickLine={false}
-                    tickMargin={8}
-                    axisLine={false}
-                    fontSize={12}
-                  />
+                  <XAxis dataKey="dateRange" tickLine={false} tickMargin={10} axisLine={false} />
+                  <YAxis tickLine={false} tickMargin={8} axisLine={false} fontSize={12} />
                   <ChartTooltip
                     cursor={false}
                     content={({ active, payload, label }) => {
@@ -320,9 +297,7 @@ function DashboardWeeklyKPI({
                             <p className="font-medium">{label}</p>
                             <div className="space-y-1">
                               <p className="text-muted-foreground">Quantity</p>
-                              <p className="font-mono font-medium">
-                                {payload[0].value as number}
-                              </p>
+                              <p className="font-mono font-medium">{payload[0].value as number}</p>
                               <p className="text-muted-foreground">Revenue</p>
                               <p className="font-mono font-medium">
                                 {formatter.format(payload[1].value as number)}
@@ -359,10 +334,7 @@ function DashboardWeeklyKPI({
               <CardTitle className="text-lg">Revenue by Group</CardTitle>
             </CardHeader>
             <CardContent className="p-4">
-              <ChartContainer
-                config={groupConfig}
-                className="min-h-[20px] max-h-[300px] w-full"
-              >
+              <ChartContainer config={groupConfig} className="min-h-[20px] max-h-[300px] w-full">
                 <BarChart
                   data={groupComparisonData}
                   margin={{ top: 10, right: 10, left: 10, bottom: 10 }}
@@ -378,9 +350,7 @@ function DashboardWeeklyKPI({
                             <div className="space-y-1">
                               {payload.map((entry, index) => (
                                 <div key={index}>
-                                  <p className="text-muted-foreground">
-                                    {entry.name}
-                                  </p>
+                                  <p className="text-muted-foreground">{entry.name}</p>
                                   <p className="font-mono font-medium">
                                     {formatter.format(entry.value as number)}
                                   </p>
@@ -392,7 +362,7 @@ function DashboardWeeklyKPI({
                       }
                       return null;
                     }}
-                    cursor={{ fill: "transparent" }}
+                    cursor={{ fill: 'transparent' }}
                   />
                   <ChartLegendContent />
                   {groupOrder.map((group, index) => (
@@ -420,8 +390,8 @@ function DashboardWeeklyKPI({
               <Card key={index} className="overflow-hidden">
                 <CardHeader className="bg-muted/50 p-4">
                   <CardTitle className="text-lg">
-                    Week {index + 1}: {format(week.weekStart, "MMM d")} -{" "}
-                    {format(week.weekEnd, "MMM d, yyyy")}
+                    Week {index + 1}: {format(week.weekStart, 'MMM d')} -{' '}
+                    {format(week.weekEnd, 'MMM d, yyyy')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-4">
@@ -429,18 +399,12 @@ function DashboardWeeklyKPI({
                   <div className="mb-4 p-4 bg-muted/30 rounded-md">
                     <div className="flex justify-between items-center">
                       <div>
-                        <p className="text-sm text-muted-foreground">
-                          Week Total Quantity
-                        </p>
+                        <p className="text-sm text-muted-foreground">Week Total Quantity</p>
                         <p className="text-xl font-bold">{week.totals.qty}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm text-muted-foreground">
-                          Week Total Revenue
-                        </p>
-                        <p className="text-xl font-bold">
-                          {formatter.format(week.totals.revenue)}
-                        </p>
+                        <p className="text-sm text-muted-foreground">Week Total Revenue</p>
+                        <p className="text-xl font-bold">{formatter.format(week.totals.revenue)}</p>
                       </div>
                     </div>
                   </div>
@@ -460,28 +424,19 @@ function DashboardWeeklyKPI({
                           <h3 className="font-semibold mb-2">{group}</h3>
                           <div className="flex justify-between items-center mb-2">
                             <div>
-                              <p className="text-sm text-muted-foreground">
-                                Quantity
-                              </p>
+                              <p className="text-sm text-muted-foreground">Quantity</p>
                               <p className="font-bold">{data.qty}</p>
                             </div>
                             <div className="text-right">
-                              <p className="text-sm text-muted-foreground">
-                                Revenue
-                              </p>
-                              <p className="font-bold">
-                                {formatter.format(data.revenue)}
-                              </p>
+                              <p className="text-sm text-muted-foreground">Revenue</p>
+                              <p className="font-bold">{formatter.format(data.revenue)}</p>
                             </div>
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            Categories:{" "}
+                            Categories:{' '}
                             {Object.keys(week.data)
-                              .filter(
-                                (category) =>
-                                  week.data[category].group === group
-                              )
-                              .join(", ")}
+                              .filter((category) => week.data[category].group === group)
+                              .join(', ')}
                           </div>
                         </div>
                       ))}

@@ -1,16 +1,16 @@
-"use client";
+'use client';
 
-import { usePatchNotes } from "@/lib/hooks/usePatchNotes";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Button } from "@/components/ui/button";
-import { Plus, Edit, ChevronUp, ChevronDown } from "lucide-react";
-import { format } from "date-fns";
-import { AddPatchNoteDialog } from "./add-patch-note-dialog";
-import { useState } from "react";
-import RoleBasedWrapper from "@/components/RoleBasedWrapper";
-import { PatchNotesSection } from "./patch-notes-section";
+import { usePatchNotes } from '@/lib/hooks/usePatchNotes';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/ui/button';
+import { Plus, Edit, ChevronUp, ChevronDown } from 'lucide-react';
+import { format } from 'date-fns';
+import { AddPatchNoteDialog } from './add-patch-note-dialog';
+import { useState } from 'react';
+import RoleBasedWrapper from '@/components/RoleBasedWrapper';
+import { PatchNotesSection } from './patch-notes-section';
 
 interface PatchNote {
   id: string;
@@ -19,7 +19,7 @@ interface PatchNote {
   description: string;
   release_date: string;
   changes: {
-    type: "added" | "changed" | "fixed" | "removed";
+    type: 'added' | 'changed' | 'fixed' | 'removed';
     items: string[];
   }[];
 }
@@ -34,9 +34,7 @@ export default function PatchNotesPage() {
   const { data: patchNotes, isLoading } = usePatchNotes();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedNote, setSelectedNote] = useState<PatchNote | null>(null);
-  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>(
-    {}
-  );
+  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
 
   if (isLoading) return <div>Loading...</div>;
 
@@ -69,7 +67,7 @@ export default function PatchNotesPage() {
     const isExpanded = expandedCards[id] ?? false;
 
     return (
-      <Card className={`relative ${isExpanded ? "h-auto" : "h-[200px]"}`}>
+      <Card className={`relative ${isExpanded ? 'h-auto' : 'h-[200px]'}`}>
         <CardHeader className="flex flex-row items-center justify-between">
           <Button
             variant="ghost"
@@ -77,19 +75,15 @@ export default function PatchNotesPage() {
             onClick={() => toggleCardExpansion(id)}
             className="h-8 w-8 p-0"
           >
-            {isExpanded ? (
-              <ChevronUp className="h-4 w-4" />
-            ) : (
-              <ChevronDown className="h-4 w-4" />
-            )}
+            {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </Button>
         </CardHeader>
         <CardContent
           className={`
             ${
               isExpanded
-                ? "h-auto max-h-[500px] overflow-y-auto pr-4"
-                : "h-[100px] overflow-y-auto pr-4"
+                ? 'h-auto max-h-[500px] overflow-y-auto pr-4'
+                : 'h-[100px] overflow-y-auto pr-4'
             }
             space-y-2
           `}
@@ -101,13 +95,11 @@ export default function PatchNotesPage() {
   };
 
   return (
-    <RoleBasedWrapper
-      allowedRoles={["dev", "ceo", "admin", "user", "gunsmith", "auditor"]}
-    >
+    <RoleBasedWrapper allowedRoles={['dev', 'ceo', 'admin', 'user', 'gunsmith', 'auditor']}>
       <div className="container mx-auto py-8">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold">Patch Notes</h1>
-          <RoleBasedWrapper allowedRoles={["dev"]}>
+          <RoleBasedWrapper allowedRoles={['dev']}>
             <Button onClick={() => setDialogOpen(true)}>
               <Plus className="w-4 h-4 mr-2" />
               Add Patch Note
@@ -121,10 +113,7 @@ export default function PatchNotesPage() {
           editNote={selectedNote}
         />
 
-        <PatchNotesSection
-          onEdit={setSelectedNote}
-          setDialogOpen={setDialogOpen}
-        />
+        <PatchNotesSection onEdit={setSelectedNote} setDialogOpen={setDialogOpen} />
       </div>
     </RoleBasedWrapper>
   );

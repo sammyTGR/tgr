@@ -1,13 +1,13 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import Link from "next/link";
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import Link from 'next/link';
 
 export default function DrosGuidePage() {
   const sections = [
     {
-      id: "dros-nav-guide",
-      title: "DROS Navigation Bar",
+      id: 'dros-nav-guide',
+      title: 'DROS Navigation Bar',
       content: `To view the DROS support navigation bar:
         • First navigate to the DROS Guidance page by expanding the "DROS Support" tab in the sidebar then clicking on "DROS Guidance"
         • If you are an admin, expand the "Auditing" tab on the sidebar, then click the "DROS Guide" link
@@ -23,8 +23,8 @@ export default function DrosGuidePage() {
         `,
     },
     {
-      id: "dros-guide",
-      title: "DROS Guide",
+      id: 'dros-guide',
+      title: 'DROS Guide',
       content: `To view the DROS support page:
         • From the "DROS Guidance" page, click the "DROS Guide" tab in the page tabs list
         • Start by selecting the type of firearm you are submitting a DROS for
@@ -34,8 +34,8 @@ export default function DrosGuidePage() {
     },
 
     {
-      id: "banned-assault-weapons",
-      title: "Banned Assault Weapons",
+      id: 'banned-assault-weapons',
+      title: 'Banned Assault Weapons',
       content: `To review audits:
         • From the "DROS Guidance" page, click the "Banned Assault Weapons" tab in the page tabs list
         • You can search for specific audits by utilizing the search bars at the top of the page
@@ -105,16 +105,11 @@ export default function DrosGuidePage() {
           <div className="space-y-8">
             <h1 className="text-4xl font-bold mb-4">DROS Guidance Guide</h1>
             <p className="text-muted-foreground">
-              Utilize this guide to help you navigate through the audit
-              management process.
+              Utilize this guide to help you navigate through the audit management process.
             </p>
 
             {sections.map((section) => (
-              <section
-                key={section.id}
-                id={section.id}
-                className="scroll-mt-16"
-              >
+              <section key={section.id} id={section.id} className="scroll-mt-16">
                 <Card>
                   <CardHeader>
                     <CardTitle>{section.title}</CardTitle>

@@ -1,22 +1,19 @@
-import { format } from "date-fns";
-import * as XLSX from "xlsx";
-import DOMPurify from "dompurify";
-import { SummaryData, Employee, AuditData } from "./types";
+import { format } from 'date-fns';
+import * as XLSX from 'xlsx';
+import DOMPurify from 'dompurify';
+import { SummaryData, Employee, AuditData } from './types';
 
 // Improved type safety for sanitization
 export const sanitizeData = <T>(data: T): T => {
-  if (typeof data === "string") {
+  if (typeof data === 'string') {
     return DOMPurify.sanitize(data) as T;
   }
   if (Array.isArray(data)) {
     return data.map((item) => sanitizeData(item)) as T;
   }
-  if (typeof data === "object" && data !== null) {
+  if (typeof data === 'object' && data !== null) {
     return Object.fromEntries(
-      Object.entries(data as object).map(([key, value]) => [
-        key,
-        sanitizeData(value),
-      ])
+      Object.entries(data as object).map(([key, value]) => [key, sanitizeData(value)])
     ) as T;
   }
   return data;
@@ -31,33 +28,31 @@ export const exportToExcel = (
   const exportData = data
     .filter((row) => !row.isDivider)
     .map((row) => ({
-      "Sales Rep": sanitizeData(row.Lanid),
-      Department: sanitizeData(row.Department || ""),
-      "Total DROS": row.TotalDros ?? "",
-      "Minor Mistakes": row.MinorMistakes ?? "",
-      "Major Mistakes": row.MajorMistakes ?? "",
-      "Cancelled DROS": row.CancelledDros ?? "",
-      "Weighted Error Rate": row.WeightedErrorRate
-        ? `${row.WeightedErrorRate.toFixed(2)}%`
-        : "",
-      "Total Weighted Mistakes": row.TotalWeightedMistakes ?? "",
+      'Sales Rep': sanitizeData(row.Lanid),
+      Department: sanitizeData(row.Department || ''),
+      'Total DROS': row.TotalDros ?? '',
+      'Minor Mistakes': row.MinorMistakes ?? '',
+      'Major Mistakes': row.MajorMistakes ?? '',
+      'Cancelled DROS': row.CancelledDros ?? '',
+      'Weighted Error Rate': row.WeightedErrorRate ? `${row.WeightedErrorRate.toFixed(2)}%` : '',
+      'Total Weighted Mistakes': row.TotalWeightedMistakes ?? '',
       Status: sanitizeData(row.DisqualificationReason),
     }));
 
   const ws = XLSX.utils.json_to_sheet(exportData);
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Sales Contest Results");
+  XLSX.utils.book_append_sheet(wb, ws, 'Sales Contest Results');
 
   // Add header styling
   const headerStyle = {
     font: { bold: true },
-    alignment: { horizontal: "center" },
-    fill: { fgColor: { rgb: "CCCCCC" } },
+    alignment: { horizontal: 'center' },
+    fill: { fgColor: { rgb: 'CCCCCC' } },
   };
 
-  const range = XLSX.utils.decode_range(ws["!ref"] || "A1");
+  const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
   for (let C = range.s.c; C <= range.e.c; ++C) {
-    const address = XLSX.utils.encode_col(C) + "1";
+    const address = XLSX.utils.encode_col(C) + '1';
     if (!ws[address]) continue;
     ws[address].s = headerStyle;
   }
@@ -71,20 +66,16 @@ export const exportToExcel = (
     return widths;
   }, []);
 
-  ws["!cols"] = colWidths.map((width) => ({ width }));
+  ws['!cols'] = colWidths.map((width) => ({ width }));
 
-  const dateStr = format(selectedDate, "MMM_yyyy");
-  const suffix = showAllEmployees
-    ? "_all_employees"
-    : selectedLanid
-      ? `_${selectedLanid}`
-      : "";
+  const dateStr = format(selectedDate, 'MMM_yyyy');
+  const suffix = showAllEmployees ? '_all_employees' : selectedLanid ? `_${selectedLanid}` : '';
 
   XLSX.writeFile(wb, `Sales_Contest_Results_${dateStr}${suffix}.xlsx`);
 };
 
 export const formatDate = (date: Date): string => {
-  return format(date, "yyyy-MM-dd");
+  return format(date, 'yyyy-MM-dd');
 };
 
 export const getDateRange = (date: Date) => {
@@ -97,10 +88,7 @@ export const getDateRange = (date: Date) => {
   };
 };
 
-export const filterEmployees = (
-  employees: Employee[],
-  searchText: string
-): Employee[] => {
+export const filterEmployees = (employees: Employee[], searchText: string): Employee[] => {
   const searchLower = searchText.toLowerCase();
   return employees.filter(
     (emp) =>
@@ -133,31 +121,27 @@ export const processAuditData = (
 
 export const validateAuditData = (data: Partial<AuditData>): boolean => {
   const requiredFields = [
-    "dros_number",
-    "salesreps",
-    "audit_type",
-    "trans_date",
-    "audit_date",
-    "error_location",
+    'dros_number',
+    'salesreps',
+    'audit_type',
+    'trans_date',
+    'audit_date',
+    'error_location',
   ] as const;
 
   return requiredFields.every((field) => {
     const value = data[field];
-    return value !== undefined && value !== null && value !== "";
+    return value !== undefined && value !== null && value !== '';
   });
 };
 
 export const formatAuditForDisplay = (audit: AuditData): AuditData => {
   return {
     ...audit,
-    trans_date: audit.trans_date
-      ? format(new Date(audit.trans_date), "MM/dd/yyyy")
-      : "",
-    audit_date: audit.audit_date
-      ? format(new Date(audit.audit_date), "MM/dd/yyyy")
-      : "",
-    error_details: sanitizeData(audit.error_details || ""),
-    error_notes: sanitizeData(audit.error_notes || ""),
-    dros_cancel: audit.dros_cancel || "",
+    trans_date: audit.trans_date ? format(new Date(audit.trans_date), 'MM/dd/yyyy') : '',
+    audit_date: audit.audit_date ? format(new Date(audit.audit_date), 'MM/dd/yyyy') : '',
+    error_details: sanitizeData(audit.error_details || ''),
+    error_notes: sanitizeData(audit.error_notes || ''),
+    dros_cancel: audit.dros_cancel || '',
   };
 };

@@ -1,13 +1,13 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import Link from "next/link";
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import Link from 'next/link';
 
 export default function ManagementPage() {
   const sections = [
     {
-      id: "staff-profiles",
-      title: "Staff Profiles",
+      id: 'staff-profiles',
+      title: 'Staff Profiles',
       content: `After opening the staff profiles page:
         • First navigate to the staff profiles page by hovering over the "Management" tab in the navigation bar then clicking on "Staff Profiles"
         • You can filter for specific employees by utilizing the search bar at the top of the page
@@ -18,8 +18,8 @@ export default function ManagementPage() {
         `,
     },
     {
-      id: "weekly-updates",
-      title: "Weekly Updates",
+      id: 'weekly-updates',
+      title: 'Weekly Updates',
       content: `After opening the weekly updates page:
         • There will be 3 tabs, the "Team Updates" tab will show all employee's weekly agenda items, the "Edit Your Notes" tab will allow you to enter your agenda items, and the "Discussed Topics" tab will show a history of all discussed agenda notes
         • If it is your first time opening the page, you will need to click on the "Add Yourself" button to create your profile
@@ -92,16 +92,11 @@ export default function ManagementPage() {
           <div className="space-y-8">
             <h1 className="text-4xl font-bold mb-4">Management Guide</h1>
             <p className="text-muted-foreground">
-              Utilize this guide to help you navigate through the management
-              processes.
+              Utilize this guide to help you navigate through the management processes.
             </p>
 
             {sections.map((section) => (
-              <section
-                key={section.id}
-                id={section.id}
-                className="scroll-mt-16"
-              >
+              <section key={section.id} id={section.id} className="scroll-mt-16">
                 <Card>
                   <CardHeader>
                     <CardTitle>{section.title}</CardTitle>

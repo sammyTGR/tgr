@@ -1,29 +1,23 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { supabase } from "@/utils/supabase/client";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { toast } from "sonner";
-import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { Separator } from "@/components/ui/separator";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import DOMPurify from "isomorphic-dompurify";
-import LoadingIndicator from "@/components/LoadingIndicator";
-import dynamic from "next/dynamic";
-import { useSidebar } from "@/components/ui/sidebar";
+import Link from 'next/link';
+import { supabase } from '@/utils/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { toast } from 'sonner';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { Separator } from '@/components/ui/separator';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import DOMPurify from 'isomorphic-dompurify';
+import LoadingIndicator from '@/components/LoadingIndicator';
+import dynamic from 'next/dynamic';
+import { useSidebar } from '@/components/ui/sidebar';
 
 // Type definitions
 interface Customer {
@@ -43,18 +37,16 @@ interface SignInResponse {
 const schema = z.object({
   email: z
     .string()
-    .min(1, { message: "Email is required" })
-    .email({ message: "Invalid email address" }),
-  password: z
-    .string()
-    .min(6, { message: "Password must be at least 6 characters" }),
+    .min(1, { message: 'Email is required' })
+    .email({ message: 'Invalid email address' }),
+  password: z.string().min(6, { message: 'Password must be at least 6 characters' }),
 });
 
 type FormData = z.infer<typeof schema>;
 
 const LazySignIn = dynamic(
   () =>
-    import("@/app/sign-in/[[...sign-in]]/page").then((module) => ({
+    import('@/app/sign-in/[[...sign-in]]/page').then((module) => ({
       default: module.default,
     })),
   {
@@ -64,14 +56,14 @@ const LazySignIn = dynamic(
 
 export default function SignIn() {
   const params = useSearchParams();
-  const next = params ? DOMPurify.sanitize(params.get("next") || "") : "";
+  const next = params ? DOMPurify.sanitize(params.get('next') || '') : '';
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { state } = useSidebar();
 
   const { isLoading } = useQuery({
-    queryKey: ["navigation", pathname, searchParams],
+    queryKey: ['navigation', pathname, searchParams],
     queryFn: async () => {
       // Simulate a delay to show the loading indicator
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -93,11 +85,10 @@ export default function SignIn() {
   // Mutation for email/password sign in
   const emailSignInMutation = useMutation({
     mutationFn: async (data: FormData) => {
-      const { data: signInData, error } =
-        await supabase.auth.signInWithPassword({
-          email: DOMPurify.sanitize(data.email),
-          password: data.password, // No need to sanitize password
-        });
+      const { data: signInData, error } = await supabase.auth.signInWithPassword({
+        email: DOMPurify.sanitize(data.email),
+        password: data.password, // No need to sanitize password
+      });
 
       if (error) throw error;
 
@@ -106,32 +97,32 @@ export default function SignIn() {
     onSuccess: async (data) => {
       if (data.user) {
         const { data: customerData, error: fetchError } = await supabase
-          .from("customers")
-          .select("role")
-          .eq("user_uuid", data.user.id)
+          .from('customers')
+          .select('role')
+          .eq('user_uuid', data.user.id)
           .single();
 
         if (fetchError) {
-          console.error("Error fetching customer role:", fetchError.message);
-          toast.error("An error occurred. Please try again.");
+          console.error('Error fetching customer role:', fetchError.message);
+          toast.error('An error occurred. Please try again.');
           return;
         }
 
         if (customerData) {
-          toast.success("Signed in successfully");
-          window.location.href = "/";
+          toast.success('Signed in successfully');
+          window.location.href = '/';
         }
       }
     },
     onError: (error: Error) => {
-      console.error("Error signing in:", error.message);
+      console.error('Error signing in:', error.message);
       toast.error(error.message);
     },
   });
 
   // Mutation for OAuth sign in
   const oAuthSignInMutation = useMutation({
-    mutationFn: async (provider: "google") => {
+    mutationFn: async (provider: 'google') => {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
@@ -152,24 +143,24 @@ export default function SignIn() {
 
       if (user) {
         const { data: customerData, error: fetchError } = await supabase
-          .from("customers")
-          .select("role")
-          .eq("user_uuid", user.id)
+          .from('customers')
+          .select('role')
+          .eq('user_uuid', user.id)
           .single();
 
         if (fetchError) {
-          console.error("Error fetching customer role:", fetchError.message);
+          console.error('Error fetching customer role:', fetchError.message);
           return;
         }
 
         if (customerData) {
-          window.location.href = next || "/";
+          window.location.href = next || '/';
         }
       }
     },
     onError: (error: Error) => {
-      console.error("Error logging in with OAuth:", error.message);
-      toast.error("Failed to login with Google");
+      console.error('Error logging in with OAuth:', error.message);
+      toast.error('Failed to login with Google');
     },
   });
 
@@ -180,7 +171,7 @@ export default function SignIn() {
 
   // OAuth login handler
   const handleOAuthLogin = () => {
-    oAuthSignInMutation.mutate("google");
+    oAuthSignInMutation.mutate('google');
   };
 
   return (
@@ -256,9 +247,7 @@ export default function SignIn() {
                   className="w-full"
                   disabled={oAuthSignInMutation.isPending}
                 >
-                  {oAuthSignInMutation.isPending
-                    ? "Logging in..."
-                    : "Login With Google"}
+                  {oAuthSignInMutation.isPending ? 'Logging in...' : 'Login With Google'}
                 </Button>
               </form>
               <div className="mt-6 text-center text-sm">
@@ -267,7 +256,7 @@ export default function SignIn() {
                 </Link>
               </div>
               <div className="text-center text-sm">
-                Don&apos;t have an account?{" "}
+                Don&apos;t have an account?{' '}
                 <Link href="/sign-up" className="underline">
                   Sign up
                 </Link>

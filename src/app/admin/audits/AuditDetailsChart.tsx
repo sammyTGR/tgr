@@ -1,7 +1,7 @@
 // shadcn stacked bar chart
-"use client";
+'use client';
 
-import React from "react";
+import React from 'react';
 import {
   Bar,
   BarChart,
@@ -11,27 +11,18 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
-} from "recharts";
-import { TooltipProps } from "recharts";
-import {
-  NameType,
-  ValueType,
-} from "recharts/types/component/DefaultTooltipContent";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { format, startOfMonth, endOfMonth } from "date-fns";
+} from 'recharts';
+import { TooltipProps } from 'recharts';
+import { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { format, startOfMonth, endOfMonth } from 'date-fns';
 import {
   ChartConfig,
   ChartContainer,
   ChartLegend,
   ChartLegendContent,
   ChartTooltip,
-} from "@/components/ui/chart";
+} from '@/components/ui/chart';
 
 interface ChartDataPoint {
   date: string;
@@ -50,16 +41,16 @@ interface AuditDetailsChartProps {
 
 const chartConfig = {
   location: {
-    label: "Location",
-    color: "hsl(217, 91%, 60%)", // blue-500
+    label: 'Location',
+    color: 'hsl(217, 91%, 60%)', // blue-500
   },
   details: {
-    label: "Details",
-    color: "hsl(43, 96%, 47%)", // yellow-500
+    label: 'Details',
+    color: 'hsl(43, 96%, 47%)', // yellow-500
   },
   cancelledDros: {
-    label: "Cancelled DROS",
-    color: "hsl(0, 84%, 60%)", // red-500
+    label: 'Cancelled DROS',
+    color: 'hsl(0, 84%, 60%)', // red-500
   },
 } satisfies ChartConfig;
 
@@ -84,7 +75,7 @@ const AuditDetailsChart: React.FC<AuditDetailsChartProps> = ({
     filteredData.forEach((audit) => {
       if (!audit.trans_date) return;
 
-      const dateKey = format(new Date(audit.trans_date), "yyyy-MM-dd");
+      const dateKey = format(new Date(audit.trans_date), 'yyyy-MM-dd');
       const existingData = auditsByDate.get(dateKey) || {
         date: dateKey,
         location: 0,
@@ -102,7 +93,7 @@ const AuditDetailsChart: React.FC<AuditDetailsChartProps> = ({
         existingData.details += 1;
         existingData.error_details.push(audit.error_details);
       }
-      if (audit.dros_cancel === "Yes") {
+      if (audit.dros_cancel === 'Yes') {
         existingData.cancelledDros += 1;
       }
 
@@ -128,15 +119,12 @@ const AuditDetailsChart: React.FC<AuditDetailsChartProps> = ({
       </CardHeader>
       <CardContent className="pt-6">
         <div className="h-[400px] w-full">
-          <ChartContainer
-            config={chartConfig}
-            className="aspect-auto h-[400px] w-full"
-          >
+          <ChartContainer config={chartConfig} className="aspect-auto h-[400px] w-full">
             <BarChart data={chartData}>
               <CartesianGrid vertical={false} />
               <XAxis
                 dataKey="date"
-                tickFormatter={(date) => format(new Date(date), "MMM d")}
+                tickFormatter={(date) => format(new Date(date), 'MMM d')}
                 tickMargin={8}
                 minTickGap={20}
                 tickLine={false}
@@ -144,11 +132,7 @@ const AuditDetailsChart: React.FC<AuditDetailsChartProps> = ({
               />
               <YAxis />
               <ChartTooltip
-                content={({
-                  active,
-                  payload,
-                  label,
-                }: TooltipProps<ValueType, NameType>) => {
+                content={({ active, payload, label }: TooltipProps<ValueType, NameType>) => {
                   if (!active || !payload) return null;
                   const item = payload[0]?.payload as ChartDataPoint;
                   if (!item) return null;
@@ -156,36 +140,26 @@ const AuditDetailsChart: React.FC<AuditDetailsChartProps> = ({
                   return (
                     <div className="space-y-2 rounded-lg border bg-background p-2 shadow-sm">
                       <div className="font-semibold">
-                        {format(new Date(item.date), "MMMM d, yyyy")}
+                        {format(new Date(item.date), 'MMMM d, yyyy')}
                       </div>
                       {item.location > 0 && (
                         <div className="space-y-1">
                           <div className="font-semibold">{`${item.location} Location Errors:`}</div>
-                          {item.error_locations.map(
-                            (loc: string, index: number) => (
-                              <div
-                                key={index}
-                                className="pl-2 border-l-2 border-blue-500"
-                              >
-                                {loc}
-                              </div>
-                            )
-                          )}
+                          {item.error_locations.map((loc: string, index: number) => (
+                            <div key={index} className="pl-2 border-l-2 border-blue-500">
+                              {loc}
+                            </div>
+                          ))}
                         </div>
                       )}
                       {item.details > 0 && (
                         <div className="space-y-1">
                           <div className="font-semibold">{`${item.details} Detail Errors:`}</div>
-                          {item.error_details.map(
-                            (detail: string, index: number) => (
-                              <div
-                                key={index}
-                                className="pl-2 border-l-2 border-yellow-500"
-                              >
-                                {detail}
-                              </div>
-                            )
-                          )}
+                          {item.error_details.map((detail: string, index: number) => (
+                            <div key={index} className="pl-2 border-l-2 border-yellow-500">
+                              {detail}
+                            </div>
+                          ))}
                         </div>
                       )}
                       {item.cancelledDros > 0 && (

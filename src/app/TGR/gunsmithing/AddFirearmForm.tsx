@@ -1,8 +1,21 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface AddFirearmFormProps {
   onAdd: (firearm: {
@@ -17,8 +30,8 @@ interface AddFirearmFormProps {
 }
 
 export default function AddFirearmForm({ onAdd }: AddFirearmFormProps) {
-  const [firearmType, setFirearmType] = useState<string>("handgun");
-  const [firearmName, setFirearmName] = useState<string>("");
+  const [firearmType, setFirearmType] = useState<string>('handgun');
+  const [firearmName, setFirearmName] = useState<string>('');
   const [maintenanceFrequency, setMaintenanceFrequency] = useState<number>(30);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
@@ -28,13 +41,13 @@ export default function AddFirearmForm({ onAdd }: AddFirearmFormProps) {
       firearm_name: firearmName,
       last_maintenance_date: new Date().toISOString(),
       maintenance_frequency: maintenanceFrequency,
-      maintenance_notes: "",
-      status: "New",
+      maintenance_notes: '',
+      status: 'New',
       assigned_to: null,
     };
     onAdd(newFirearm);
-    setFirearmType("handgun");
-    setFirearmName("");
+    setFirearmType('handgun');
+    setFirearmName('');
     setMaintenanceFrequency(30);
     setIsDialogOpen(false); // Close the dialog after adding the firearm
   };
@@ -51,10 +64,7 @@ export default function AddFirearmForm({ onAdd }: AddFirearmFormProps) {
         <div className="space-y-4">
           <div>
             <label>Firearm Type</label>
-            <Select
-              value={firearmType}
-              onValueChange={(value) => setFirearmType(value)}
-            >
+            <Select value={firearmType} onValueChange={(value) => setFirearmType(value)}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select Firearm Type" />
               </SelectTrigger>
@@ -66,10 +76,7 @@ export default function AddFirearmForm({ onAdd }: AddFirearmFormProps) {
           </div>
           <div>
             <label>Firearm Name</label>
-            <Input
-              value={firearmName}
-              onChange={(e) => setFirearmName(e.target.value)}
-            />
+            <Input value={firearmName} onChange={(e) => setFirearmName(e.target.value)} />
           </div>
           <div>
             <label>Maintenance Frequency</label>
@@ -81,7 +88,9 @@ export default function AddFirearmForm({ onAdd }: AddFirearmFormProps) {
           </div>
         </div>
         <DialogFooter>
-          <Button variant="linkHover2" onClick={handleAdd}>Add Firearm</Button>
+          <Button variant="linkHover2" onClick={handleAdd}>
+            Add Firearm
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

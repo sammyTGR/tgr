@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
 
 type OptionType = {
   value: string;
@@ -11,12 +11,8 @@ type RenderDropdownProps = {
   placeholder: string;
 };
 
-const RenderDropdown: React.FC<RenderDropdownProps> = ({
-  field,
-  options,
-  placeholder,
-}) => {
-  const [searchText, setSearchText] = useState("");
+const RenderDropdown: React.FC<RenderDropdownProps> = ({ field, options, placeholder }) => {
+  const [searchText, setSearchText] = useState('');
 
   const filteredOptions = options.filter((option) =>
     option.label?.toLowerCase().includes(searchText.toLowerCase())

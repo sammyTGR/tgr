@@ -1,14 +1,14 @@
-import React from "react";
+import React from 'react';
 import {
   useReactTable,
   getCoreRowModel,
   getPaginationRowModel,
   getFilteredRowModel,
   SortingState,
-} from "@tanstack/react-table";
-import { DataTableEmployee } from "./data-table-employee";
-import { employeeSalesColumns } from "./columns-all-employees";
-import { useQuery } from "@tanstack/react-query";
+} from '@tanstack/react-table';
+import { DataTableEmployee } from './data-table-employee';
+import { employeeSalesColumns } from './columns-all-employees';
+import { useQuery } from '@tanstack/react-query';
 import {
   format,
   subDays,
@@ -17,23 +17,19 @@ import {
   startOfMonth,
   endOfMonth,
   subMonths,
-} from "date-fns";
-import { Button } from "@/components/ui/button";
-import { DownloadIcon } from "@radix-ui/react-icons";
-import * as XLSX from "xlsx";
-import { toast } from "sonner";
-import { Calendar as CalendarIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { toZonedTime } from "date-fns-tz";
+} from 'date-fns';
+import { Button } from '@/components/ui/button';
+import { DownloadIcon } from '@radix-ui/react-icons';
+import * as XLSX from 'xlsx';
+import { toast } from 'sonner';
+import { Calendar as CalendarIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { toZonedTime } from 'date-fns-tz';
 
 interface SalesAtGlanceTableProps {
-  period: "1day" | "7days" | "14days" | "30days" | "lastMonth" | "custom";
+  period: '1day' | '7days' | '14days' | '30days' | 'lastMonth' | 'custom';
   selectedEmployees: string[];
   dateRange: {
     start: Date;
@@ -46,16 +42,16 @@ interface ExportRow {
   Date: string;
   Invoice: string;
   Employee: string;
-  "Employee Name": string;
+  'Employee Name': string;
   SKU: string;
   Description: string;
   Category: string;
   Subcategory: string;
-  "Sold Price": number;
-  "Sold Quantity": number;
+  'Sold Price': number;
+  'Sold Quantity': number;
   Cost: number;
-  "Total Gross": number;
-  "Total Net": number;
+  'Total Gross': number;
+  'Total Net': number;
 }
 
 // Add interfaces for the summary data
@@ -85,12 +81,12 @@ const MonthSelect: React.FC<{
         <Button
           variant="outline"
           className={cn(
-            "w-[240px] justify-start text-left font-normal",
-            !value && "text-muted-foreground"
+            'w-[240px] justify-start text-left font-normal',
+            !value && 'text-muted-foreground'
           )}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
-          {format(value, "MMMM yyyy")}
+          {format(value, 'MMMM yyyy')}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
@@ -110,7 +106,7 @@ const MonthSelect: React.FC<{
   );
 };
 
-const TIMEZONE = "America/Los_Angeles";
+const TIMEZONE = 'America/Los_Angeles';
 
 export const SalesAtGlanceTable: React.FC<SalesAtGlanceTableProps> = ({
   period,
@@ -118,14 +114,10 @@ export const SalesAtGlanceTable: React.FC<SalesAtGlanceTableProps> = ({
 }) => {
   const [pageIndex, setPageIndex] = React.useState(0);
   const [pageSize, setPageSize] = React.useState(10);
-  const [sorting, setSorting] = React.useState<SortingState>([
-    { id: "Date", desc: true },
-  ]);
+  const [sorting, setSorting] = React.useState<SortingState>([{ id: 'Date', desc: true }]);
 
   // Add state for selected month
-  const [selectedMonth, setSelectedMonth] = React.useState<Date>(
-    subMonths(new Date(), 1)
-  );
+  const [selectedMonth, setSelectedMonth] = React.useState<Date>(subMonths(new Date(), 1));
 
   // Calculate date range based on period
   const dateRange = React.useMemo(() => {
@@ -134,24 +126,24 @@ export const SalesAtGlanceTable: React.FC<SalesAtGlanceTableProps> = ({
     let end: Date;
 
     switch (period) {
-      case "1day":
+      case '1day':
         start = startOfDay(yesterday);
         end = endOfDay(yesterday);
         break;
-      case "7days":
+      case '7days':
         start = startOfDay(subDays(yesterday, 6));
         end = endOfDay(yesterday);
         break;
-      case "14days":
+      case '14days':
         start = startOfDay(subDays(yesterday, 13));
         end = endOfDay(yesterday);
         break;
-      case "30days":
+      case '30days':
         start = startOfDay(subDays(yesterday, 29));
         end = endOfDay(yesterday);
         break;
-      case "lastMonth":
-      case "custom":
+      case 'lastMonth':
+      case 'custom':
         // Use the selected month for both lastMonth and custom periods
         start = startOfMonth(selectedMonth);
         end = endOfMonth(selectedMonth);
@@ -178,19 +170,12 @@ export const SalesAtGlanceTable: React.FC<SalesAtGlanceTableProps> = ({
 
   // Fetch sales data
   const salesQuery = useQuery({
-    queryKey: [
-      "glanceSales",
-      period,
-      pageIndex,
-      pageSize,
-      sorting,
-      selectedEmployees,
-    ],
+    queryKey: ['glanceSales', period, pageIndex, pageSize, sorting, selectedEmployees],
     queryFn: async () => {
-      const response = await fetch("/api/fetch-all-employees-sales", {
-        method: "POST",
+      const response = await fetch('/api/fetch-all-employees-sales', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           pageIndex: Number(pageIndex),
@@ -199,7 +184,7 @@ export const SalesAtGlanceTable: React.FC<SalesAtGlanceTableProps> = ({
             sorting.map((sort) => ({
               ...sort,
               // Map the Date field to SoldDate for sorting
-              id: sort.id === "Date" ? "SoldDate" : sort.id,
+              id: sort.id === 'Date' ? 'SoldDate' : sort.id,
             })) || [],
           dateRange: {
             from: format(
@@ -211,14 +196,12 @@ export const SalesAtGlanceTable: React.FC<SalesAtGlanceTableProps> = ({
               "yyyy-MM-dd'T'HH:mm:ss.SSSxxx"
             ),
           },
-          employeeLanids: selectedEmployees.includes("all")
-            ? null
-            : selectedEmployees,
+          employeeLanids: selectedEmployees.includes('all') ? null : selectedEmployees,
         }),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to fetch sales data");
+        throw new Error('Failed to fetch sales data');
       }
 
       return response.json();
@@ -236,9 +219,7 @@ export const SalesAtGlanceTable: React.FC<SalesAtGlanceTableProps> = ({
     },
     onPaginationChange: (updater) => {
       const newPaginationState =
-        typeof updater === "function"
-          ? updater({ pageIndex, pageSize })
-          : updater;
+        typeof updater === 'function' ? updater({ pageIndex, pageSize }) : updater;
       setPageIndex(newPaginationState.pageIndex);
       setPageSize(newPaginationState.pageSize);
     },
@@ -255,12 +236,12 @@ export const SalesAtGlanceTable: React.FC<SalesAtGlanceTableProps> = ({
 
   // Add export query
   const exportQuery = useQuery({
-    queryKey: ["exportGlanceSales", period, selectedEmployees, dateRange],
+    queryKey: ['exportGlanceSales', period, selectedEmployees, dateRange],
     queryFn: async () => {
-      const response = await fetch("/api/fetch-all-employees-sales-export", {
-        method: "POST",
+      const response = await fetch('/api/fetch-all-employees-sales-export', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           dateRange: {
@@ -273,14 +254,12 @@ export const SalesAtGlanceTable: React.FC<SalesAtGlanceTableProps> = ({
               "yyyy-MM-dd'T'HH:mm:ss.SSSxxx"
             ),
           },
-          employeeLanids: selectedEmployees.includes("all")
-            ? null
-            : selectedEmployees,
+          employeeLanids: selectedEmployees.includes('all') ? null : selectedEmployees,
         }),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to fetch export data");
+        throw new Error('Failed to fetch export data');
       }
 
       return response.json();
@@ -290,12 +269,12 @@ export const SalesAtGlanceTable: React.FC<SalesAtGlanceTableProps> = ({
 
   // Add this near your other queries
   const employeeSummaryQuery = useQuery({
-    queryKey: ["employeeSummary", period, selectedEmployees, dateRange],
+    queryKey: ['employeeSummary', period, selectedEmployees, dateRange],
     queryFn: async () => {
-      const response = await fetch("/api/fetch-employee-sales-summary", {
-        method: "POST",
+      const response = await fetch('/api/fetch-employee-sales-summary', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           dateRange: {
@@ -308,14 +287,12 @@ export const SalesAtGlanceTable: React.FC<SalesAtGlanceTableProps> = ({
               "yyyy-MM-dd'T'HH:mm:ss.SSSxxx"
             ),
           },
-          employeeLanids: selectedEmployees.includes("all")
-            ? null
-            : selectedEmployees,
+          employeeLanids: selectedEmployees.includes('all') ? null : selectedEmployees,
         }),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to fetch employee summary");
+        throw new Error('Failed to fetch employee summary');
       }
 
       const data: EmployeeSummary[] = await response.json();
@@ -325,12 +302,12 @@ export const SalesAtGlanceTable: React.FC<SalesAtGlanceTableProps> = ({
 
   // Add a query for period totals
   const periodTotalsQuery = useQuery({
-    queryKey: ["periodTotals", period, selectedEmployees, dateRange],
+    queryKey: ['periodTotals', period, selectedEmployees, dateRange],
     queryFn: async () => {
-      const response = await fetch("/api/fetch-period-totals", {
-        method: "POST",
+      const response = await fetch('/api/fetch-period-totals', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           dateRange: {
@@ -343,14 +320,12 @@ export const SalesAtGlanceTable: React.FC<SalesAtGlanceTableProps> = ({
               "yyyy-MM-dd'T'HH:mm:ss.SSSxxx"
             ),
           },
-          employeeLanids: selectedEmployees.includes("all")
-            ? null
-            : selectedEmployees,
+          employeeLanids: selectedEmployees.includes('all') ? null : selectedEmployees,
         }),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to fetch period totals");
+        throw new Error('Failed to fetch period totals');
       }
 
       return response.json() as Promise<PeriodTotals>;
@@ -361,10 +336,10 @@ export const SalesAtGlanceTable: React.FC<SalesAtGlanceTableProps> = ({
     try {
       setIsExporting(true);
       const [salesResponse, periodTotalsResponse] = await Promise.all([
-        fetch("/api/fetch-all-employees-sales-export", {
-          method: "POST",
+        fetch('/api/fetch-all-employees-sales-export', {
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
           },
           body: JSON.stringify({
             dateRange: {
@@ -377,16 +352,14 @@ export const SalesAtGlanceTable: React.FC<SalesAtGlanceTableProps> = ({
                 "yyyy-MM-dd'T'HH:mm:ss.SSSxxx"
               ),
             },
-            employeeLanids: selectedEmployees.includes("all")
-              ? null
-              : selectedEmployees,
+            employeeLanids: selectedEmployees.includes('all') ? null : selectedEmployees,
           }),
         }),
         // Fetch period totals separately
-        fetch("/api/fetch-period-totals", {
-          method: "POST",
+        fetch('/api/fetch-period-totals', {
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
           },
           body: JSON.stringify({
             dateRange: {
@@ -399,15 +372,13 @@ export const SalesAtGlanceTable: React.FC<SalesAtGlanceTableProps> = ({
                 "yyyy-MM-dd'T'HH:mm:ss.SSSxxx"
               ),
             },
-            employeeLanids: selectedEmployees.includes("all")
-              ? null
-              : selectedEmployees,
+            employeeLanids: selectedEmployees.includes('all') ? null : selectedEmployees,
           }),
         }),
       ]);
 
       if (!salesResponse.ok || !periodTotalsResponse.ok) {
-        throw new Error("Failed to fetch export data");
+        throw new Error('Failed to fetch export data');
       }
 
       const [{ data, summary }, periodTotals] = await Promise.all([
@@ -416,7 +387,7 @@ export const SalesAtGlanceTable: React.FC<SalesAtGlanceTableProps> = ({
       ]);
 
       if (!data?.length) {
-        toast.error("No data found for the selected range");
+        toast.error('No data found for the selected range');
         return;
       }
 
@@ -425,15 +396,15 @@ export const SalesAtGlanceTable: React.FC<SalesAtGlanceTableProps> = ({
       // Add period totals sheet with safe values
       const periodTotalsSheet = XLSX.utils.json_to_sheet([
         {
-          "Total Transactions": data.length,
-          "Total Gross Revenue": periodTotals?.totalGross || 0,
-          "Total Net Revenue": periodTotals?.totalNet || 0,
-          "Average Transaction Value": data.length
+          'Total Transactions': data.length,
+          'Total Gross Revenue': periodTotals?.totalGross || 0,
+          'Total Net Revenue': periodTotals?.totalNet || 0,
+          'Average Transaction Value': data.length
             ? ((periodTotals?.totalGross || 0) / data.length).toFixed(2)
-            : "0.00",
+            : '0.00',
         },
       ]);
-      XLSX.utils.book_append_sheet(wb, periodTotalsSheet, "Period_Summary");
+      XLSX.utils.book_append_sheet(wb, periodTotalsSheet, 'Period_Summary');
 
       // Add employee summary sheet
       const summaryData =
@@ -446,69 +417,60 @@ export const SalesAtGlanceTable: React.FC<SalesAtGlanceTableProps> = ({
             existingEmployee.transaction_count += 1;
           } else {
             acc.push({
-              "Employee Name": row.employee_name,
-              "Total Gross": row.total_gross || 0,
-              "Total Net": row.Margin || 0,
-              "Transaction Count": 1,
+              'Employee Name': row.employee_name,
+              'Total Gross': row.total_gross || 0,
+              'Total Net': row.Margin || 0,
+              'Transaction Count': 1,
             });
           }
           return acc;
         }, []);
 
       const summarySheet = XLSX.utils.json_to_sheet(summaryData);
-      XLSX.utils.book_append_sheet(wb, summarySheet, "Employee_Summary");
+      XLSX.utils.book_append_sheet(wb, summarySheet, 'Employee_Summary');
 
       // Add detailed transactions sheet
       const detailsSheet = XLSX.utils.json_to_sheet(
         data.map((row: any) => ({
-          Date: format(
-            toZonedTime(new Date(row.SoldDate), TIMEZONE),
-            "yyyy-MM-dd HH:mm:ss"
-          ),
+          Date: format(toZonedTime(new Date(row.SoldDate), TIMEZONE), 'yyyy-MM-dd HH:mm:ss'),
           Invoice: row.SoldRef,
           Employee: row.Lanid,
-          "Employee Name": row.employee_name,
+          'Employee Name': row.employee_name,
           Description: row.Desc,
           Category: row.CatDesc,
           Subcategory: row.SubDesc,
-          "Sold Price": row.SoldPrice,
-          "Sold Quantity": row.Qty,
+          'Sold Price': row.SoldPrice,
+          'Sold Quantity': row.Qty,
           Cost: row.Cost,
-          "Total Gross": row.total_gross,
-          "Total Net": row.Margin,
+          'Total Gross': row.total_gross,
+          'Total Net': row.Margin,
         }))
       );
-      XLSX.utils.book_append_sheet(wb, detailsSheet, "Detailed_Transactions");
+      XLSX.utils.book_append_sheet(wb, detailsSheet, 'Detailed_Transactions');
 
       // Set column widths and formatting
-      const sheets = [
-        "Period_Summary",
-        "Employee_Summary",
-        "Detailed_Transactions",
-      ];
+      const sheets = ['Period_Summary', 'Employee_Summary', 'Detailed_Transactions'];
       sheets.forEach((sheet) => {
         const ws = wb.Sheets[sheet];
-        const range = XLSX.utils.decode_range(ws["!ref"] || "A1");
+        const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
 
         // Set column widths
         const cols = [];
         for (let i = 0; i <= range.e.c; ++i) {
           cols.push({ wch: 15 }); // Set width to 15 characters
         }
-        ws["!cols"] = cols;
+        ws['!cols'] = cols;
       });
 
       const filename = `sales_report_${period}_${
-        selectedEmployees.includes("all")
-          ? "all_employees"
-          : selectedEmployees.join(",")
-      }_${format(new Date(), "yyyy-MM-dd")}.xlsx`;
+        selectedEmployees.includes('all') ? 'all_employees' : selectedEmployees.join(',')
+      }_${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
 
       XLSX.writeFile(wb, filename);
-      toast.success("Export completed successfully");
+      toast.success('Export completed successfully');
     } catch (error) {
-      console.error("Export failed:", error);
-      toast.error("Failed to export data");
+      console.error('Export failed:', error);
+      toast.error('Failed to export data');
     } finally {
       setIsExporting(false);
     }
@@ -521,7 +483,7 @@ export const SalesAtGlanceTable: React.FC<SalesAtGlanceTableProps> = ({
   return (
     <div className="space-y-4">
       {/* Add Month Picker when custom period or lastMonth is selected */}
-      {(period === "custom" || period === "lastMonth") && (
+      {(period === 'custom' || period === 'lastMonth') && (
         <div className="mb-6">
           <MonthSelect value={selectedMonth} onChange={setSelectedMonth} />
         </div>
@@ -531,39 +493,29 @@ export const SalesAtGlanceTable: React.FC<SalesAtGlanceTableProps> = ({
       <div className="mb-6">
         <div className="p-6 rounded-lg bg-card text-card-foreground shadow-sm">
           <h2 className="font-semibold text-xl mb-4">
-            {period === "lastMonth" ? "Sales Summary" : "Period Summary"}
+            {period === 'lastMonth' ? 'Sales Summary' : 'Period Summary'}
           </h2>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <h3 className="text-sm text-muted-foreground">
-                Total Net (Period)
-              </h3>
+              <h3 className="text-sm text-muted-foreground">Total Net (Period)</h3>
               <p className="text-2xl font-bold">
                 {periodTotalsQuery.data
-                  ? `$${periodTotalsQuery.data.totalNet.toLocaleString(
-                      "en-US",
-                      {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      }
-                    )}`
-                  : "Loading..."}
+                  ? `$${periodTotalsQuery.data.totalNet.toLocaleString('en-US', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}`
+                  : 'Loading...'}
               </p>
             </div>
             <div className="space-y-2">
-              <h3 className="text-sm text-muted-foreground">
-                Total Gross (Period)
-              </h3>
+              <h3 className="text-sm text-muted-foreground">Total Gross (Period)</h3>
               <p className="text-2xl font-bold">
                 {periodTotalsQuery.data
-                  ? `$${periodTotalsQuery.data.totalGross.toLocaleString(
-                      "en-US",
-                      {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      }
-                    )}`
-                  : "Loading..."}
+                  ? `$${periodTotalsQuery.data.totalGross.toLocaleString('en-US', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}`
+                  : 'Loading...'}
               </p>
             </div>
           </div>
@@ -575,11 +527,7 @@ export const SalesAtGlanceTable: React.FC<SalesAtGlanceTableProps> = ({
         <Button
           variant="outline"
           onClick={handleExport}
-          disabled={
-            isExporting ||
-            salesQuery.isLoading ||
-            !salesQuery.data?.data?.length
-          }
+          disabled={isExporting || salesQuery.isLoading || !salesQuery.data?.data?.length}
         >
           {isExporting ? (
             <>
@@ -605,39 +553,32 @@ export const SalesAtGlanceTable: React.FC<SalesAtGlanceTableProps> = ({
           <div className="text-center p-4">
             <p className="text-muted-foreground">Error loading summaries</p>
           </div>
-        ) : employeeSummaryQuery.data &&
-          employeeSummaryQuery.data.length > 0 ? (
+        ) : employeeSummaryQuery.data && employeeSummaryQuery.data.length > 0 ? (
           <div className="p-6 rounded-lg  bg-card text-card-foreground shadow-sm">
             {/* <h2 className="font-semibold text-xl mb-4">Sales Summary</h2> */}
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-10 gap-4">
               {employeeSummaryQuery.data.map((summary) => (
                 <div key={summary.Lanid} className="space-y-2">
-                  <h3 className="font-semibold text-lg border-b pb-2">
-                    {summary.employee_name}
-                  </h3>
+                  <h3 className="font-semibold text-lg border-b pb-2">{summary.employee_name}</h3>
                   <div className="space-y-1">
                     <div className="flex flex-col">
-                      <span className="text-sm text-muted-foreground">
-                        Total Net
-                      </span>
+                      <span className="text-sm text-muted-foreground">Total Net</span>
                       <span className="font-medium">
                         $
-                        {summary.total_net?.toLocaleString("en-US", {
+                        {summary.total_net?.toLocaleString('en-US', {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
-                        }) ?? "0.00"}
+                        }) ?? '0.00'}
                       </span>
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-sm text-muted-foreground">
-                        Total Gross
-                      </span>
+                      <span className="text-sm text-muted-foreground">Total Gross</span>
                       <span className="font-medium">
                         $
-                        {summary.total_gross?.toLocaleString("en-US", {
+                        {summary.total_gross?.toLocaleString('en-US', {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
-                        }) ?? "0.00"}
+                        }) ?? '0.00'}
                       </span>
                     </div>
                   </div>
@@ -647,9 +588,7 @@ export const SalesAtGlanceTable: React.FC<SalesAtGlanceTableProps> = ({
           </div>
         ) : (
           <div className="text-center p-4">
-            <p className="text-muted-foreground">
-              No sales data available for the selected period
-            </p>
+            <p className="text-muted-foreground">No sales data available for the selected period</p>
           </div>
         )}
       </div>

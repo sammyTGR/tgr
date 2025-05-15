@@ -1,6 +1,6 @@
-import * as React from "react";
-import { useRouter } from "next/navigation";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import * as React from 'react';
+import { useRouter } from 'next/navigation';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Card,
   CardContent,
@@ -8,13 +8,8 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import {
-  HoveredLink,
-  Menu,
-  MenuItem,
-  ProductItem,
-} from "@/components/ui/navbar-menu";
+} from '@/components/ui/card';
+import { HoveredLink, Menu, MenuItem, ProductItem } from '@/components/ui/navbar-menu';
 
 function FederalAgent({ className }: { className?: string }) {
   const router = useRouter();
@@ -25,11 +20,11 @@ function FederalAgent({ className }: { className?: string }) {
         <CardHeader>
           <CardTitle>Federal Agent DROS Info</CardTitle>
           <CardDescription>
-            <span className="text-amber-500">Before Moving Forward</span>, Ask
-            For A Business Card With Agency | Department Letterhead | Seal
+            <span className="text-amber-500">Before Moving Forward</span>, Ask For A Business Card
+            With Agency | Department Letterhead | Seal
             <br />
-            And <span className="text-orange-500">PRINT</span> THE Federal Doc
-            Worksheet In The Info Section Below
+            And <span className="text-orange-500">PRINT</span> THE Federal Doc Worksheet In The Info
+            Section Below
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -74,25 +69,22 @@ function FederalAgent({ className }: { className?: string }) {
           <hr className="my-4" />
           <div className="max-w-full">
             <h2>
-              Because You <span className="text-red-500">CANNOT</span> Copy
-              Federal ID&apos;s, Print & Fill Out Federal Doc Worksheet Along
-              With Scanning The Required Docs Below:
+              Because You <span className="text-red-500">CANNOT</span> Copy Federal ID&apos;s, Print
+              & Fill Out Federal Doc Worksheet Along With Scanning The Required Docs Below:
             </h2>
             <ul className="list-disc pl-4">
               <li>A Scan | Copy Of CA DL | CA ID</li>
-              <li>
-                A Business Card With Agency | Department Letterhead | Seal
-              </li>
+              <li>A Business Card With Agency | Department Letterhead | Seal</li>
             </ul>
             <br />
             <hr className="my-4" />
             <p>
-              If The Transaction Is For A{" "}
-              <span className="text-blue-500">Blue Label</span> Firearm,
+              If The Transaction Is For A <span className="text-blue-500">Blue Label</span> Firearm,
               <br />
-              Don&apos;t Forget To Fill Out The{" "}
-              <span className="text-blue-500">Blue Label</span> Form & Include
-              It In The Pending Packet
+              Don&apos;t Forget To Fill Out The <span className="text-blue-500">
+                Blue Label
+              </span>{' '}
+              Form & Include It In The Pending Packet
             </p>
           </div>
         </CardContent>

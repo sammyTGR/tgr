@@ -1,10 +1,10 @@
-"use server";
+'use server';
 
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
-import { createClient } from "@supabase/supabase-js";
-import { cookies } from "next/headers";
-import DOMPurify from "isomorphic-dompurify";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@supabase/supabase-js';
+import { cookies } from 'next/headers';
+import DOMPurify from 'isomorphic-dompurify';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
 const serviceClient = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -22,16 +22,16 @@ export async function sendAndGetMessages(chatId: string, message: string) {
   const supabase = createServerComponentClient({ cookies });
   const sanitizedMessage = DOMPurify.sanitize(message.trim());
 
-  if (!sanitizedMessage) throw new Error("Message cannot be empty");
+  if (!sanitizedMessage) throw new Error('Message cannot be empty');
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Unauthorized");
+  if (!user) throw new Error('Unauthorized');
 
   const [sendResult, messagesResult] = await Promise.all([
     supabase
-      .from("messages")
+      .from('messages')
       .insert([
         {
           content: sanitizedMessage,
@@ -43,10 +43,10 @@ export async function sendAndGetMessages(chatId: string, message: string) {
       .select()
       .single(),
     supabase
-      .from("messages")
-      .select("id, content, is_agent, created_at")
-      .eq("chat_id", chatId)
-      .order("created_at", { ascending: true })
+      .from('messages')
+      .select('id, content, is_agent, created_at')
+      .eq('chat_id', chatId)
+      .order('created_at', { ascending: true })
       .limit(50),
   ]);
 
@@ -62,28 +62,28 @@ export async function getEmployees(search?: string) {
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (!user) throw new Error("Unauthorized");
+    if (!user) throw new Error('Unauthorized');
 
     let query = serviceClient
-      .from("employees")
-      .select("employee_id, name, contact_info, avatar_url")
-      .eq("status", "active");
+      .from('employees')
+      .select('employee_id, name, contact_info, avatar_url')
+      .eq('status', 'active');
 
     if (search) {
       const sanitizedSearch = DOMPurify.sanitize(search.trim());
-      query = query.ilike("name", `%${sanitizedSearch}%`);
+      query = query.ilike('name', `%${sanitizedSearch}%`);
     }
 
     const { data, error } = await query;
 
     if (error) {
-      console.error("Database error:", error);
+      console.error('Database error:', error);
       throw error;
     }
 
     return data;
   } catch (error) {
-    console.error("getEmployees error:", error);
+    console.error('getEmployees error:', error);
     throw error;
   }
 }
@@ -93,11 +93,11 @@ export async function createChat(users: string[]) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Unauthorized");
+  if (!user) throw new Error('Unauthorized');
 
   const { data: chat, error: chatError } = await supabase
-    .from("chats")
-    .insert({ name: users.length > 2 ? "Group Chat" : null })
+    .from('chats')
+    .insert({ name: users.length > 2 ? 'Group Chat' : null })
     .select()
     .single();
 
@@ -108,22 +108,18 @@ export async function createChat(users: string[]) {
     user_id: userId,
   }));
 
-  const { error: participantError } = await supabase
-    .from("chat_participants")
-    .insert(participants);
+  const { error: participantError } = await supabase.from('chat_participants').insert(participants);
 
   if (participantError) throw participantError;
 
   const notifications = participants.map((participant) => ({
     user_id: participant.user_id,
-    type: "new_chat",
+    type: 'new_chat',
     content: `You have been added to a new chat`,
     chat_id: chat.id,
   }));
 
-  const { error: notificationError } = await supabase
-    .from("notifications")
-    .insert(notifications);
+  const { error: notificationError } = await supabase.from('notifications').insert(notifications);
 
   if (notificationError) throw notificationError;
 
@@ -135,12 +131,12 @@ export async function getChatParticipants(chatId: string) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Unauthorized");
+  if (!user) throw new Error('Unauthorized');
 
   const { data, error } = await supabase
-    .from("chat_participants")
-    .select("user_id")
-    .eq("chat_id", chatId);
+    .from('chat_participants')
+    .select('user_id')
+    .eq('chat_id', chatId);
 
   if (error) throw error;
 
@@ -152,29 +148,23 @@ export async function deleteChat(chatId: string): Promise<void> {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Unauthorized");
+  if (!user) throw new Error('Unauthorized');
 
   // Delete all messages first
-  const { error: messagesError } = await supabase
-    .from("messages")
-    .delete()
-    .eq("chat_id", chatId);
+  const { error: messagesError } = await supabase.from('messages').delete().eq('chat_id', chatId);
 
   if (messagesError) throw messagesError;
 
   // Delete all chat participants
   const { error: participantsError } = await supabase
-    .from("chat_participants")
+    .from('chat_participants')
     .delete()
-    .eq("chat_id", chatId);
+    .eq('chat_id', chatId);
 
   if (participantsError) throw participantsError;
 
   // Finally delete the chat itself
-  const { error: chatError } = await supabase
-    .from("chats")
-    .delete()
-    .eq("id", chatId);
+  const { error: chatError } = await supabase.from('chats').delete().eq('id', chatId);
 
   if (chatError) throw chatError;
 }
@@ -183,7 +173,7 @@ export async function markMessagesAsRead(chatId: string, userId: string) {
   try {
     // First, get all messages for this chat
     const { data: messages, error: messagesError } = await supabase
-      .from("messages")
+      .from('messages')
       .select(
         `
         id,
@@ -192,7 +182,7 @@ export async function markMessagesAsRead(chatId: string, userId: string) {
         )
       `
       )
-      .eq("chat_id", chatId);
+      .eq('chat_id', chatId);
 
     if (messagesError) throw messagesError;
 
@@ -209,17 +199,15 @@ export async function markMessagesAsRead(chatId: string, userId: string) {
       }));
 
       // Insert the read status into message_reads
-      const { error: insertError } = await supabase
-        .from("message_reads")
-        .insert(messageReads);
+      const { error: insertError } = await supabase.from('message_reads').insert(messageReads);
 
       if (insertError) {
-        console.error("Error marking messages as read:", insertError);
+        console.error('Error marking messages as read:', insertError);
         throw insertError;
       }
     }
   } catch (error) {
-    console.error("markMessagesAsRead error:", error);
+    console.error('markMessagesAsRead error:', error);
     throw error;
   }
 }
@@ -235,15 +223,15 @@ export async function sendMessage(
   try {
     // Get all chat participants first
     const { data: participants, error: participantsError } = await supabase
-      .from("chat_participants")
-      .select("user_id")
-      .eq("chat_id", chatId);
+      .from('chat_participants')
+      .select('user_id')
+      .eq('chat_id', chatId);
 
     if (participantsError) throw participantsError;
 
     // Send the message
     const { data: message, error: messageError } = await supabase
-      .from("messages")
+      .from('messages')
       .insert({
         content,
         chat_id: chatId,
@@ -257,10 +245,10 @@ export async function sendMessage(
 
     // Create notifications for all participants except the sender
     const notifications = participants
-      .filter(participant => participant.user_id !== userId)
-      .map(participant => ({
+      .filter((participant) => participant.user_id !== userId)
+      .map((participant) => ({
         user_id: participant.user_id,
-        type: "new_message",
+        type: 'new_message',
         content: `New message in chat`,
         chat_id: chatId,
         read: false,
@@ -268,7 +256,7 @@ export async function sendMessage(
 
     if (notifications.length > 0) {
       const { error: notificationError } = await supabase
-        .from("notifications")
+        .from('notifications')
         .insert(notifications);
 
       if (notificationError) throw notificationError;
@@ -276,7 +264,7 @@ export async function sendMessage(
 
     return message;
   } catch (error) {
-    console.error("Error sending message:", error);
+    console.error('Error sending message:', error);
     throw error;
   }
 }
@@ -292,7 +280,7 @@ export async function sendMessageWithNotification(
   try {
     // Send the message
     const { data: message, error: messageError } = await supabase
-      .from("messages")
+      .from('messages')
       .insert({
         content,
         chat_id: chatId,
@@ -305,21 +293,19 @@ export async function sendMessageWithNotification(
     if (messageError) throw messageError;
 
     // Create a notification for the recipient
-    const { error: notificationError } = await supabase
-      .from("notifications")
-      .insert({
-        user_id: recipientId,
-        type: "new_message",
-        content: `New message in chat`,
-        chat_id: chatId,
-        read: false,
-      });
+    const { error: notificationError } = await supabase.from('notifications').insert({
+      user_id: recipientId,
+      type: 'new_message',
+      content: `New message in chat`,
+      chat_id: chatId,
+      read: false,
+    });
 
     if (notificationError) throw notificationError;
 
     return message;
   } catch (error) {
-    console.error("Error sending message:", error);
+    console.error('Error sending message:', error);
     throw error;
   }
 }

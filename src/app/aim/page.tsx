@@ -1,4 +1,4 @@
-import AimPage from "./index";
+import AimPage from './index';
 
 export default function Page() {
   return <AimPage />;

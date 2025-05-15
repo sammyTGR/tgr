@@ -1,29 +1,27 @@
-"use client";
+'use client';
 
-import { Table } from "@tanstack/react-table";
+import { Table } from '@tanstack/react-table';
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
   DoubleArrowLeftIcon,
   DoubleArrowRightIcon,
-} from "@radix-ui/react-icons";
-import { Button } from "@/components/ui/button";
+} from '@radix-ui/react-icons';
+import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
+} from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 
 interface TimesheetPaginationProps<TData> {
   table: Table<TData>;
 }
 
-export function TimesheetPagination<TData>({
-  table,
-}: TimesheetPaginationProps<TData>) {
+export function TimesheetPagination<TData>({ table }: TimesheetPaginationProps<TData>) {
   return (
     <div className="flex items-center justify-between px-2 py-4">
       <div className="flex items-center space-x-2">

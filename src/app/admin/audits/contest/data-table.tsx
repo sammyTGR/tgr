@@ -1,6 +1,6 @@
 // src/app/admin/audits/contest/data-table.tsx
 
-import React from "react";
+import React from 'react';
 
 export interface ColumnDef<T = any> {
   Header: string;
@@ -13,10 +13,7 @@ export interface DataTableProps<T = any> {
   data: T[];
 }
 
-export const DataTable = <T extends object>({
-  columns,
-  data,
-}: DataTableProps<T>) => {
+export const DataTable = <T extends object>({ columns, data }: DataTableProps<T>) => {
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full">
@@ -39,7 +36,7 @@ export const DataTable = <T extends object>({
                         value: row[column.accessor as keyof T],
                         row: { original: row },
                       })
-                    : String(row[column.accessor as keyof T] ?? "")}
+                    : String(row[column.accessor as keyof T] ?? '')}
                 </td>
               ))}
             </tr>

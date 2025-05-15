@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from '@tanstack/react-query';
 
 interface PatchNote {
   id: string;
@@ -7,18 +7,18 @@ interface PatchNote {
   title: string;
   description: string;
   changes: {
-    type: "added" | "changed" | "fixed" | "removed";
+    type: 'added' | 'changed' | 'fixed' | 'removed';
     items: string[];
   }[];
 }
 
 export function usePatchNotes() {
   return useQuery<PatchNote[]>({
-    queryKey: ["patch-notes"],
+    queryKey: ['patch-notes'],
     queryFn: async () => {
-      const response = await fetch("/api/patch-notes");
+      const response = await fetch('/api/patch-notes');
       if (!response.ok) {
-        throw new Error("Failed to fetch patch notes");
+        throw new Error('Failed to fetch patch notes');
       }
       return response.json();
     },

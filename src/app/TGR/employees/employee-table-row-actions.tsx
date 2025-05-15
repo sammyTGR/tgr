@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { Row } from "@tanstack/react-table";
+import { useState } from 'react';
+import { Row } from '@tanstack/react-table';
 import {
   DotsHorizontalIcon,
   Pencil1Icon,
@@ -9,23 +9,23 @@ import {
   CalendarIcon,
   ExitIcon,
   ArrowUpIcon,
-} from "@radix-ui/react-icons";
-import { Button } from "@/components/ui/button";
+} from '@radix-ui/react-icons';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Employee, PromotionData } from "./types";
-import { toast } from "sonner";
-import { EditScheduleDialog } from "./EditScheduleDialog";
-import { supabase } from "@/utils/supabase/client";
-import { EditEmployeeDialog } from "./PopoverForm";
-import { TermEmployeeDialog } from "./TermEmployeeDialog";
-import { PromoteEmployeeDialog } from "./PromoteEmployeeDialog";
-import { useQueryClient } from "@tanstack/react-query";
+} from '@/components/ui/dropdown-menu';
+import { Employee, PromotionData } from './types';
+import { toast } from 'sonner';
+import { EditScheduleDialog } from './EditScheduleDialog';
+import { supabase } from '@/utils/supabase/client';
+import { EditEmployeeDialog } from './PopoverForm';
+import { TermEmployeeDialog } from './TermEmployeeDialog';
+import { PromoteEmployeeDialog } from './PromoteEmployeeDialog';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface WeeklySchedule {
   [day: string]: { start_time: string | null; end_time: string | null };
@@ -35,15 +35,9 @@ interface EmployeeTableRowActionsProps<TData> {
   row: Row<TData>;
   onEdit: (updatedEmployee: Employee) => Promise<void>;
   onDelete: (employeeId: number) => Promise<void>;
-  onUpdateSchedule: (
-    employeeId: number,
-    schedules: WeeklySchedule
-  ) => Promise<void>;
+  onUpdateSchedule: (employeeId: number, schedules: WeeklySchedule) => Promise<void>;
   onTerm: (employeeId: number, termDate: string) => Promise<void>;
-  onPromote: (
-    employeeId: number,
-    promotionData: PromotionData
-  ) => Promise<void>;
+  onPromote: (employeeId: number, promotionData: PromotionData) => Promise<void>;
 }
 
 export function EmployeeTableRowActions<TData>({
@@ -64,25 +58,20 @@ export function EmployeeTableRowActions<TData>({
   const handleEdit = async (updatedEmployee: Employee) => {
     try {
       await onEdit(updatedEmployee);
-      queryClient.setQueryData(
-        ["employees"],
-        (oldData: Employee[] | undefined) => {
-          if (!oldData) return [updatedEmployee];
-          return oldData.map((emp) =>
-            emp.employee_id === updatedEmployee.employee_id
-              ? updatedEmployee
-              : emp
-          );
-        }
-      );
+      queryClient.setQueryData(['employees'], (oldData: Employee[] | undefined) => {
+        if (!oldData) return [updatedEmployee];
+        return oldData.map((emp) =>
+          emp.employee_id === updatedEmployee.employee_id ? updatedEmployee : emp
+        );
+      });
       setIsEditDialogOpen(false);
-      toast.success("Employee Updated", {
-        description: "The employee information has been successfully updated.",
+      toast.success('Employee Updated', {
+        description: 'The employee information has been successfully updated.',
       });
     } catch (error) {
-      console.error("Error updating employee:", error);
-      toast.error("Update Failed", {
-        description: "There was an error updating the employee information.",
+      console.error('Error updating employee:', error);
+      toast.error('Update Failed', {
+        description: 'There was an error updating the employee information.',
       });
     }
   };
@@ -91,27 +80,27 @@ export function EmployeeTableRowActions<TData>({
     try {
       await onUpdateSchedule(employee.employee_id, schedules);
       setIsScheduleDialogOpen(false);
-      toast.success("Schedule Updated", {
+      toast.success('Schedule Updated', {
         description: "The employee's schedule has been successfully updated.",
       });
     } catch (error) {
-      console.error("Error updating schedule:", error);
-      toast.error("Failed to update schedule");
+      console.error('Error updating schedule:', error);
+      toast.error('Failed to update schedule');
     }
   };
 
   const handleTerm = async (employeeId: number, termDate: string) => {
     try {
       await onTerm(employeeId, termDate);
-      queryClient.invalidateQueries({ queryKey: ["employees"] });
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
       setIsTermDialogOpen(false);
-      toast.success("Employee Terminated", {
-        description: "The employee has been successfully terminated.",
+      toast.success('Employee Terminated', {
+        description: 'The employee has been successfully terminated.',
       });
     } catch (error) {
-      console.error("Error terminating employee:", error);
-      toast.error("Termination Failed", {
-        description: "There was an error terminating the employee.",
+      console.error('Error terminating employee:', error);
+      toast.error('Termination Failed', {
+        description: 'There was an error terminating the employee.',
       });
     }
   };
@@ -119,29 +108,27 @@ export function EmployeeTableRowActions<TData>({
   const handlePromote = async (promotionData: PromotionData) => {
     try {
       await onPromote(employee.employee_id, promotionData);
-      queryClient.invalidateQueries({ queryKey: ["employees"] });
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
       setIsPromoteDialogOpen(false);
-      toast.success("Employee Promoted", {
-        description: "The employee has been successfully promoted.",
+      toast.success('Employee Promoted', {
+        description: 'The employee has been successfully promoted.',
       });
     } catch (error) {
-      console.error("Error promoting employee:", error);
-      toast.error("Promotion Failed", {
-        description: "There was an error promoting the employee.",
+      console.error('Error promoting employee:', error);
+      toast.error('Promotion Failed', {
+        description: 'There was an error promoting the employee.',
       });
     }
   };
 
-  const fetchWeeklySchedule = async (
-    employeeId: number
-  ): Promise<WeeklySchedule> => {
+  const fetchWeeklySchedule = async (employeeId: number): Promise<WeeklySchedule> => {
     const { data, error } = await supabase
-      .from("reference_schedules")
-      .select("day_of_week, start_time, end_time")
-      .eq("employee_id", employeeId);
+      .from('reference_schedules')
+      .select('day_of_week, start_time, end_time')
+      .eq('employee_id', employeeId);
 
     if (error) {
-      console.error("Error fetching weekly schedule:", error);
+      console.error('Error fetching weekly schedule:', error);
       return {};
     }
 

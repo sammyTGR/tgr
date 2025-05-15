@@ -1,5 +1,5 @@
-import * as React from "react";
-import { useRouter } from "next/navigation";
+import * as React from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Card,
   CardContent,
@@ -7,13 +7,8 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import {
-  HoveredLink,
-  Menu,
-  MenuItem,
-  ProductItem,
-} from "@/components/ui/navbar-menu";
+} from '@/components/ui/card';
+import { HoveredLink, Menu, MenuItem, ProductItem } from '@/components/ui/navbar-menu';
 
 function EmpAuth({ className }: { className?: string }) {
   const router = useRouter();
@@ -28,38 +23,37 @@ function EmpAuth({ className }: { className?: string }) {
         <CardContent>
           <div className="max-w-[425px]">
             <p>
-              Employment Authorization Documents (EAD) | Work Authorization Docs
-              Are NOT Equal To Work VISA&apos;s
+              Employment Authorization Documents (EAD) | Work Authorization Docs Are NOT Equal To
+              Work VISA&apos;s
             </p>
             <hr className="my-4" />
             <p>
-              EAD&apos;s Are An Approval To Work While Awaiting Status Change
-              From Asylum Seeker | Refugee To Permanent Resident
+              EAD&apos;s Are An Approval To Work While Awaiting Status Change From Asylum Seeker |
+              Refugee To Permanent Resident
             </p>
             <p>
-              OR For Student VISA (Or Any Other Dependent VISA) Holders To Work
-              Legally, For A Specific Period Of Time
+              OR For Student VISA (Or Any Other Dependent VISA) Holders To Work Legally, For A
+              Specific Period Of Time
             </p>
             <hr className="my-4" />
             <p>
-              If A Customer Only Has An EAD | Work Authorization - They Are
-              Still Waiting To Become A Permanent Resident
+              If A Customer Only Has An EAD | Work Authorization - They Are Still Waiting To Become
+              A Permanent Resident
             </p>
             <p>
-              We <span className="text-red-500">CANNOT</span> Sell Them A
-              Firearm Without Permanent Resident Status
+              We <span className="text-red-500">CANNOT</span> Sell Them A Firearm Without Permanent
+              Resident Status
             </p>
             <p>
-              Please Advise Them We Are Excited To Sell Them A Firearm{" "}
+              Please Advise Them We Are Excited To Sell Them A Firearm{' '}
               <span className="text-green-600">
                 Once They Receive Their Permanent Resident Card
-              </span>{" "}
+              </span>{' '}
             </p>
             <hr className="my-4" />
             <p className="font-light">
-              Note: &quot;Asylum Seekers&quot; & &quot;Asylum Status
-              Approved&quot; Are NOT Equal To A Permanent Resident Card - They
-              Must Still Apply & Wait For A Green Card To Be Issued
+              Note: &quot;Asylum Seekers&quot; & &quot;Asylum Status Approved&quot; Are NOT Equal To
+              A Permanent Resident Card - They Must Still Apply & Wait For A Green Card To Be Issued
             </p>
             <hr className="my-4" />
           </div>

@@ -1,25 +1,25 @@
-"use client";
-import { useState, useEffect, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { supabase } from "@/utils/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
+'use client';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { supabase } from '@/utils/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
 
 function ChangePasswordContent() {
-  const [password, setPassword] = useState("");
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const tokenHash = searchParams?.get("token_hash");
-  const type = searchParams?.get("type");
+  const tokenHash = searchParams?.get('token_hash');
+  const type = searchParams?.get('type');
 
   useEffect(() => {
     if (!tokenHash || !type) {
-      toast.error("Invalid or missing token!");
-      router.push("/sign-in");
+      toast.error('Invalid or missing token!');
+      router.push('/sign-in');
     }
   }, [tokenHash, type, router]);
 
@@ -34,11 +34,11 @@ function ChangePasswordContent() {
       if (error) {
         toast.error(error.message);
       } else {
-        toast.success("Password updated successfully");
-        router.push("/sign-in");
+        toast.success('Password updated successfully');
+        router.push('/sign-in');
       }
     } catch (error) {
-      toast.error("An error occurred while updating the password");
+      toast.error('An error occurred while updating the password');
     } finally {
       setLoading(false);
     }
@@ -63,12 +63,8 @@ function ChangePasswordContent() {
                 required
               />
             </div>
-            <Button
-              onClick={handlePasswordChange}
-              className="w-full"
-              disabled={loading}
-            >
-              {loading ? "Updating..." : "Update Password"}
+            <Button onClick={handlePasswordChange} className="w-full" disabled={loading}>
+              {loading ? 'Updating...' : 'Update Password'}
             </Button>
           </div>
         </CardContent>

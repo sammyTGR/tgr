@@ -1,13 +1,13 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import Link from "next/link";
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import Link from 'next/link';
 
 export default function AuditManagementPage() {
   const sections = [
     {
-      id: "enter-audit",
-      title: "Entering an Audit",
+      id: 'enter-audit',
+      title: 'Entering an Audit',
       content: `To enter an audit:
         • First navigate to the audit management page by expanding the "Auditing" tab in the navigation sidebar then clicking on "Auditing & Sales"
         • Click the "Submit Audits" tab in the page tabs list
@@ -20,8 +20,8 @@ export default function AuditManagementPage() {
         `,
     },
     {
-      id: "review-audits",
-      title: "Reviewing Audits",
+      id: 'review-audits',
+      title: 'Reviewing Audits',
       content: `To review audits:
         • From the "Auditing & Sales" page, click the "Review Audits" tab in the page tabs list
         • You can search for specific audits by utilizing the search bars at the top of the page
@@ -30,8 +30,8 @@ export default function AuditManagementPage() {
         `,
     },
     {
-      id: "sales-performance",
-      title: "Sales Performance",
+      id: 'sales-performance',
+      title: 'Sales Performance',
       content: `To view sales performance:
         • From the "Auditing & Sales" page, click the "Sales Performance" tab in the page tabs list
         • If you want to review sales performance for a specific employee, click on the employee's name from the dropdown menu under "Sales Rep"
@@ -46,8 +46,8 @@ export default function AuditManagementPage() {
         `,
     },
     {
-      id: "audit-guidelines",
-      title: "Audit Guidelines",
+      id: 'audit-guidelines',
+      title: 'Audit Guidelines',
       content: `To view audit guidelines:
         • From the "Auditing & Sales" page, click the "Audit Guidelines" tab in the page tabs list
         • The page will show a list of all the audit guidelines that are currently established
@@ -91,16 +91,11 @@ export default function AuditManagementPage() {
           <div className="space-y-8">
             <h1 className="text-4xl font-bold mb-4">Audit Management Guide</h1>
             <p className="text-muted-foreground">
-              Utilize this guide to help you navigate through the audit
-              management process.
+              Utilize this guide to help you navigate through the audit management process.
             </p>
 
             {sections.map((section) => (
-              <section
-                key={section.id}
-                id={section.id}
-                className="scroll-mt-16"
-              >
+              <section key={section.id} id={section.id} className="scroll-mt-16">
                 <Card>
                   <CardHeader>
                     <CardTitle>{section.title}</CardTitle>

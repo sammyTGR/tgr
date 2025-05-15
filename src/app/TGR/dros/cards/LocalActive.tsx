@@ -1,5 +1,5 @@
-import * as React from "react";
-import { useRouter } from "next/navigation";
+import * as React from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Card,
   CardContent,
@@ -7,14 +7,9 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  HoveredLink,
-  Menu,
-  MenuItem,
-  ProductItem,
-} from "@/components/ui/navbar-menu";
+} from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { HoveredLink, Menu, MenuItem, ProductItem } from '@/components/ui/navbar-menu';
 
 function LocalActive({ className }: { className?: string }) {
   const router = useRouter();
@@ -27,17 +22,15 @@ function LocalActive({ className }: { className?: string }) {
           <CardDescription>
             <span className="text-orange-500">Before Moving Forward - </span>
             <br />
-            <span className="text-orange-500">PRINT</span> THE Federal Doc
-            Worksheet In The Link Below
+            <span className="text-orange-500">PRINT</span> THE Federal Doc Worksheet In The Link
+            Below
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="" className="w-full">
             <TabsList className=" grid grid-cols-2 mb-4">
               <TabsTrigger value="active">Local Active Duty</TabsTrigger>
-              <TabsTrigger value="activereserve">
-                Local Active Reserve
-              </TabsTrigger>
+              <TabsTrigger value="activereserve">Local Active Reserve</TabsTrigger>
             </TabsList>
             <TabsContent value="active">
               <div className="max-w-full">
@@ -67,14 +60,10 @@ function LocalActive({ className }: { className?: string }) {
           <ul className="list-disc pl-4">
             <li>Photo Copy | Scan CA DL | CA ID</li>
             <li>Write Down DOD ID#, Rank & Branch</li>
-            <li>
-              Proof Of CA Residence (Anything Listed In &quot;Address Correction
-              Docs&quot;)
-            </li>
+            <li>Proof Of CA Residence (Anything Listed In &quot;Address Correction Docs&quot;)</li>
           </ul>
           <hr className="my-4" />
-          Military Are <span className="text-red-500">NOT</span> Roster | 30 Day
-          Exempt
+          Military Are <span className="text-red-500">NOT</span> Roster | 30 Day Exempt
         </CardContent>
         <CardFooter className="flex justify-between">
           <HoveredLink href="https://utfs.io/f/9663420d-2204-4991-b7c9-a1e6239e6a3b-n171pw.pdf">

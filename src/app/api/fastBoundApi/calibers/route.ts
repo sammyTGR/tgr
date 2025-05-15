@@ -16,7 +16,7 @@ export async function GET() {
     const response = await fetch(url, {
       method: 'GET',
       headers: {
-        'Authorization': `Basic ${Buffer.from(`${API_KEY}:`).toString('base64')}`,
+        Authorization: `Basic ${Buffer.from(`${API_KEY}:`).toString('base64')}`,
         'Content-Type': 'application/json',
         'X-AuditUser': AUDIT_USER,
       },
@@ -34,6 +34,9 @@ export async function GET() {
     return NextResponse.json(calibers);
   } catch (error: any) {
     console.error('Error in API route:', error);
-    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Internal Server Error', details: error.message },
+      { status: 500 }
+    );
   }
 }

@@ -1,7 +1,7 @@
-"use server";
+'use server';
 
-import { stripe } from "@/utils/stripe/config";
-import { createClient } from "@/utils/supabase/server";
+import { stripe } from '@/utils/stripe/config';
+import { createClient } from '@/utils/supabase/server';
 
 export async function syncStripeData() {
   const supabase = createClient();
@@ -28,11 +28,11 @@ export async function syncStripeData() {
 
     // Batch upsert products
     const { error: productsError } = await supabase
-      .from("products")
-      .upsert(productsToUpsert, { onConflict: "id" });
+      .from('products')
+      .upsert(productsToUpsert, { onConflict: 'id' });
 
     if (productsError) {
-      console.error("Error upserting products:", productsError);
+      console.error('Error upserting products:', productsError);
     }
 
     // Prepare price data for batch upsert
@@ -52,18 +52,18 @@ export async function syncStripeData() {
 
     // Batch upsert prices
     const { error: pricesError } = await supabase
-      .from("prices")
-      .upsert(pricesToUpsert, { onConflict: "id" });
+      .from('prices')
+      .upsert(pricesToUpsert, { onConflict: 'id' });
 
     if (pricesError) {
-      console.error("Error upserting prices:", pricesError);
+      console.error('Error upserting prices:', pricesError);
     }
 
     // console.log(
     //   `Synced ${productsToUpsert.length} products and ${pricesToUpsert.length} prices successfully`
     // );
   } catch (error) {
-    console.error("Error syncing Stripe data:", error);
+    console.error('Error syncing Stripe data:', error);
     throw error;
   }
 }

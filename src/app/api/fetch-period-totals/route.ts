@@ -1,9 +1,9 @@
-import { NextResponse } from "next/server";
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
-import { toZonedTime as zonedTimeToUtc } from "date-fns-tz";
+import { NextResponse } from 'next/server';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
+import { toZonedTime as zonedTimeToUtc } from 'date-fns-tz';
 
-const TIMEZONE = "America/Los_Angeles";
+const TIMEZONE = 'America/Los_Angeles';
 
 export async function POST(request: Request) {
   const supabase = createRouteHandlerClient({ cookies });
@@ -16,7 +16,7 @@ export async function POST(request: Request) {
 
     // Build the base query for detailed_sales_data
     let query = supabase
-      .from("detailed_sales_data")
+      .from('detailed_sales_data')
       .select(
         `
         id,
@@ -26,28 +26,28 @@ export async function POST(request: Request) {
         total_gross,
         "SoldDate"
       `,
-        { count: "exact" } // Add exact count
+        { count: 'exact' } // Add exact count
       )
-      .not("SoldDate", "is", null);
+      .not('SoldDate', 'is', null);
 
     // Apply date range filter with timezone handling
     if (dateRange?.from) {
       const fromDate = new Date(dateRange.from);
       fromDate.setUTCHours(0, 0, 0, 0);
-      query = query.gte("SoldDate", fromDate.toISOString());
+      query = query.gte('SoldDate', fromDate.toISOString());
       // console.log("From date:", fromDate.toISOString());
     }
 
     if (dateRange?.to) {
       const toDate = new Date(dateRange.to);
       toDate.setUTCHours(23, 59, 59, 999);
-      query = query.lte("SoldDate", toDate.toISOString());
+      query = query.lte('SoldDate', toDate.toISOString());
       // console.log("To date:", toDate.toISOString());
     }
 
     // Apply employee filter
-    if (employeeLanids && !employeeLanids.includes("all")) {
-      query = query.in("Lanid", employeeLanids);
+    if (employeeLanids && !employeeLanids.includes('all')) {
+      query = query.in('Lanid', employeeLanids);
     }
 
     // Initialize totals
@@ -67,7 +67,7 @@ export async function POST(request: Request) {
       } = await query.range(page * pageSize, (page + 1) * pageSize - 1);
 
       if (salesError) {
-        console.error("Sales Query Error:", salesError);
+        console.error('Sales Query Error:', salesError);
         throw salesError;
       }
 
@@ -87,8 +87,7 @@ export async function POST(request: Request) {
       totalRecords += salesData.length;
 
       // Break if we've fetched all records
-      if (salesData.length < pageSize || (count && totalRecords >= count))
-        break;
+      if (salesData.length < pageSize || (count && totalRecords >= count)) break;
 
       page++;
     }
@@ -106,11 +105,11 @@ export async function POST(request: Request) {
 
     return NextResponse.json(response);
   } catch (error) {
-    console.error("Failed to fetch period totals:", error);
+    console.error('Failed to fetch period totals:', error);
     return NextResponse.json(
       {
-        error: "Failed to fetch period totals",
-        details: error instanceof Error ? error.message : "Unknown error",
+        error: 'Failed to fetch period totals',
+        details: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );

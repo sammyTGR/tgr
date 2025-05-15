@@ -1,17 +1,11 @@
 // src/app/admin/domains/page.tsx
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { supabase } from "@/utils/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { useState, useEffect } from 'react';
+import { supabase } from '@/utils/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface Domain {
   id: number;
@@ -20,7 +14,7 @@ interface Domain {
 
 export default function ManageEmployeeDomains() {
   const [domains, setDomains] = useState<Domain[]>([]);
-  const [newDomain, setNewDomain] = useState("");
+  const [newDomain, setNewDomain] = useState('');
   const [editingDomain, setEditingDomain] = useState<Domain | null>(null);
 
   useEffect(() => {
@@ -28,10 +22,7 @@ export default function ManageEmployeeDomains() {
   }, []);
 
   async function fetchDomains() {
-    const { data, error } = await supabase
-      .from("employee_domains")
-      .select("*")
-      .order("domain");
+    const { data, error } = await supabase.from('employee_domains').select('*').order('domain');
 
     if (error) {
       //console.("Error fetching domains:", error.message);
@@ -42,13 +33,13 @@ export default function ManageEmployeeDomains() {
 
   async function addDomain() {
     const { error } = await supabase
-      .from("employee_domains")
+      .from('employee_domains')
       .insert({ domain: newDomain.toLowerCase() });
 
     if (error) {
       //console.("Error adding domain:", error.message);
     } else {
-      setNewDomain("");
+      setNewDomain('');
       fetchDomains();
     }
   }
@@ -57,9 +48,9 @@ export default function ManageEmployeeDomains() {
     if (!editingDomain) return;
 
     const { error } = await supabase
-      .from("employee_domains")
+      .from('employee_domains')
       .update({ domain: editingDomain.domain.toLowerCase() })
-      .eq("id", editingDomain.id);
+      .eq('id', editingDomain.id);
 
     if (error) {
       //console.("Error updating domain:", error.message);
@@ -70,10 +61,7 @@ export default function ManageEmployeeDomains() {
   }
 
   async function deleteDomain(id: number) {
-    const { error } = await supabase
-      .from("employee_domains")
-      .delete()
-      .eq("id", id);
+    const { error } = await supabase.from('employee_domains').delete().eq('id', id);
 
     if (error) {
       //console.("Error deleting domain:", error.message);
@@ -124,26 +112,17 @@ export default function ManageEmployeeDomains() {
                     <Button onClick={updateDomain} variant="outline">
                       Save
                     </Button>
-                    <Button
-                      onClick={() => setEditingDomain(null)}
-                      variant="outline"
-                    >
+                    <Button onClick={() => setEditingDomain(null)} variant="outline">
                       Cancel
                     </Button>
                   </>
                 ) : (
                   <>
                     <span className="flex-grow">{domain.domain}</span>
-                    <Button
-                      onClick={() => setEditingDomain(domain)}
-                      variant="outline"
-                    >
+                    <Button onClick={() => setEditingDomain(domain)} variant="outline">
                       Edit
                     </Button>
-                    <Button
-                      onClick={() => deleteDomain(domain.id)}
-                      variant="destructive"
-                    >
+                    <Button onClick={() => deleteDomain(domain.id)} variant="destructive">
                       Delete
                     </Button>
                   </>

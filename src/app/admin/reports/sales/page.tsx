@@ -1,29 +1,25 @@
 // admin\reports\sales\page.tsx
-"use client";
-import React, { useState, useEffect, Suspense } from "react";
-import SalesDataTable from "./sales-data-table";
-import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
-import { supabase } from "@/utils/supabase/client";
-import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
-import RoleBasedWrapper from "@/components/RoleBasedWrapper";
-import Papa, { ParseResult } from "papaparse";
-import * as XLSX from "xlsx";
-import SalesRangeStackedBarChart from "../charts/SalesRangeStackedBarChart";
-import { CustomCalendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
-import { format } from "date-fns";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
+'use client';
+import React, { useState, useEffect, Suspense } from 'react';
+import SalesDataTable from './sales-data-table';
+import { TextGenerateEffect } from '@/components/ui/text-generate-effect';
+import { supabase } from '@/utils/supabase/client';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+import RoleBasedWrapper from '@/components/RoleBasedWrapper';
+import Papa, { ParseResult } from 'papaparse';
+import * as XLSX from 'xlsx';
+import SalesRangeStackedBarChart from '../charts/SalesRangeStackedBarChart';
+import { CustomCalendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
 
-const title = "Sales Report";
+const title = 'Sales Report';
 
 interface ChartData {
   Lanid: string;
@@ -32,10 +28,10 @@ interface ChartData {
 }
 
 const convertDateFormat = (date: string) => {
-  if (!date) return "";
-  const [month, day, year] = date.split("/");
-  if (!month || !day || !year) return "";
-  return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+  if (!date) return '';
+  const [month, day, year] = date.split('/');
+  if (!month || !day || !year) return '';
+  return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
 };
 
 const SalesPage = () => {
@@ -47,51 +43,50 @@ const SalesPage = () => {
   const [loading, setLoading] = useState(false);
   const [totalGross, setTotalGross] = useState<number>(0);
   const [totalNet, setTotalNet] = useState<number>(0);
-  const [totalNetMinusExclusions, setTotalNetMinusExclusions] =
-    useState<number>(0);
+  const [totalNetMinusExclusions, setTotalNetMinusExclusions] = useState<number>(0);
   const [progress, setProgress] = useState<number>(0);
   const [fileName, setFileName] = useState<string | null>(null);
   const [fileInputKey, setFileInputKey] = useState<number>(0);
 
   const categoryMap = new Map<number, string>([
-    [3, "Firearm Accessories"],
-    [175, "Station Rental"],
-    [4, "Ammunition"],
-    [170, "Buyer Fees"],
-    [1, "Pistol"],
-    [10, "Shotgun"],
-    [150, "Gun Range Rental"],
-    [8, "Accessories"],
-    [6, "Knives & Tools"],
-    [131, "Service Labor"],
-    [101, "Class"],
-    [11, "Revolver"],
-    [2, "Rifle"],
-    [191, "FFL Transfer Fee"],
-    [12, "Consumables"],
-    [9, "Receiver"],
-    [135, "Shipping"],
-    [5, "Clothing"],
-    [100, "Shooting Fees"],
-    [7, "Hunting Gear"],
-    [14, "Storage"],
-    [13, "Reloading Supplies"],
-    [15, "Less Than Lethal"],
-    [16, "Personal Protection Equipment"],
-    [17, "Training Tools"],
-    [132, "Outside Service Labor"],
-    [168, "CA Tax Adjust"],
-    [192, "CA Tax Gun Transfer"],
-    [102, "Monthly Storage Fee (Per Firearm)"],
-    [103, "CA Excise Tax"],
-    [104, "CA Excise Tax Adjustment"],
+    [3, 'Firearm Accessories'],
+    [175, 'Station Rental'],
+    [4, 'Ammunition'],
+    [170, 'Buyer Fees'],
+    [1, 'Pistol'],
+    [10, 'Shotgun'],
+    [150, 'Gun Range Rental'],
+    [8, 'Accessories'],
+    [6, 'Knives & Tools'],
+    [131, 'Service Labor'],
+    [101, 'Class'],
+    [11, 'Revolver'],
+    [2, 'Rifle'],
+    [191, 'FFL Transfer Fee'],
+    [12, 'Consumables'],
+    [9, 'Receiver'],
+    [135, 'Shipping'],
+    [5, 'Clothing'],
+    [100, 'Shooting Fees'],
+    [7, 'Hunting Gear'],
+    [14, 'Storage'],
+    [13, 'Reloading Supplies'],
+    [15, 'Less Than Lethal'],
+    [16, 'Personal Protection Equipment'],
+    [17, 'Training Tools'],
+    [132, 'Outside Service Labor'],
+    [168, 'CA Tax Adjust'],
+    [192, 'CA Tax Gun Transfer'],
+    [102, 'Monthly Storage Fee (Per Firearm)'],
+    [103, 'CA Excise Tax'],
+    [104, 'CA Excise Tax Adjustment'],
   ]);
 
   const subcategoryMap = new Map<string, string>([
-    ["170-7", "Standard Ammunition Eligibility Check"],
-    ["170-1", "Dros Fee"],
-    ["170-16", "DROS Reprocessing Fee (Dealer Sale)"],
-    ["170-8", "Basic Ammunition Eligibility Check"],
+    ['170-7', 'Standard Ammunition Eligibility Check'],
+    ['170-1', 'Dros Fee'],
+    ['170-16', 'DROS Reprocessing Fee (Dealer Sale)'],
+    ['170-8', 'Basic Ammunition Eligibility Check'],
   ]);
 
   const handleFileUpload = async (file: File) => {
@@ -100,7 +95,7 @@ const SalesPage = () => {
       reader.onload = async (e) => {
         try {
           const data = new Uint8Array(e.target?.result as ArrayBuffer);
-          const workbook = XLSX.read(data, { type: "array" });
+          const workbook = XLSX.read(data, { type: 'array' });
           const firstSheetName = workbook.SheetNames[0];
           const worksheet = workbook.Sheets[firstSheetName];
           const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
@@ -112,9 +107,9 @@ const SalesPage = () => {
               rowData[key] = row[index];
             });
 
-            const categoryLabel = categoryMap.get(parseInt(rowData.Cat)) || "";
+            const categoryLabel = categoryMap.get(parseInt(rowData.Cat)) || '';
             const subcategoryKey = `${rowData.Cat}-${rowData.Sub}`;
-            const subcategoryLabel = subcategoryMap.get(subcategoryKey) || "";
+            const subcategoryLabel = subcategoryMap.get(subcategoryKey) || '';
 
             return {
               ...rowData,
@@ -129,9 +124,7 @@ const SalesPage = () => {
           let processedCount = 0;
           for (let i = 0; i < formattedData.length; i += batchSize) {
             const batch = formattedData.slice(i, i + batchSize);
-            const { data: insertedData, error } = await supabase
-              .from("sales_data")
-              .upsert(batch);
+            const { data: insertedData, error } = await supabase.from('sales_data').upsert(batch);
 
             if (error) {
               //console.("Error upserting data batch:", error);
@@ -173,16 +166,14 @@ const SalesPage = () => {
 
         // Check the current record count
         const { count, error } = await supabase
-          .from("sales_data")
-          .select("*", { count: "exact", head: true });
+          .from('sales_data')
+          .select('*', { count: 'exact', head: true });
 
         if (error) {
           //console.("Error checking record count:", error);
-          toast.error("Failed to verify data upload.");
+          toast.error('Failed to verify data upload.');
         } else {
-          toast.success(
-            `File processed successfully. Current record count: ${count}`
-          );
+          toast.success(`File processed successfully. Current record count: ${count}`);
         }
 
         setFile(null);
@@ -190,13 +181,13 @@ const SalesPage = () => {
         setFileInputKey((prevKey) => prevKey + 1);
       } catch (error) {
         //console.("Error during upload and processing:", error);
-        toast.error("Failed to upload and process file.");
+        toast.error('Failed to upload and process file.');
       } finally {
         setLoading(false);
         setProgress(100);
       }
     } else {
-      toast.error("No file selected.");
+      toast.error('No file selected.');
     }
   };
 
@@ -209,7 +200,7 @@ const SalesPage = () => {
 
   const handleRangeChange = async (date: Date | undefined) => {
     if (date) {
-      const formattedDate = format(date, "yyyy-MM-dd");
+      const formattedDate = format(date, 'yyyy-MM-dd');
       // console.log("Selected date:", formattedDate);
       setSelectedRange({ start: date, end: date });
 
@@ -217,8 +208,7 @@ const SalesPage = () => {
       try {
         const data = await fetchData(formattedDate, formattedDate);
 
-        const { totalGross, totalNet, totalNetMinusExclusions } =
-          processData(data);
+        const { totalGross, totalNet, totalNetMinusExclusions } = processData(data);
 
         setTotalGross(totalGross);
         setTotalNet(totalNet);
@@ -244,17 +234,17 @@ const SalesPage = () => {
     const processedData: ChartData[] = [];
     const categories: Set<string> = new Set();
     const excludeCategoriesFromChart = [
-      "CA Tax Gun Transfer",
-      "CA Tax Adjust",
-      "CA Excise Tax",
-      "CA Excise Tax Adjustment",
+      'CA Tax Gun Transfer',
+      'CA Tax Adjust',
+      'CA Excise Tax',
+      'CA Excise Tax Adjustment',
     ];
     const excludeCategoriesFromTotalNet = [
-      "Pistol",
-      "Rifle",
-      "Revolver",
-      "Shotgun",
-      "Receiver",
+      'Pistol',
+      'Rifle',
+      'Revolver',
+      'Shotgun',
+      'Receiver',
       ...excludeCategoriesFromChart,
     ];
 
@@ -306,7 +296,7 @@ const SalesPage = () => {
   };
 
   return (
-    <RoleBasedWrapper allowedRoles={["admin", "ceo", "super admin", "dev"]}>
+    <RoleBasedWrapper allowedRoles={['admin', 'ceo', 'super admin', 'dev']}>
       <h1 className="ml-2 lg:leading-tighter text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl xl:text-[3.6rem] 2xl:text-[4rem] text-red-500">
         <TextGenerateEffect words={title} />
       </h1>
@@ -326,9 +316,7 @@ const SalesPage = () => {
               <div className="grid p-2 gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Select A Date To Review
-                    </CardTitle>
+                    <CardTitle className="text-sm font-medium">Select A Date To Review</CardTitle>
                     {/* <CalendarIcon className="h-4 w-4 text-muted-foreground" /> */}
                   </CardHeader>
                   <CardContent>
@@ -339,7 +327,7 @@ const SalesPage = () => {
                           className="flex-1 w-full pl-3 text-left font-normal"
                         >
                           {selectedRange.start ? (
-                            format(selectedRange.start, "PPP")
+                            format(selectedRange.start, 'PPP')
                           ) : (
                             <span>Pick a date</span>
                           )}
@@ -358,14 +346,10 @@ const SalesPage = () => {
                 </Card>
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Total Gross Sales
-                    </CardTitle>
+                    <CardTitle className="text-sm font-medium">Total Gross Sales</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">
-                      ${totalGross.toFixed(2)}
-                    </div>
+                    <div className="text-2xl font-bold">${totalGross.toFixed(2)}</div>
                   </CardContent>
                 </Card>
                 <Card>
@@ -375,9 +359,7 @@ const SalesPage = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">
-                      ${totalNet.toFixed(2)}
-                    </div>
+                    <div className="text-2xl font-bold">${totalNet.toFixed(2)}</div>
                   </CardContent>
                 </Card>
                 <Card>
@@ -387,9 +369,7 @@ const SalesPage = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">
-                      ${totalNetMinusExclusions.toFixed(2)}
-                    </div>
+                    <div className="text-2xl font-bold">${totalNetMinusExclusions.toFixed(2)}</div>
                   </CardContent>
                 </Card>
               </div>
@@ -411,14 +391,10 @@ const SalesPage = () => {
                   <div className="flex max-w-8xl w-full justify-start mb-4  md:px-6">
                     <SalesDataTable
                       startDate={
-                        selectedRange.start
-                          ? format(selectedRange.start, "yyyy-MM-dd")
-                          : undefined
+                        selectedRange.start ? format(selectedRange.start, 'yyyy-MM-dd') : undefined
                       }
                       endDate={
-                        selectedRange.end
-                          ? format(selectedRange.end, "yyyy-MM-dd")
-                          : undefined
+                        selectedRange.end ? format(selectedRange.end, 'yyyy-MM-dd') : undefined
                       }
                     />
                   </div>
@@ -436,7 +412,7 @@ const SalesPage = () => {
                 <div className="mt-4 rounded-md border max-w-6xl">
                   <div className="flex items-center gap-2 ml-2">
                     <label className="Button flex items-center gap-2 p-2 rounded-md cursor-pointer border border-gray-300 hover:bg-gray-100 dark:font-white dark:hover:bg-gray-500 size-icon">
-                      {fileName ? fileName : "Select File"}
+                      {fileName ? fileName : 'Select File'}
                       <Input
                         type="file"
                         accept=".csv,.xlsx"
@@ -450,7 +426,7 @@ const SalesPage = () => {
                       className="mt-4"
                       disabled={loading || !file} // Disable button when loading or no file selected
                     >
-                      {loading ? "Uploading..." : "Upload and Process"}
+                      {loading ? 'Uploading...' : 'Upload and Process'}
                     </Button>
                   </div>
                 </div>

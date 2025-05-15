@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
+import { NextResponse } from 'next/server';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -12,17 +12,17 @@ export async function GET(request: Request) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    let query = supabase.from("schedules").select("*");
+    let query = supabase.from('schedules').select('*');
 
     // Handle schedule type (reference or actual)
-    const scheduleType = searchParams.get("type");
-    if (scheduleType === "actual") {
-      query = query.or("status.eq.scheduled,status.eq.added_day");
-    } else if (scheduleType === "reference") {
-      query = query.eq("status", "reference");
+    const scheduleType = searchParams.get('type');
+    if (scheduleType === 'actual') {
+      query = query.or('status.eq.scheduled,status.eq.added_day');
+    } else if (scheduleType === 'reference') {
+      query = query.eq('status', 'reference');
     }
 
     const { data, error } = await query;
@@ -31,9 +31,9 @@ export async function GET(request: Request) {
 
     return NextResponse.json(data || []);
   } catch (error: any) {
-    console.error("Error in fetchSchedules:", error);
+    console.error('Error in fetchSchedules:', error);
     return NextResponse.json(
-      { error: "Internal Server Error", details: error.message },
+      { error: 'Internal Server Error', details: error.message },
       { status: 500 }
     );
   }
@@ -48,30 +48,30 @@ export async function PUT(request: Request) {
     } = await supabase.auth.getUser();
 
     if (userError || !user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await request.json();
     const { employee_id, schedule_date, start_time, end_time } = body;
 
     const { data, error } = await supabase
-      .from("schedules")
+      .from('schedules')
       .update({
         start_time,
         end_time,
         schedule_date,
       })
-      .eq("employee_id", employee_id)
-      .eq("schedule_date", schedule_date)
+      .eq('employee_id', employee_id)
+      .eq('schedule_date', schedule_date)
       .select();
 
     if (error) throw error;
 
     return NextResponse.json(data || []);
   } catch (error: any) {
-    console.error("Error in updateSchedule:", error);
+    console.error('Error in updateSchedule:', error);
     return NextResponse.json(
-      { error: "Internal Server Error", details: error.message },
+      { error: 'Internal Server Error', details: error.message },
       { status: 500 }
     );
   }

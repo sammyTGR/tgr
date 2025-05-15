@@ -1,16 +1,10 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import {
-  HomeIcon,
-  PersonIcon,
-  SunIcon,
-  MoonIcon,
-  ShadowIcon,
-} from "@radix-ui/react-icons";
+import * as React from 'react';
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { HomeIcon, PersonIcon, SunIcon, MoonIcon, ShadowIcon } from '@radix-ui/react-icons';
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -18,10 +12,10 @@ import {
   NavigationMenuLink,
   NavigationMenuList,
   NavigationMenuTrigger,
-} from "@/components/ui/navigation-menu";
-import { cn } from "@/lib/utils";
-import { supabase } from "@/utils/supabase/client";
-import RoleBasedWrapper from "@/components/RoleBasedWrapper";
+} from '@/components/ui/navigation-menu';
+import { cn } from '@/lib/utils';
+import { supabase } from '@/utils/supabase/client';
+import RoleBasedWrapper from '@/components/RoleBasedWrapper';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -33,80 +27,80 @@ import {
   DropdownMenuPortal,
   DropdownMenuSubContent,
   DropdownMenuLabel,
-} from "@/components/ui/dropdown-menu";
-import { useTheme } from "next-themes";
-import LoadingIndicator from "@/components/LoadingIndicator";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import dynamic from "next/dynamic";
+} from '@/components/ui/dropdown-menu';
+import { useTheme } from 'next-themes';
+import LoadingIndicator from '@/components/LoadingIndicator';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import dynamic from 'next/dynamic';
 
 const schedComponents = [
   {
-    title: "Team Calendar",
-    href: "/TGR/crew/calendar",
-    description: "Schedules & Time Off Requests",
+    title: 'Team Calendar',
+    href: '/TGR/crew/calendar',
+    description: 'Schedules & Time Off Requests',
   },
 ];
 
 const serviceComponents = [
   {
-    title: "Special Order Form",
-    href: "/sales/orders",
-    description: "Submit Requests For Customers",
+    title: 'Special Order Form',
+    href: '/sales/orders',
+    description: 'Submit Requests For Customers',
   },
   {
-    title: "Check On Orders",
-    href: "/sales/orderreview/crew",
-    description: "Check On Submitted Order Status",
+    title: 'Check On Orders',
+    href: '/sales/orderreview/crew',
+    description: 'Check On Submitted Order Status',
   },
   {
-    title: "Newsletter",
-    href: "/public/subscribe",
-    description: "Subscribe To Our Email List",
+    title: 'Newsletter',
+    href: '/public/subscribe',
+    description: 'Subscribe To Our Email List',
   },
 ];
 
 const formComps = [
   {
-    title: "Range Walks & Repairs",
-    href: "/TGR/crew/range",
-    description: "Daily Range Walks & Repairs",
+    title: 'Range Walks & Repairs',
+    href: '/TGR/crew/range',
+    description: 'Daily Range Walks & Repairs',
   },
   {
-    title: "Points Submissions",
-    href: "/TGR/crew/points",
-    description: "Report All Submitted Points",
+    title: 'Points Submissions',
+    href: '/TGR/crew/points',
+    description: 'Report All Submitted Points',
   },
   {
-    title: "Daily Deposits",
-    href: "/TGR/deposits",
-    description: "Submit Daily Deposits",
+    title: 'Daily Deposits',
+    href: '/TGR/deposits',
+    description: 'Submit Daily Deposits',
   },
   {
-    title: "Certifications",
-    href: "/TGR/certifications",
-    description: "View All Certifications",
+    title: 'Certifications',
+    href: '/TGR/certifications',
+    description: 'View All Certifications',
   },
   {
-    title: "Rental Gun Checklist",
-    href: "/TGR/rentals/checklist",
-    description: "Daily Rental Checklist",
+    title: 'Rental Gun Checklist',
+    href: '/TGR/rentals/checklist',
+    description: 'Daily Rental Checklist',
   },
   {
-    title: "Bulletin Board",
-    href: "/TGR/crew/bulletin",
-    description: "Bulletin Board",
+    title: 'Bulletin Board',
+    href: '/TGR/crew/bulletin',
+    description: 'Bulletin Board',
   },
   {
-    title: "Patch Notes",
-    href: "/patch-notes",
-    description: "Site Updates",
+    title: 'Patch Notes',
+    href: '/patch-notes',
+    description: 'Site Updates',
   },
 ];
 
 const LazyNavigationMenu = dynamic(
   () =>
-    import("@/components/ui/navigation-menu").then((module) => ({
+    import('@/components/ui/navigation-menu').then((module) => ({
       default: module.NavigationMenu,
     })),
   {
@@ -116,7 +110,7 @@ const LazyNavigationMenu = dynamic(
 
 const LazyNavigationMenuList = dynamic(
   () =>
-    import("@/components/ui/navigation-menu").then((module) => ({
+    import('@/components/ui/navigation-menu').then((module) => ({
       default: module.NavigationMenuList,
     })),
   {
@@ -126,7 +120,7 @@ const LazyNavigationMenuList = dynamic(
 
 const LazyDropdownMenu = dynamic(
   () =>
-    import("@/components/ui/dropdown-menu").then((module) => ({
+    import('@/components/ui/dropdown-menu').then((module) => ({
       default: module.DropdownMenu,
     })),
   {
@@ -145,7 +139,7 @@ const HeaderUser = React.memo(() => {
     isLoading: userLoading,
     error: userError,
   } = useQuery({
-    queryKey: ["user"],
+    queryKey: ['user'],
     queryFn: async () => {
       const {
         data: { user },
@@ -163,13 +157,13 @@ const HeaderUser = React.memo(() => {
     isLoading: employeeLoading,
     error: employeeError,
   } = useQuery({
-    queryKey: ["employee", user?.id],
+    queryKey: ['employee', user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("employees")
-        .select("role, employee_id")
-        .eq("user_uuid", user?.id)
+        .from('employees')
+        .select('role, employee_id')
+        .eq('user_uuid', user?.id)
         .single();
       if (error) throw error;
       return data;
@@ -180,8 +174,8 @@ const HeaderUser = React.memo(() => {
 
   useEffect(() => {
     if (userError || employeeError) {
-      console.error("Auth error:", userError || employeeError);
-      router.push("/sign-in");
+      console.error('Auth error:', userError || employeeError);
+      router.push('/sign-in');
     }
   }, [userError, employeeError, router]);
 
@@ -190,20 +184,20 @@ const HeaderUser = React.memo(() => {
     if (employeeData?.employee_id) {
       router.push(`/TGR/crew/profile/${employeeData.employee_id}`);
     } else {
-      router.push("/");
+      router.push('/');
     }
   };
 
   const handleSignOut = async () => {
     queryClient.clear();
     await supabase.auth.signOut();
-    router.push("/sign-in");
+    router.push('/sign-in');
   };
 
   const isLoading = userLoading || employeeLoading;
 
   return (
-    <RoleBasedWrapper allowedRoles={["user"]}>
+    <RoleBasedWrapper allowedRoles={['user']}>
       {isLoading && <LoadingIndicator />}
       <header className="flex justify-between items-center p-2">
         <LazyNavigationMenu>
@@ -223,11 +217,7 @@ const HeaderUser = React.memo(() => {
               <NavigationMenuContent>
                 <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
                   {schedComponents.map((component) => (
-                    <ListItem
-                      key={component.title}
-                      title={component.title}
-                      href={component.href}
-                    >
+                    <ListItem key={component.title} title={component.title} href={component.href}>
                       {component.description}
                     </ListItem>
                   ))}
@@ -239,11 +229,7 @@ const HeaderUser = React.memo(() => {
               <NavigationMenuContent>
                 <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
                   {formComps.map((component) => (
-                    <ListItem
-                      key={component.title}
-                      title={component.title}
-                      href={component.href}
-                    >
+                    <ListItem key={component.title} title={component.title} href={component.href}>
                       {component.description}
                     </ListItem>
                   ))}
@@ -255,11 +241,7 @@ const HeaderUser = React.memo(() => {
               <NavigationMenuContent>
                 <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
                   {serviceComponents.map((sched) => (
-                    <ListItem
-                      key={sched.title}
-                      title={sched.title}
-                      href={sched.href}
-                    >
+                    <ListItem key={sched.title} title={sched.title} href={sched.href}>
                       {sched.description}
                     </ListItem>
                   ))}
@@ -303,11 +285,11 @@ const HeaderUser = React.memo(() => {
                     </DropdownMenuSubTrigger>
                     <DropdownMenuPortal>
                       <DropdownMenuSubContent>
-                        <DropdownMenuItem onClick={() => setTheme("light")}>
+                        <DropdownMenuItem onClick={() => setTheme('light')}>
                           <SunIcon className="mr-2 h-4 w-4" />
                           <span>Light</span>
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setTheme("dark")}>
+                        <DropdownMenuItem onClick={() => setTheme('dark')}>
                           <MoonIcon className="mr-2 h-4 w-4" />
                           <span>Dark</span>
                         </DropdownMenuItem>
@@ -315,9 +297,7 @@ const HeaderUser = React.memo(() => {
                     </DropdownMenuPortal>
                   </DropdownMenuSub>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut}>
-                    Sign Out
-                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleSignOut}>Sign Out</DropdownMenuItem>
                 </DropdownMenuContent>
               </LazyDropdownMenu>
             </>
@@ -332,44 +312,41 @@ const HeaderUser = React.memo(() => {
   );
 });
 
-HeaderUser.displayName = "HeaderUser";
+HeaderUser.displayName = 'HeaderUser';
 
-const ListItem = React.forwardRef<
-  React.ElementRef<"a">,
-  React.ComponentPropsWithoutRef<"a">
->(({ className, title, children, href, ...props }, ref) => {
-  const queryClient = useQueryClient();
-  const router = useRouter();
+const ListItem = React.forwardRef<React.ElementRef<'a'>, React.ComponentPropsWithoutRef<'a'>>(
+  ({ className, title, children, href, ...props }, ref) => {
+    const queryClient = useQueryClient();
+    const router = useRouter();
 
-  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault();
-    queryClient.invalidateQueries({ queryKey: ["navigation"] });
-    router.push(href || "");
-  };
+    const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+      e.preventDefault();
+      queryClient.invalidateQueries({ queryKey: ['navigation'] });
+      router.push(href || '');
+    };
 
-  return (
-    <li>
-      <NavigationMenuLink asChild>
-        <a
-          ref={ref}
-          href={href}
-          onClick={handleClick}
-          className={cn(
-            "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
-            className
-          )}
-          {...props}
-        >
-          <div className="text-sm font-medium leading-none">{title}</div>
-          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-            {children}
-          </p>
-        </a>
-      </NavigationMenuLink>
-    </li>
-  );
-});
+    return (
+      <li>
+        <NavigationMenuLink asChild>
+          <a
+            ref={ref}
+            href={href}
+            onClick={handleClick}
+            className={cn(
+              'block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground',
+              className
+            )}
+            {...props}
+          >
+            <div className="text-sm font-medium leading-none">{title}</div>
+            <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">{children}</p>
+          </a>
+        </NavigationMenuLink>
+      </li>
+    );
+  }
+);
 
-ListItem.displayName = "ListItem";
+ListItem.displayName = 'ListItem';
 
 export default HeaderUser;

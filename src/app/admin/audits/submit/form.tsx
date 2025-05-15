@@ -1,19 +1,14 @@
-"use client";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { format } from "date-fns";
-import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
-import {
-  Controller,
-  FormProvider,
-  useFieldArray,
-  useForm,
-} from "react-hook-form";
-import { z } from "zod";
-import { Button } from "@/components/ui/button";
-import { Select } from "@radix-ui/react-select";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+'use client';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { format } from 'date-fns';
+import dynamic from 'next/dynamic';
+import { useEffect, useState } from 'react';
+import { Controller, FormProvider, useFieldArray, useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { Button } from '@/components/ui/button';
+import { Select } from '@radix-ui/react-select';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import {
   FormControl,
   FormDescription,
@@ -21,31 +16,16 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-} from "@/components/ui/popover";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-  CardDescription,
-} from "@/components/ui/card";
-import { CalendarIcon, CheckIcon } from "@radix-ui/react-icons";
-import { DataTableFacetedFilter } from "@/components/ui/faceted-filter";
-import { cn } from "@/lib/cn";
-import { CustomCalendarAudit } from "@/components/ui/calendar";
-import {
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { supabase } from "../../../../utils/supabase/client";
+} from '@/components/ui/form';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
+import { CalendarIcon, CheckIcon } from '@radix-ui/react-icons';
+import { DataTableFacetedFilter } from '@/components/ui/faceted-filter';
+import { cn } from '@/lib/cn';
+import { CustomCalendarAudit } from '@/components/ui/calendar';
+import { SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { supabase } from '../../../../utils/supabase/client';
 import {
   Command,
   CommandDialog,
@@ -56,28 +36,28 @@ import {
   CommandItem,
   CommandShortcut,
   CommandSeparator,
-} from "@/components/ui/command";
-import { toast } from "sonner"; // Import toast from Sonner
-import { useRouter } from "next/navigation"; // Use the router for redirects
-import RoleBasedWrapper from "@/components/RoleBasedWrapper";
-import { Calendar } from "@/components/ui/calendar";
-import { ChevronDown } from "lucide-react";
+} from '@/components/ui/command';
+import { toast } from 'sonner'; // Import toast from Sonner
+import { useRouter } from 'next/navigation'; // Use the router for redirects
+import RoleBasedWrapper from '@/components/RoleBasedWrapper';
+import { Calendar } from '@/components/ui/calendar';
+import { ChevronDown } from 'lucide-react';
 type OptionType = {
   label: string;
   value: string;
 };
 
 const formSchema = z.object({
-  drosNumber: z.string().nonempty("Gotsta Put A Numba"),
-  salesRep: z.string().nonempty("Sales Rep is required"),
+  drosNumber: z.string().nonempty('Gotsta Put A Numba'),
+  salesRep: z.string().nonempty('Sales Rep is required'),
   transDate: z.date(),
   auditDate: z.date(),
   drosCancel: z.boolean(),
   audits: z.array(
     z.object({
-      auditType: z.string().nonempty("Audit type is required."),
-      errorLocation: z.string().nonempty("Error location is required."),
-      errorDetails: z.string().nonempty("Error details are required."),
+      auditType: z.string().nonempty('Audit type is required.'),
+      errorLocation: z.string().nonempty('Error location is required.'),
+      errorDetails: z.string().nonempty('Error details are required.'),
       errorNotes: z.string().optional(),
     })
   ),
@@ -96,33 +76,27 @@ interface SubmitAuditsProps {
   onAuditSubmitted?: () => void;
 }
 
-const SupportMenu = dynamic(() => import("@/components/ui/SupportNavMenu"), {
+const SupportMenu = dynamic(() => import('@/components/ui/SupportNavMenu'), {
   ssr: false,
 });
 
 export default function SubmitAudits({ onAuditSubmitted }: SubmitAuditsProps) {
   const [salesRepOptions, setSalesRepOptions] = useState<OptionType[]>([]);
   const [auditTypeOptions, setAuditTypeOptions] = useState<OptionType[]>([]);
-  const [errorLocationOptions, setErrorLocationOptions] = useState<
-    OptionType[]
-  >([]);
-  const [errorDetailsOptions, setErrorDetailsOptions] = useState<OptionType[]>(
-    []
-  );
+  const [errorLocationOptions, setErrorLocationOptions] = useState<OptionType[]>([]);
+  const [errorDetailsOptions, setErrorDetailsOptions] = useState<OptionType[]>([]);
   const [resetKey, setResetKey] = useState(0);
 
   const methods = useForm<FormData>({
     resolver: zodResolver(formSchema),
-    mode: "all",
+    mode: 'all',
     defaultValues: {
-      drosNumber: "",
-      salesRep: "",
+      drosNumber: '',
+      salesRep: '',
       transDate: new Date(),
       auditDate: new Date(),
       drosCancel: false,
-      audits: [
-        { auditType: "", errorLocation: "", errorDetails: "", errorNotes: "" },
-      ],
+      audits: [{ auditType: '', errorLocation: '', errorDetails: '', errorNotes: '' }],
     },
   });
 
@@ -133,7 +107,7 @@ export default function SubmitAudits({ onAuditSubmitted }: SubmitAuditsProps) {
   } = methods;
   const { fields, append, remove } = useFieldArray({
     control,
-    name: "audits",
+    name: 'audits',
   });
 
   const updateOptions = (newData: DataRow[]) => {
@@ -195,11 +169,11 @@ export default function SubmitAudits({ onAuditSubmitted }: SubmitAuditsProps) {
   useEffect(() => {
     const fetchOptions = async () => {
       try {
-        const { data, error } = await supabase.from("Auditlists").select("*");
+        const { data, error } = await supabase.from('Auditlists').select('*');
 
         if (error) {
-          console.error("Failed to fetch options:", error.message);
-          toast.error("Failed to load dropdown options");
+          console.error('Failed to fetch options:', error.message);
+          toast.error('Failed to load dropdown options');
           return;
         }
 
@@ -207,11 +181,11 @@ export default function SubmitAudits({ onAuditSubmitted }: SubmitAuditsProps) {
           // console.log("Fetched options:", data.length);
           updateOptions(data);
         } else {
-          console.warn("No data found in Auditlists table");
+          console.warn('No data found in Auditlists table');
         }
       } catch (err) {
-        console.error("Error in fetchOptions:", err);
-        toast.error("An error occurred while loading options");
+        console.error('Error in fetchOptions:', err);
+        toast.error('An error occurred while loading options');
       }
     };
 
@@ -220,18 +194,14 @@ export default function SubmitAudits({ onAuditSubmitted }: SubmitAuditsProps) {
 
     // Set up realtime subscription
     const channel = supabase
-      .channel("custom-all-channel")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "Auditlists" },
-        (payload) => {
-          // console.log("Received realtime update:", payload);
-          if (payload.new) {
-            // Merge new data with existing options
-            updateOptions([payload.new as DataRow]);
-          }
+      .channel('custom-all-channel')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'Auditlists' }, (payload) => {
+        // console.log("Received realtime update:", payload);
+        if (payload.new) {
+          // Merge new data with existing options
+          updateOptions([payload.new as DataRow]);
         }
-      )
+      })
       .subscribe((status) => {
         // console.log("Subscription status:", status);
       });
@@ -257,9 +227,7 @@ export default function SubmitAudits({ onAuditSubmitted }: SubmitAuditsProps) {
     let isFirstAudit = true;
 
     const records = formData.audits.flatMap((audit, index) => {
-      const auditType = Array.isArray(audit.auditType)
-        ? audit.auditType
-        : [audit.auditType];
+      const auditType = Array.isArray(audit.auditType) ? audit.auditType : [audit.auditType];
       const errorLocation = Array.isArray(audit.errorLocation)
         ? audit.errorLocation
         : [audit.errorLocation];
@@ -272,20 +240,20 @@ export default function SubmitAudits({ onAuditSubmitted }: SubmitAuditsProps) {
       const auditDate = now;
 
       // Format dates in ISO format for PostgreSQL
-      const transDateStr = format(formData.transDate, "yyyy-MM-dd");
-      const auditDateStr = format(now, "yyyy-MM-dd");
+      const transDateStr = format(formData.transDate, 'yyyy-MM-dd');
+      const auditDateStr = format(now, 'yyyy-MM-dd');
 
-      return (audit.errorNotes || "").split("\n").map((note) => {
+      return (audit.errorNotes || '').split('\n').map((note) => {
         const record: AuditRecord = {
           dros_number: formData.drosNumber,
           salesreps: formData.salesRep,
-          audit_type: auditType.join(", "),
+          audit_type: auditType.join(', '),
           trans_date: transDateStr,
           audit_date: auditDateStr,
-          error_location: errorLocation.join(", "),
-          error_details: errorDetails.join(", "),
+          error_location: errorLocation.join(', '),
+          error_details: errorDetails.join(', '),
           error_notes: note.trim(),
-          dros_cancel: isFirstAudit && formData.drosCancel ? "Yes" : "",
+          dros_cancel: isFirstAudit && formData.drosCancel ? 'Yes' : '',
         };
 
         isFirstAudit = false;
@@ -294,17 +262,13 @@ export default function SubmitAudits({ onAuditSubmitted }: SubmitAuditsProps) {
     });
 
     try {
-      const { data, error } = await supabase
-        .from("Auditsinput")
-        .insert(records);
+      const { data, error } = await supabase.from('Auditsinput').insert(records);
 
       if (error) {
-        throw new Error(
-          `Failed to append data: ${error.message || JSON.stringify(error)}`
-        );
+        throw new Error(`Failed to append data: ${error.message || JSON.stringify(error)}`);
       }
 
-      toast.success("Audit Submitted Successfully!");
+      toast.success('Audit Submitted Successfully!');
       reset();
       setResetKey((prevKey) => prevKey + 1);
       if (onAuditSubmitted) {
@@ -313,7 +277,7 @@ export default function SubmitAudits({ onAuditSubmitted }: SubmitAuditsProps) {
     } catch (error: any) {
       toast.error(
         `An error occurred during form submission: ${
-          error.message || "Check server logs for more details."
+          error.message || 'Check server logs for more details.'
         }`
       );
     }
@@ -323,7 +287,7 @@ export default function SubmitAudits({ onAuditSubmitted }: SubmitAuditsProps) {
     event.preventDefault(); // Prevent the default form submission behavior
     const isValid = await methods.trigger(); // Validate the form
     if (!isValid) {
-      toast.error("Please correct the errors in the form before submitting.");
+      toast.error('Please correct the errors in the form before submitting.');
       return;
     }
     const formData = methods.getValues(); // Get the form data using react-hook-form
@@ -335,15 +299,11 @@ export default function SubmitAudits({ onAuditSubmitted }: SubmitAuditsProps) {
       // console.log("Direct DOM click detected");
     };
 
-    const elements = document.querySelectorAll("[data-command-item]");
-    elements.forEach((element) =>
-      element.addEventListener("click", handleClick)
-    );
+    const elements = document.querySelectorAll('[data-command-item]');
+    elements.forEach((element) => element.addEventListener('click', handleClick));
 
     return () => {
-      elements.forEach((element) =>
-        element.removeEventListener("click", handleClick)
-      );
+      elements.forEach((element) => element.removeEventListener('click', handleClick));
     };
   }, []);
 
@@ -354,12 +314,8 @@ export default function SubmitAudits({ onAuditSubmitted }: SubmitAuditsProps) {
     placeholder: string;
   };
 
-  const RenderDropdown: React.FC<RenderDropdownProps> = ({
-    field,
-    options,
-    placeholder,
-  }) => {
-    const [searchText, setSearchText] = useState("");
+  const RenderDropdown: React.FC<RenderDropdownProps> = ({ field, options, placeholder }) => {
+    const [searchText, setSearchText] = useState('');
     const [isOpen, setIsOpen] = useState(false);
 
     // Filter options based on search text
@@ -368,17 +324,14 @@ export default function SubmitAudits({ onAuditSubmitted }: SubmitAuditsProps) {
     );
 
     // Sort options alphabetically to maintain consistent order
-    const sortedOptions = [...filteredOptions].sort((a, b) =>
-      a.label.localeCompare(b.label)
-    );
+    const sortedOptions = [...filteredOptions].sort((a, b) => a.label.localeCompare(b.label));
 
     return (
       <Popover open={isOpen} onOpenChange={setIsOpen}>
         <PopoverTrigger asChild>
           <Button variant="outline" className="w-full justify-between">
             {field.value
-              ? options.find((option) => option.value === field.value)?.label ||
-                placeholder
+              ? options.find((option) => option.value === field.value)?.label || placeholder
               : placeholder}
             <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
@@ -397,26 +350,22 @@ export default function SubmitAudits({ onAuditSubmitted }: SubmitAuditsProps) {
                     key={`${option.value}-${option.label}`}
                     onSelect={() => {
                       field.onChange(option.value);
-                      setSearchText("");
+                      setSearchText('');
                       setIsOpen(false);
                     }}
                     className={cn(
-                      "flex items-center px-3 py-2 cursor-pointer",
-                      "hover:bg-gray-800",
-                      field.value === option.value
-                        ? "font-semibold text-white"
-                        : "text-gray-400"
+                      'flex items-center px-3 py-2 cursor-pointer',
+                      'hover:bg-gray-800',
+                      field.value === option.value ? 'font-semibold text-white' : 'text-gray-400'
                     )}
                   >
                     {option.label}
-                    {field.value === option.value && (
-                      <CheckIcon className="ml-auto h-4 w-4" />
-                    )}
+                    {field.value === option.value && <CheckIcon className="ml-auto h-4 w-4" />}
                   </CommandItem>
                 ))
               ) : (
                 <CommandEmpty>
-                  {searchText ? "No results found." : "No options available."}
+                  {searchText ? 'No results found.' : 'No options available.'}
                 </CommandEmpty>
               )}
             </CommandList>
@@ -442,16 +391,11 @@ export default function SubmitAudits({ onAuditSubmitted }: SubmitAuditsProps) {
                     render={({ field }) => (
                       <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md">
                         <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
+                          <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                         </FormControl>
                         <div className="space-y-1 leading-none">
                           <FormLabel>Cancelled DROS</FormLabel>
-                          <FormDescription>
-                            Only Select When DROS Was Cancelled
-                          </FormDescription>
+                          <FormDescription>Only Select When DROS Was Cancelled</FormDescription>
                         </div>
                         <FormMessage />
                       </FormItem>
@@ -474,9 +418,7 @@ export default function SubmitAudits({ onAuditSubmitted }: SubmitAuditsProps) {
                         <FormControl>
                           <Input {...field} placeholder="Enter The 'Dash'" />
                         </FormControl>
-                        <FormDescription>
-                          This Can Be For Any Form
-                        </FormDescription>
+                        <FormDescription>This Can Be For Any Form</FormDescription>
                         <FormMessage>{errors.drosNumber?.message}</FormMessage>
                       </FormItem>
                     )}
@@ -522,14 +464,14 @@ export default function SubmitAudits({ onAuditSubmitted }: SubmitAuditsProps) {
                         <Popover>
                           <PopoverTrigger asChild>
                             <Button
-                              variant={"outline"}
+                              variant={'outline'}
                               className={cn(
-                                "w-full pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground"
+                                'w-full pl-3 text-left font-normal',
+                                !field.value && 'text-muted-foreground'
                               )}
                             >
                               {field.value ? (
-                                format(field.value, "PPP")
+                                format(field.value, 'PPP')
                               ) : (
                                 <span>Select A Date</span>
                               )}
@@ -542,16 +484,13 @@ export default function SubmitAudits({ onAuditSubmitted }: SubmitAuditsProps) {
                               selected={field.value}
                               onSelect={field.onChange}
                               disabled={(date) =>
-                                date > new Date() ||
-                                date < new Date("1900-01-01")
+                                date > new Date() || date < new Date('1900-01-01')
                               }
                               initialFocus
                             />
                           </PopoverContent>
                         </Popover>
-                        <FormDescription>
-                          The Transaction (Purchase) Date
-                        </FormDescription>
+                        <FormDescription>The Transaction (Purchase) Date</FormDescription>
                       </FormItem>
                     )}
                   />
@@ -610,10 +549,7 @@ export default function SubmitAudits({ onAuditSubmitted }: SubmitAuditsProps) {
             </div>
 
             {fields.map((field, index) => (
-              <div
-                key={field.id}
-                className="grid p-2 gap-4 md:grid-cols-2 lg:grid-cols-3 mt-4"
-              >
+              <div key={field.id} className="grid p-2 gap-4 md:grid-cols-2 lg:grid-cols-3 mt-4">
                 <Card>
                   <CardHeader>
                     <CardTitle>Transaction Type</CardTitle>
@@ -630,9 +566,7 @@ export default function SubmitAudits({ onAuditSubmitted }: SubmitAuditsProps) {
                             options={auditTypeOptions}
                             placeholder="Select Transaction Type"
                           />
-                          <FormMessage>
-                            {errors.audits?.[index]?.auditType?.message}
-                          </FormMessage>
+                          <FormMessage>{errors.audits?.[index]?.auditType?.message}</FormMessage>
                         </FormItem>
                       )}
                     />
@@ -680,9 +614,7 @@ export default function SubmitAudits({ onAuditSubmitted }: SubmitAuditsProps) {
                             options={errorDetailsOptions}
                             placeholder="Select The Category"
                           />
-                          <FormMessage>
-                            {errors.audits?.[index]?.errorDetails?.message}
-                          </FormMessage>
+                          <FormMessage>{errors.audits?.[index]?.errorDetails?.message}</FormMessage>
                         </FormItem>
                       )}
                     />
@@ -698,10 +630,7 @@ export default function SubmitAudits({ onAuditSubmitted }: SubmitAuditsProps) {
                       name={`audits.${index}.errorNotes`}
                       control={control}
                       render={({ field }) => (
-                        <Textarea
-                          {...field}
-                          placeholder="Details On What Was Audited"
-                        />
+                        <Textarea {...field} placeholder="Details On What Was Audited" />
                       )}
                     />
                   </CardContent>
@@ -714,10 +643,10 @@ export default function SubmitAudits({ onAuditSubmitted }: SubmitAuditsProps) {
                       type="button"
                       onClick={() =>
                         append({
-                          auditType: "",
-                          errorLocation: "",
-                          errorDetails: "",
-                          errorNotes: "",
+                          auditType: '',
+                          errorLocation: '',
+                          errorDetails: '',
+                          errorNotes: '',
                         })
                       }
                     >

@@ -21,6 +21,18 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/lib/SortableItem.js", "src/app/admin/todo/page.jsx", "src/app/hooks/useDroppable.jsx", "src/app/hooks/**/*.ts", "src/app/charts/BarChartPlot.tsx", "src/app/charts/charts.js", "src/components/UnreadCountsContext.tsx"],
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    "src/lib/SortableItem.js",
+    "src/app/admin/todo/page.jsx",
+    "src/app/hooks/useDroppable.jsx",
+    "src/app/hooks/**/*.ts",
+    "src/app/charts/BarChartPlot.tsx",
+    "src/app/charts/charts.js",
+    "src/components/UnreadCountsContext.tsx"
+  ],
   "exclude": ["node_modules"]
 }

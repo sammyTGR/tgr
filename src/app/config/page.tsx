@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import { FeatureConfig, defaultFeatureConfig } from "./features";
+import React, { useState } from 'react';
+import { FeatureConfig, defaultFeatureConfig } from './features';
 
 export default function ConfigPage() {
   const [config, setConfig] = useState<FeatureConfig>(defaultFeatureConfig);
@@ -12,7 +12,7 @@ export default function ConfigPage() {
 
   const saveConfig = () => {
     // Save config to localStorage or send to backend
-    localStorage.setItem("featureConfig", JSON.stringify(config));
+    localStorage.setItem('featureConfig', JSON.stringify(config));
   };
 
   return (

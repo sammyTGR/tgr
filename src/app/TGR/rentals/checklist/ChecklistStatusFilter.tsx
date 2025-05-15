@@ -1,10 +1,10 @@
-"use client";
-import * as React from "react";
-import { CheckIcon, PlusCircledIcon, Cross2Icon } from "@radix-ui/react-icons";
-import { Column, Table as TableType } from "@tanstack/react-table";
-import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+'use client';
+import * as React from 'react';
+import { CheckIcon, PlusCircledIcon, Cross2Icon } from '@radix-ui/react-icons';
+import { Column, Table as TableType } from '@tanstack/react-table';
+import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Command,
   CommandGroup,
@@ -12,13 +12,9 @@ import {
   CommandItem,
   CommandList,
   CommandSeparator,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Separator } from "@/components/ui/separator";
+} from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Separator } from '@/components/ui/separator';
 
 interface ChecklistStatusFilterProps<TData, TValue> {
   column?: Column<TData, TValue>;
@@ -65,18 +61,12 @@ export function ChecklistStatusFilter<TData, TValue>({
               {selectedValues?.size > 0 && (
                 <>
                   <Separator orientation="vertical" className="mx-2 h-4" />
-                  <Badge
-                    variant="secondary"
-                    className="rounded-sm px-1 font-normal lg:hidden"
-                  >
+                  <Badge variant="secondary" className="rounded-sm px-1 font-normal lg:hidden">
                     {selectedValues.size}
                   </Badge>
                   <div className="hidden space-x-1 lg:flex">
                     {selectedValues.size > 2 ? (
-                      <Badge
-                        variant="secondary"
-                        className="rounded-sm px-1 font-normal"
-                      >
+                      <Badge variant="secondary" className="rounded-sm px-1 font-normal">
                         {selectedValues.size} selected
                       </Badge>
                     ) : (
@@ -111,13 +101,13 @@ export function ChecklistStatusFilter<TData, TValue>({
                       >
                         <div
                           className={cn(
-                            "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                            'mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary',
                             isSelected
-                              ? "bg-primary text-primary-foreground"
-                              : "opacity-50 [&_svg]:invisible"
+                              ? 'bg-primary text-primary-foreground'
+                              : 'opacity-50 [&_svg]:invisible'
                           )}
                         >
-                          <CheckIcon className={cn("h-4 w-4")} />
+                          <CheckIcon className={cn('h-4 w-4')} />
                         </div>
                         <span>{option.label}</span>
                       </CommandItem>

@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import { useRef } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { addTodo } from "./actions";
-import { PlusIcon } from "@radix-ui/react-icons";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRef } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { addTodo } from './actions';
+import { PlusIcon } from '@radix-ui/react-icons';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 export default function AddTodo() {
   const ref = useRef<HTMLFormElement>(null);
@@ -13,7 +13,7 @@ export default function AddTodo() {
   const mutation = useMutation({
     mutationFn: (formData: FormData) => addTodo(formData),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["todos"] });
+      queryClient.invalidateQueries({ queryKey: ['todos'] });
       ref.current?.reset();
     },
   });
@@ -25,7 +25,7 @@ export default function AddTodo() {
       onSubmit={(e) => {
         e.preventDefault();
         const formData = new FormData(e.currentTarget);
-        const task = formData.get("task") as string;
+        const task = formData.get('task') as string;
         mutation.mutate(formData);
       }}
     >

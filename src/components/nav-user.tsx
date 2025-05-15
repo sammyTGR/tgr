@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import {
   BadgeIcon,
@@ -14,9 +14,9 @@ import {
   SunIcon,
   MoonIcon,
   ShadowIcon,
-} from "@radix-ui/react-icons";
+} from '@radix-ui/react-icons';
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,18 +28,18 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from '@/components/ui/dropdown-menu';
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from "@/components/ui/sidebar";
-import { useTheme } from "next-themes";
-import { useRouter } from "next/navigation";
-import { supabase } from "@/utils/supabase/client";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { User } from "@supabase/supabase-js";
+} from '@/components/ui/sidebar';
+import { useTheme } from 'next-themes';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/utils/supabase/client';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { User } from '@supabase/supabase-js';
 
 export function NavUser() {
   const { isMobile } = useSidebar();
@@ -49,7 +49,7 @@ export function NavUser() {
 
   // User data query
   const { data: currentUser } = useQuery({
-    queryKey: ["currentUser"],
+    queryKey: ['currentUser'],
     queryFn: async () => {
       const {
         data: { user },
@@ -61,11 +61,11 @@ export function NavUser() {
 
   // Role data query
   const { data: userData } = useQuery({
-    queryKey: ["userRole"],
+    queryKey: ['userRole'],
     queryFn: async () => {
-      const response = await fetch("/api/getUserRole");
+      const response = await fetch('/api/getUserRole');
       if (!response.ok) {
-        throw new Error("Failed to fetch user role");
+        throw new Error('Failed to fetch user role');
       }
       const data = await response.json();
       return data;
@@ -76,13 +76,13 @@ export function NavUser() {
 
   // Employee data query
   const { data: employeeData } = useQuery({
-    queryKey: ["employee", currentUser?.id],
+    queryKey: ['employee', currentUser?.id],
     queryFn: async () => {
       if (!currentUser?.id) return null;
       const { data, error } = await supabase
-        .from("employees")
-        .select("*")
-        .eq("user_uuid", currentUser.id)
+        .from('employees')
+        .select('*')
+        .eq('user_uuid', currentUser.id)
         .single();
 
       if (error) throw error;
@@ -96,20 +96,20 @@ export function NavUser() {
 
     let redirectUrl;
     switch (userData.role) {
-      case "super admin":
-      case "ceo":
-        redirectUrl = "/admin/reports/dashboard/ceo";
+      case 'super admin':
+      case 'ceo':
+        redirectUrl = '/admin/reports/dashboard/ceo';
         break;
-      case "dev":
-        redirectUrl = "/admin/reports/dashboard/dev";
+      case 'dev':
+        redirectUrl = '/admin/reports/dashboard/dev';
         break;
-      case "admin":
-        redirectUrl = "/admin/reports/dashboard/admin";
+      case 'admin':
+        redirectUrl = '/admin/reports/dashboard/admin';
         break;
       default:
         redirectUrl = employeeData?.employee_id
           ? `/TGR/crew/profile/${employeeData.employee_id}`
-          : "/";
+          : '/';
     }
 
     router.push(redirectUrl);
@@ -119,9 +119,9 @@ export function NavUser() {
     try {
       await supabase.auth.signOut();
       queryClient.clear();
-      router.push("/sign-in");
+      router.push('/sign-in');
     } catch (error) {
-      console.error("Error signing out:", error);
+      console.error('Error signing out:', error);
     }
   };
 
@@ -140,12 +140,12 @@ export function NavUser() {
                 <AvatarImage
                   src={
                     currentUser.user_metadata?.avatar_url ||
-                    "https://utfs.io/f/9jzftpblGSv7nvddLr3ZYIXtyiAHqxfuS6V9231FedsGbMWh"
+                    'https://utfs.io/f/9jzftpblGSv7nvddLr3ZYIXtyiAHqxfuS6V9231FedsGbMWh'
                   }
-                  alt={currentUser.email || ""}
+                  alt={currentUser.email || ''}
                 />
                 <AvatarFallback className="rounded-lg">
-                  {currentUser.email?.charAt(0).toUpperCase() || "U"}
+                  {currentUser.email?.charAt(0).toUpperCase() || 'U'}
                 </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
@@ -153,7 +153,7 @@ export function NavUser() {
                   {currentUser.user_metadata?.full_name || currentUser.email}
                 </span>
                 <span className="truncate text-xs">
-                  {employeeData?.department || "Department Not Set"}
+                  {employeeData?.department || 'Department Not Set'}
                 </span>
               </div>
               <CaretSortIcon className="ml-auto size-4" />
@@ -161,7 +161,7 @@ export function NavUser() {
           </DropdownMenuTrigger>
           <DropdownMenuContent
             className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
-            side={isMobile ? "bottom" : "right"}
+            side={isMobile ? 'bottom' : 'right'}
             align="end"
             sideOffset={4}
           >
@@ -174,36 +174,28 @@ export function NavUser() {
               </DropdownMenuItem>
               {employeeData?.employee_id && (
                 <DropdownMenuItem
-                  onClick={() =>
-                    router.push(`/TGR/crew/profile/${employeeData.employee_id}`)
-                  }
+                  onClick={() => router.push(`/TGR/crew/profile/${employeeData.employee_id}`)}
                 >
                   <PersonIcon className="mr-2 h-4 w-4" />
                   Profile
                 </DropdownMenuItem>
               )}
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => router.push("/support")}>
+              <DropdownMenuItem onClick={() => router.push('/support')}>
                 <QuestionMarkIcon className="mr-2 h-4 w-4" />
                 Support
               </DropdownMenuItem>
             </DropdownMenuGroup>
 
-            {["super admin", "ceo", "dev", "admin"].includes(
-              userData?.role
-            ) && (
+            {['super admin', 'ceo', 'dev', 'admin'].includes(userData?.role) && (
               <>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
-                  <DropdownMenuItem
-                    onClick={() => router.push("/admin/domains")}
-                  >
+                  <DropdownMenuItem onClick={() => router.push('/admin/domains')}>
                     <Pencil2Icon className="mr-2 h-4 w-4" />
                     Manage Domains
                   </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => router.push("/admin/reports/dashboard")}
-                  >
+                  <DropdownMenuItem onClick={() => router.push('/admin/reports/dashboard')}>
                     <DashboardIcon className="mr-2 h-4 w-4" />
                     Admin Dashboard
                   </DropdownMenuItem>
@@ -218,11 +210,11 @@ export function NavUser() {
                 <span>Theme</span>
               </DropdownMenuSubTrigger>
               <DropdownMenuSubContent>
-                <DropdownMenuItem onClick={() => setTheme("light")}>
+                <DropdownMenuItem onClick={() => setTheme('light')}>
                   <SunIcon className="mr-2 h-4 w-4" />
                   Light
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setTheme("dark")}>
+                <DropdownMenuItem onClick={() => setTheme('dark')}>
                   <MoonIcon className="mr-2 h-4 w-4" />
                   Dark
                 </DropdownMenuItem>

@@ -1,5 +1,5 @@
 // src/app/admin/reports/charts/StackedBarChartRange.tsx
-"use client";
+'use client';
 
 import {
   ChartContainer,
@@ -8,10 +8,10 @@ import {
   ChartTooltip,
   ChartTooltipContent,
   type ChartConfig,
-} from "@/components/ui/chart";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import React from "react";
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
+} from '@/components/ui/chart';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import React from 'react';
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 
 interface ChartData {
   Lanid: string; // Keep as uppercase for backward compatibility
@@ -34,36 +34,33 @@ interface ProcessedData {
   totalNetMinusExclusions: number;
 }
 
-type ChartView =
-  | "totalGross"
-  | "totalNetWithFirearms"
-  | "totalNetWithoutFirearms";
+type ChartView = 'totalGross' | 'totalNetWithFirearms' | 'totalNetWithoutFirearms';
 
 const chartColors = [
-  "hsl(var(--chart-1))",
-  "hsl(var(--chart-2))",
-  "hsl(var(--chart-3))",
-  "hsl(var(--chart-4))",
-  "hsl(var(--chart-5))",
-  "hsl(var(--chart-6))",
-  "hsl(var(--chart-7))",
-  "hsl(var(--chart-8))",
-  "hsl(var(--chart-9))",
-  "hsl(var(--chart-10))",
-  "hsl(var(--chart-11))",
-  "hsl(var(--chart-12))",
-  "hsl(var(--chart-13))",
-  "hsl(var(--chart-14))",
-  "hsl(var(--chart-15))",
-  "hsl(var(--chart-16))",
-  "hsl(var(--chart-17))",
-  "hsl(var(--chart-18))",
-  "hsl(var(--chart-19))",
-  "hsl(var(--chart-20))",
-  "hsl(var(--chart-21))",
-  "hsl(var(--chart-22))",
-  "hsl(var(--chart-23))",
-  "hsl(var(--chart-24))",
+  'hsl(var(--chart-1))',
+  'hsl(var(--chart-2))',
+  'hsl(var(--chart-3))',
+  'hsl(var(--chart-4))',
+  'hsl(var(--chart-5))',
+  'hsl(var(--chart-6))',
+  'hsl(var(--chart-7))',
+  'hsl(var(--chart-8))',
+  'hsl(var(--chart-9))',
+  'hsl(var(--chart-10))',
+  'hsl(var(--chart-11))',
+  'hsl(var(--chart-12))',
+  'hsl(var(--chart-13))',
+  'hsl(var(--chart-14))',
+  'hsl(var(--chart-15))',
+  'hsl(var(--chart-16))',
+  'hsl(var(--chart-17))',
+  'hsl(var(--chart-18))',
+  'hsl(var(--chart-19))',
+  'hsl(var(--chart-20))',
+  'hsl(var(--chart-21))',
+  'hsl(var(--chart-22))',
+  'hsl(var(--chart-23))',
+  'hsl(var(--chart-24))',
 ];
 
 const transformValue = (value: number): number => {
@@ -86,55 +83,53 @@ const inverseTransform = (value: number): number => {
   }
 };
 
-const StackedBarChartRange: React.FC<StackedBarChartRangeProps> = ({
-  selectedRange,
-}) => {
+const StackedBarChartRange: React.FC<StackedBarChartRangeProps> = ({ selectedRange }) => {
   const queryClient = useQueryClient();
 
   const { data: activeView } = useQuery({
-    queryKey: ["chart-view"],
-    queryFn: () => "totalNetWithFirearms" as ChartView,
-    initialData: "totalNetWithFirearms",
+    queryKey: ['chart-view'],
+    queryFn: () => 'totalNetWithFirearms' as ChartView,
+    initialData: 'totalNetWithFirearms',
   });
 
   const setViewMutation = useMutation({
     mutationFn: async (newView: ChartView) => newView,
     onMutate: async (newView) => {
-      await queryClient.cancelQueries({ queryKey: ["chart-view"] });
-      const previousView = queryClient.getQueryData(["chart-view"]);
-      queryClient.setQueryData(["chart-view"], newView);
+      await queryClient.cancelQueries({ queryKey: ['chart-view'] });
+      const previousView = queryClient.getQueryData(['chart-view']);
+      queryClient.setQueryData(['chart-view'], newView);
       return { previousView };
     },
     onError: (err, newView, context) => {
       if (context?.previousView) {
-        queryClient.setQueryData(["chart-view"], context.previousView);
+        queryClient.setQueryData(['chart-view'], context.previousView);
       }
     },
     onSettled: () => {
       queryClient.invalidateQueries({
-        queryKey: ["detailed-sales-range-data"],
+        queryKey: ['detailed-sales-range-data'],
       });
     },
   });
 
   const { data: salesData, isLoading } = useQuery({
     queryKey: [
-      "detailed-sales-range-data",
-      selectedRange.start?.toISOString().split("T")[0],
-      selectedRange.end?.toISOString().split("T")[0],
+      'detailed-sales-range-data',
+      selectedRange.start?.toISOString().split('T')[0],
+      selectedRange.end?.toISOString().split('T')[0],
       activeView,
     ],
     queryFn: async () => {
       if (!selectedRange.start || !selectedRange.end) {
-        throw new Error("Date range not selected");
+        throw new Error('Date range not selected');
       }
 
       const response = await fetch(
-        `/api/fetch-detailed-sales-by-range?start=${selectedRange.start.toISOString().split("T")[0]}&end=${selectedRange.end.toISOString().split("T")[0]}`
+        `/api/fetch-detailed-sales-by-range?start=${selectedRange.start.toISOString().split('T')[0]}&end=${selectedRange.end.toISOString().split('T')[0]}`
       );
 
       if (!response.ok) {
-        throw new Error("Failed to fetch data");
+        throw new Error('Failed to fetch data');
       }
 
       return response.json();
@@ -146,23 +141,23 @@ const StackedBarChartRange: React.FC<StackedBarChartRangeProps> = ({
     const processedData: ChartData[] = [];
     const categories: Set<string> = new Set();
     const excludeCategoriesFromChart = [
-      "CA Tax Gun Transfer",
-      "CA Tax Adjust",
-      "CA Excise Tax",
-      "CA Excise Tax Adjustment",
-      "Service Labor",
-      "Gun Range Rental",
-      "Station Rental",
-      "Buyer Fees",
-      "FFL Transfer Fee",
-      "Shooting Fees",
+      'CA Tax Gun Transfer',
+      'CA Tax Adjust',
+      'CA Excise Tax',
+      'CA Excise Tax Adjustment',
+      'Service Labor',
+      'Gun Range Rental',
+      'Station Rental',
+      'Buyer Fees',
+      'FFL Transfer Fee',
+      'Shooting Fees',
     ];
     const excludeCategoriesFromTotalFirearms = [
-      "Pistol",
-      "Rifle",
-      "Revolver",
-      "Shotgun",
-      "Receiver",
+      'Pistol',
+      'Rifle',
+      'Revolver',
+      'Shotgun',
+      'Receiver',
       ...excludeCategoriesFromChart,
     ];
 
@@ -213,18 +208,18 @@ const StackedBarChartRange: React.FC<StackedBarChartRangeProps> = ({
 
       Object.keys(displayItem).forEach((key) => {
         if (
-          typeof displayItem[key] === "number" &&
-          key !== "Total" &&
-          key !== "TotalMinusExclusions" &&
-          key !== "Lanid" &&
-          key !== "Date"
+          typeof displayItem[key] === 'number' &&
+          key !== 'Total' &&
+          key !== 'TotalMinusExclusions' &&
+          key !== 'Lanid' &&
+          key !== 'Date'
         ) {
           displayItem[key] = displayItem[key] < 0 ? 0 : displayItem[key];
         }
       });
 
       switch (currentView) {
-        case "totalNetWithoutFirearms":
+        case 'totalNetWithoutFirearms':
           return {
             ...displayItem,
             ...Object.fromEntries(
@@ -233,7 +228,7 @@ const StackedBarChartRange: React.FC<StackedBarChartRangeProps> = ({
               )
             ),
           };
-        case "totalNetWithFirearms":
+        case 'totalNetWithFirearms':
           return {
             ...displayItem,
             ...Object.fromEntries(
@@ -263,17 +258,13 @@ const StackedBarChartRange: React.FC<StackedBarChartRangeProps> = ({
 
   const updateRangeMutation = useMutation({
     mutationFn: (date: Date) => {
-      const newStart = new Date(
-        date.getFullYear(),
-        date.getMonth(),
-        date.getDate()
-      );
+      const newStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
       const newEnd = new Date(newStart);
       newEnd.setHours(23, 59, 59, 999);
       return Promise.resolve({ start: newStart, end: newEnd });
     },
     onSuccess: (newRange) => {
-      queryClient.setQueryData(["selectedRange"], newRange);
+      queryClient.setQueryData(['selectedRange'], newRange);
     },
   });
 
@@ -374,14 +365,14 @@ const StackedBarChartRange: React.FC<StackedBarChartRangeProps> = ({
         <div className="flex">
           {[
             {
-              key: "totalNetWithFirearms",
-              label: "Total Net Sales With Firearms",
+              key: 'totalNetWithFirearms',
+              label: 'Total Net Sales With Firearms',
             },
             {
-              key: "totalNetWithoutFirearms",
-              label: "Total Net Sales Without Firearms",
+              key: 'totalNetWithoutFirearms',
+              label: 'Total Net Sales Without Firearms',
             },
-            { key: "totalGross", label: "Total Gross Sales" },
+            { key: 'totalGross', label: 'Total Gross Sales' },
           ].map(({ key, label }) => (
             <button
               key={key}
@@ -392,9 +383,9 @@ const StackedBarChartRange: React.FC<StackedBarChartRangeProps> = ({
               <span className="text-xs text-muted-foreground">{label}</span>
               <span className="text-lg font-bold leading-none sm:text-3xl">
                 {currencyFormatter.format(
-                  key === "totalNetWithFirearms"
+                  key === 'totalNetWithFirearms'
                     ? (chartData?.totalNet ?? 0)
-                    : key === "totalNetWithoutFirearms"
+                    : key === 'totalNetWithoutFirearms'
                       ? (chartData?.totalNetMinusExclusions ?? 0)
                       : (chartData?.totalGross ?? 0)
                 )}
@@ -425,9 +416,9 @@ const StackedBarChartRange: React.FC<StackedBarChartRangeProps> = ({
           />
           <YAxis
             tickFormatter={(value) =>
-              new Intl.NumberFormat("en-US", {
-                style: "currency",
-                currency: "USD",
+              new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
                 minimumFractionDigits: 0,
               }).format(inverseTransform(value))
             }
@@ -466,9 +457,9 @@ const StackedBarChartRange: React.FC<StackedBarChartRangeProps> = ({
   );
 };
 
-const currencyFormatter = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
+const currencyFormatter = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
 });
 
 export default StackedBarChartRange;

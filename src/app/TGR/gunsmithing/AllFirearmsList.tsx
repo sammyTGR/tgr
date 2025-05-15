@@ -1,16 +1,16 @@
-import { useState, useEffect } from "react";
-import { supabase } from "@/utils/supabase/client";
-import { FirearmsMaintenanceData } from "./columns";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"; // Import the Card components
+import { useState, useEffect } from 'react';
+import { supabase } from '@/utils/supabase/client';
+import { FirearmsMaintenanceData } from './columns';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'; // Import the Card components
 import {
   Select,
   SelectTrigger,
   SelectContent,
   SelectItem,
   SelectValue,
-} from "@/components/ui/select";
+} from '@/components/ui/select';
 
 interface AllFirearmsListProps {
   userRole: string | null;
@@ -18,17 +18,14 @@ interface AllFirearmsListProps {
 
 const AllFirearmsList: React.FC<AllFirearmsListProps> = ({ userRole }) => {
   const [firearms, setFirearms] = useState<FirearmsMaintenanceData[]>([]);
-  const [selectedFirearm, setSelectedFirearm] =
-    useState<FirearmsMaintenanceData | null>(null);
-  const [notes, setNotes] = useState("");
+  const [selectedFirearm, setSelectedFirearm] = useState<FirearmsMaintenanceData | null>(null);
+  const [notes, setNotes] = useState('');
 
   useEffect(() => {
     const fetchAllFirearms = async () => {
-      const { data, error } = await supabase
-        .from("firearms_maintenance")
-        .select("*");
+      const { data, error } = await supabase.from('firearms_maintenance').select('*');
       if (error) {
-        console.error("Error fetching all firearms:", error.message);
+        console.error('Error fetching all firearms:', error.message);
         return;
       }
       setFirearms(data);
@@ -46,12 +43,12 @@ const AllFirearmsList: React.FC<AllFirearmsListProps> = ({ userRole }) => {
 
     try {
       const { error } = await supabase
-        .from("firearms_maintenance")
+        .from('firearms_maintenance')
         .update({
           maintenance_notes: notes,
           last_maintenance_date: new Date().toISOString(),
         })
-        .eq("id", selectedFirearm.id);
+        .eq('id', selectedFirearm.id);
 
       if (error) {
         throw error;
@@ -69,10 +66,10 @@ const AllFirearmsList: React.FC<AllFirearmsListProps> = ({ userRole }) => {
         )
       );
 
-      setNotes("");
+      setNotes('');
       setSelectedFirearm(null);
     } catch (error) {
-      console.error("Error saving notes:", error);
+      console.error('Error saving notes:', error);
     }
   };
 
@@ -84,11 +81,11 @@ const AllFirearmsList: React.FC<AllFirearmsListProps> = ({ userRole }) => {
     <CardContent>
       <div className="mt-4">
         <Select
-          value={selectedFirearm ? String(selectedFirearm.id) : ""}
+          value={selectedFirearm ? String(selectedFirearm.id) : ''}
           onValueChange={(value) => {
             const firearm = firearms.find((f) => f.id === Number(value));
             setSelectedFirearm(firearm || null);
-            setNotes(firearm?.maintenance_notes || "");
+            setNotes(firearm?.maintenance_notes || '');
           }}
         >
           <SelectTrigger className="w-full border border-gray-300 rounded-md shadow-sm">
@@ -112,11 +109,7 @@ const AllFirearmsList: React.FC<AllFirearmsListProps> = ({ userRole }) => {
             onChange={handleNotesChange}
             className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm"
           />
-          <Button
-            onClick={handleSaveNotes}
-            variant="linkHover1"
-            className="mt-2"
-          >
+          <Button onClick={handleSaveNotes} variant="linkHover1" className="mt-2">
             Save Notes
           </Button>
         </div>

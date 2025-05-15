@@ -1,9 +1,9 @@
-"use client";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import RoleBasedWrapper from "@/components/RoleBasedWrapper";
-import styled from "styled-components";
-import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
+'use client';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import RoleBasedWrapper from '@/components/RoleBasedWrapper';
+import styled from 'styled-components';
+import { TextGenerateEffect } from '@/components/ui/text-generate-effect';
 
 const title = "Back Of The House SOP's";
 
@@ -28,9 +28,7 @@ const SOPPage: React.FC = () => {
   const [user, setUser] = useState(null);
 
   return (
-    <RoleBasedWrapper
-      allowedRoles={["auditor", "admin", "ceo", "super admin", "dev"]}
-    >
+    <RoleBasedWrapper allowedRoles={['auditor', 'admin', 'ceo', 'super admin', 'dev']}>
       <div className="flex flex-col items-center justify-center text-center mt-12 ">
         <h1 className="flex justify-start ">
           <TextGenerateEffect words={title} />

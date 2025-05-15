@@ -1,26 +1,26 @@
-import { NextResponse } from "next/server";
-import { Resend } from "resend";
-import { format, parseISO } from "date-fns";
-import TimeOffApproved from "../../../../emails/TimeOffApproved";
-import TimeOffRequest from "../../../../emails/TimeOffRequest";
-import TimeOffDenied from "../../../../emails/TimeOffDenied";
-import CalledOut from "../../../../emails/CalledOut";
-import LeftEarly from "../../../../emails/LeftEarly";
-import CustomStatus from "../../../../emails/CustomStatus";
-import GunsmithInspection from "../../../../emails/GunsmithInspection";
-import OrderCustomerContacted from "../../../../emails/OrderCustomerContacted";
-import OrderSetStatus from "../../../../emails/OrderSetStatus";
-import SuggestionReply from "../../../../emails/SuggestionReply";
-import AdminOvertimeAlert from "../../../../emails/AdminOvertimeAlert";
-import EmployeeOvertimeAlert from "../../../../emails/EmployeeOvertimeAlert";
-import AdminSuggestionNotification from "../../../../emails/AdminSuggestionNotification";
-import GunsmithNewRequest from "../../../../emails/GunsmithNewRequest";
-import LateStart from "../../../../emails/LateStart";
-import NoCallNoShow from "../../../../emails/NoCallNoShow";
-import ShiftAdded from "../../../../emails/ShiftAdded";
-import ShiftUpdated from "../../../../emails/ShiftUpdated";
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
+import { NextResponse } from 'next/server';
+import { Resend } from 'resend';
+import { format, parseISO } from 'date-fns';
+import TimeOffApproved from '../../../../emails/TimeOffApproved';
+import TimeOffRequest from '../../../../emails/TimeOffRequest';
+import TimeOffDenied from '../../../../emails/TimeOffDenied';
+import CalledOut from '../../../../emails/CalledOut';
+import LeftEarly from '../../../../emails/LeftEarly';
+import CustomStatus from '../../../../emails/CustomStatus';
+import GunsmithInspection from '../../../../emails/GunsmithInspection';
+import OrderCustomerContacted from '../../../../emails/OrderCustomerContacted';
+import OrderSetStatus from '../../../../emails/OrderSetStatus';
+import SuggestionReply from '../../../../emails/SuggestionReply';
+import AdminOvertimeAlert from '../../../../emails/AdminOvertimeAlert';
+import EmployeeOvertimeAlert from '../../../../emails/EmployeeOvertimeAlert';
+import AdminSuggestionNotification from '../../../../emails/AdminSuggestionNotification';
+import GunsmithNewRequest from '../../../../emails/GunsmithNewRequest';
+import LateStart from '../../../../emails/LateStart';
+import NoCallNoShow from '../../../../emails/NoCallNoShow';
+import ShiftAdded from '../../../../emails/ShiftAdded';
+import ShiftUpdated from '../../../../emails/ShiftUpdated';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -34,13 +34,13 @@ export async function POST(request: Request) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     if (!email || !subject || !templateName) {
       return NextResponse.json(
         {
-          error: "Missing required fields",
+          error: 'Missing required fields',
           details: { email, subject, templateName },
         },
         { status: 400 }
@@ -51,7 +51,7 @@ export async function POST(request: Request) {
     let fromEmail;
 
     switch (templateName) {
-      case "TimeOffApproved":
+      case 'TimeOffApproved':
         emailTemplate = TimeOffApproved({
           ...templateData,
           startDate: templateData.startDate,
@@ -59,7 +59,7 @@ export async function POST(request: Request) {
         });
         fromEmail = `TGR <scheduling@${process.env.RESEND_DOMAIN}>`;
         break;
-      case "TimeOffDenied":
+      case 'TimeOffDenied':
         emailTemplate = TimeOffDenied({
           ...templateData,
           startDate: templateData.startDate,
@@ -67,35 +67,35 @@ export async function POST(request: Request) {
         });
         fromEmail = `TGR <scheduling@${process.env.RESEND_DOMAIN}>`;
         break;
-      case "LateStart":
+      case 'LateStart':
         emailTemplate = LateStart({
           ...templateData,
           startTime: templateData.startTime,
         });
         fromEmail = `TGR <scheduling@${process.env.RESEND_DOMAIN}>`;
         break;
-      case "CalledOut":
+      case 'CalledOut':
         emailTemplate = CalledOut({
           name: templateData.name,
           date: templateData.date,
         });
         fromEmail = `TGR <scheduling@${process.env.RESEND_DOMAIN}>`;
         break;
-      case "LeftEarly":
+      case 'LeftEarly':
         emailTemplate = LeftEarly({
           ...templateData,
           date: templateData.date,
         });
         fromEmail = `TGR <scheduling@${process.env.RESEND_DOMAIN}>`;
         break;
-      case "CustomStatus":
+      case 'CustomStatus':
         emailTemplate = CustomStatus({
           ...templateData,
           date: templateData.date,
         });
         fromEmail = `TGR <scheduling@${process.env.RESEND_DOMAIN}>`;
         break;
-      case "GunsmithInspection":
+      case 'GunsmithInspection':
         emailTemplate = GunsmithInspection({
           firearmId: templateData.firearmId,
           firearmName: templateData.firearmName,
@@ -104,7 +104,7 @@ export async function POST(request: Request) {
         });
         fromEmail = `TGR <request@${process.env.RESEND_DOMAIN}>`;
         break;
-      case "GunsmithNewRequest":
+      case 'GunsmithNewRequest':
         emailTemplate = GunsmithNewRequest({
           firearmId: templateData.firearmId,
           firearmName: templateData.firearmName,
@@ -113,7 +113,7 @@ export async function POST(request: Request) {
         });
         fromEmail = `TGR <request@${process.env.RESEND_DOMAIN}>`;
         break;
-      case "OrderCustomerContacted":
+      case 'OrderCustomerContacted':
         emailTemplate = OrderCustomerContacted({
           id: templateData.id,
           customerName: templateData.customerName,
@@ -123,7 +123,7 @@ export async function POST(request: Request) {
         });
         fromEmail = `TGR <orders@${process.env.RESEND_DOMAIN}>`;
         break;
-      case "OrderSetStatus":
+      case 'OrderSetStatus':
         emailTemplate = OrderSetStatus({
           id: templateData.id,
           customerName: templateData.customerName,
@@ -133,7 +133,7 @@ export async function POST(request: Request) {
         });
         fromEmail = `TGR <orders@${process.env.RESEND_DOMAIN}>`;
         break;
-      case "SuggestionReply":
+      case 'SuggestionReply':
         emailTemplate = SuggestionReply({
           employeeName: templateData.employeeName,
           originalSuggestion: templateData.originalSuggestion,
@@ -142,14 +142,14 @@ export async function POST(request: Request) {
         });
         fromEmail = `TGR <suggestions@${process.env.RESEND_DOMAIN}>`;
         break;
-      case "AdminSuggestionNotification":
+      case 'AdminSuggestionNotification':
         emailTemplate = AdminSuggestionNotification({
           employeeName: templateData.employeeName,
           suggestion: templateData.suggestion,
         });
         fromEmail = `TGR <suggestions@${process.env.RESEND_DOMAIN}>`;
         break;
-      case "TimeOffRequest":
+      case 'TimeOffRequest':
         emailTemplate = TimeOffRequest({
           employeeName: templateData.employeeName,
           startDate: templateData.startDate,
@@ -159,7 +159,7 @@ export async function POST(request: Request) {
         });
         fromEmail = `TGR <scheduling@${process.env.RESEND_DOMAIN}>`;
         break;
-      case "EmployeeOvertimeAlert":
+      case 'EmployeeOvertimeAlert':
         emailTemplate = EmployeeOvertimeAlert({
           employeeName: templateData.employeeName,
           clockInTime: templateData.clockInTime,
@@ -167,7 +167,7 @@ export async function POST(request: Request) {
         });
         fromEmail = `TGR <scheduling@${process.env.RESEND_DOMAIN}>`;
         break;
-      case "AdminOvertimeAlert":
+      case 'AdminOvertimeAlert':
         emailTemplate = AdminOvertimeAlert({
           employeeName: templateData.employeeName,
           clockInTime: templateData.clockInTime,
@@ -175,14 +175,14 @@ export async function POST(request: Request) {
         });
         fromEmail = `TGR <scheduling@${process.env.RESEND_DOMAIN}>`;
         break;
-      case "NoCallNoShow":
+      case 'NoCallNoShow':
         emailTemplate = NoCallNoShow({
           name: templateData.name,
           date: templateData.date,
         });
         fromEmail = `TGR <scheduling@${process.env.RESEND_DOMAIN}>`;
         break;
-      case "ShiftAdded":
+      case 'ShiftAdded':
         emailTemplate = ShiftAdded({
           name: templateData.name,
           date: templateData.date,
@@ -191,7 +191,7 @@ export async function POST(request: Request) {
         });
         fromEmail = `TGR <scheduling@${process.env.RESEND_DOMAIN}>`;
         break;
-      case "ShiftUpdated":
+      case 'ShiftUpdated':
         emailTemplate = ShiftUpdated({
           name: templateData.name,
           date: templateData.date,
@@ -201,7 +201,7 @@ export async function POST(request: Request) {
         fromEmail = `TGR <scheduling@${process.env.RESEND_DOMAIN}>`;
         break;
       default:
-        throw new Error("Invalid template name");
+        throw new Error('Invalid template name');
     }
 
     const resendRes = await resend.emails.send({
@@ -216,13 +216,13 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({
-      message: "Email sent successfully",
+      message: 'Email sent successfully',
       data: resendRes,
     });
   } catch (error: any) {
     // console.error("Error sending email:", error);
     return NextResponse.json(
-      { error: "Internal Server Error", details: error.message },
+      { error: 'Internal Server Error', details: error.message },
       { status: 500 }
     );
   }
@@ -232,10 +232,9 @@ export async function OPTIONS() {
   return new NextResponse(null, {
     status: 200,
     headers: {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "POST, OPTIONS",
-      "Access-Control-Allow-Headers":
-        "authorization, x-client-info, apikey, content-type",
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
     },
   });
 }

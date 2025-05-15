@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import dynamic from "next/dynamic";
-import LoadingIndicator from "@/components/LoadingIndicator";
+import dynamic from 'next/dynamic';
+import LoadingIndicator from '@/components/LoadingIndicator';
 
-const LazySignInContent = dynamic(() => import("./SignInContent"), {
+const LazySignInContent = dynamic(() => import('./SignInContent'), {
   loading: () => <LoadingIndicator />,
   ssr: false,
 });

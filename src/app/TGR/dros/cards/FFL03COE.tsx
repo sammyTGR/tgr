@@ -1,5 +1,5 @@
-import * as React from "react";
-import { useRouter } from "next/navigation";
+import * as React from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Card,
   CardContent,
@@ -7,13 +7,8 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import {
-  HoveredLink,
-  Menu,
-  MenuItem,
-  ProductItem,
-} from "@/components/ui/navbar-menu";
+} from '@/components/ui/card';
+import { HoveredLink, Menu, MenuItem, ProductItem } from '@/components/ui/navbar-menu';
 
 function FFL03COE({ className }: { className?: string }) {
   const router = useRouter();
@@ -26,8 +21,8 @@ function FFL03COE({ className }: { className?: string }) {
           <CardDescription>
             <span className="text-red-500">Don&apos;t Forget:</span>
             <br />
-            Enter The FFL 03 & COE License Numbers Along With The Expiration
-            Dates In The DROS Comments Field!
+            Enter The FFL 03 & COE License Numbers Along With The Expiration Dates In The DROS
+            Comments Field!
             <br />
             <hr className="my-4" />
           </CardDescription>
@@ -35,8 +30,8 @@ function FFL03COE({ className }: { className?: string }) {
         <CardContent>
           <div className="max-w-full">
             <p>
-              Individuals With An FFL 03 & COE License Are{" "}
-              <span className="text-red-500">NOT</span> Non-Roster Exempt
+              Individuals With An FFL 03 & COE License Are <span className="text-red-500">NOT</span>{' '}
+              Non-Roster Exempt
             </p>
             <hr className="my-4" />
             <p>FSC Exemption Code</p>
@@ -50,8 +45,8 @@ function FFL03COE({ className }: { className?: string }) {
             <hr className="my-4" />
             <p>
               <span className="text-red-500">
-                Don&apos;t Forget! Enter The FFL & COE License Numbers ALONG
-                WITH THE EXPIRATION DATES In The DROS Comments Field!
+                Don&apos;t Forget! Enter The FFL & COE License Numbers ALONG WITH THE EXPIRATION
+                DATES In The DROS Comments Field!
               </span>
             </p>
           </div>

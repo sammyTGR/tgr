@@ -1,13 +1,8 @@
-import React, { useState, useEffect } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import React, { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface EditScheduleDialogProps {
   isOpen: boolean;
@@ -44,18 +39,14 @@ export function EditScheduleDialog({
     const formattedSchedule: WeeklySchedule = {};
     for (const [day, times] of Object.entries(weeklySchedule)) {
       formattedSchedule[day] = {
-        start_time: times.start_time ? times.start_time.slice(0, 5) : "",
-        end_time: times.end_time ? times.end_time.slice(0, 5) : "",
+        start_time: times.start_time ? times.start_time.slice(0, 5) : '',
+        end_time: times.end_time ? times.end_time.slice(0, 5) : '',
       };
     }
     setSchedules(formattedSchedule);
   };
 
-  const handleTimeChange = (
-    day: string,
-    field: "start_time" | "end_time",
-    value: string
-  ) => {
+  const handleTimeChange = (day: string, field: 'start_time' | 'end_time', value: string) => {
     setSchedules((prev) => ({
       ...prev,
       [day]: { ...prev[day], [field]: value },
@@ -75,7 +66,7 @@ export function EditScheduleDialog({
       await onUpdateSchedule(parsedSchedules);
       onClose();
     } catch (error) {
-      console.error("Error updating schedule:", error);
+      console.error('Error updating schedule:', error);
       // console.log(
       //   `Failed to update schedule: ${
       //     error instanceof Error ? error.message : "Unknown error"
@@ -101,18 +92,14 @@ export function EditScheduleDialog({
               <Input
                 id={`${day}-start`}
                 type="time"
-                value={times.start_time || ""}
-                onChange={(e) =>
-                  handleTimeChange(day, "start_time", e.target.value)
-                }
+                value={times.start_time || ''}
+                onChange={(e) => handleTimeChange(day, 'start_time', e.target.value)}
               />
               <Input
                 id={`${day}-end`}
                 type="time"
-                value={times.end_time || ""}
-                onChange={(e) =>
-                  handleTimeChange(day, "end_time", e.target.value)
-                }
+                value={times.end_time || ''}
+                onChange={(e) => handleTimeChange(day, 'end_time', e.target.value)}
               />
             </div>
           ))}
@@ -121,12 +108,8 @@ export function EditScheduleDialog({
           <Button variant="linkHover2" onClick={onClose}>
             Cancel
           </Button>
-          <Button
-            variant="linkHover1"
-            onClick={handleSubmit}
-            disabled={isLoading}
-          >
-            {isLoading ? "Updating..." : "Update Schedule"}
+          <Button variant="linkHover1" onClick={handleSubmit} disabled={isLoading}>
+            {isLoading ? 'Updating...' : 'Update Schedule'}
           </Button>
         </div>
       </DialogContent>

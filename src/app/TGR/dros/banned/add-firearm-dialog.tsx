@@ -1,25 +1,20 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import DOMPurify from "isomorphic-dompurify";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useState } from 'react';
+import DOMPurify from 'isomorphic-dompurify';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { DatabaseFirearm } from "./types";
-import { X, Plus } from "lucide-react";
+} from '@/components/ui/select';
+import { DatabaseFirearm } from './types';
+import { X, Plus } from 'lucide-react';
 
 interface Model {
   name: string;
@@ -29,23 +24,17 @@ interface Model {
 interface AddFirearmDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (
-    firearm: Omit<DatabaseFirearm, "firearm_id" | "created_at" | "updated_at">
-  ) => void;
+  onAdd: (firearm: Omit<DatabaseFirearm, 'firearm_id' | 'created_at' | 'updated_at'>) => void;
 }
 
-export default function AddFirearmDialog({
-  isOpen,
-  onClose,
-  onAdd,
-}: AddFirearmDialogProps) {
-  const [type, setType] = useState<"rifle" | "handgun">("rifle");
-  const [manufacturer, setManufacturer] = useState("");
-  const [models, setModels] = useState<Model[]>([{ name: "", variations: "" }]);
+export default function AddFirearmDialog({ isOpen, onClose, onAdd }: AddFirearmDialogProps) {
+  const [type, setType] = useState<'rifle' | 'handgun'>('rifle');
+  const [manufacturer, setManufacturer] = useState('');
+  const [models, setModels] = useState<Model[]>([{ name: '', variations: '' }]);
   const [currentModelIndex, setCurrentModelIndex] = useState(0);
 
   const handleAddModel = () => {
-    setModels([...models, { name: "", variations: "" }]);
+    setModels([...models, { name: '', variations: '' }]);
     setCurrentModelIndex(models.length);
   };
 
@@ -96,14 +85,14 @@ export default function AddFirearmDialog({
         const result = await onAdd(firearm);
         // console.log("Add firearm response:", result); // Debug log
       } catch (error) {
-        console.error("Error adding firearm:", error);
+        console.error('Error adding firearm:', error);
       }
     }
 
     // Reset form
-    setType("rifle");
-    setManufacturer("");
-    setModels([{ name: "", variations: "" }]);
+    setType('rifle');
+    setManufacturer('');
+    setModels([{ name: '', variations: '' }]);
     setCurrentModelIndex(0);
   };
 
@@ -113,17 +102,11 @@ export default function AddFirearmDialog({
         <DialogHeader className="p-6 pb-0">
           <DialogTitle>Add New Banned Firearm</DialogTitle>
         </DialogHeader>
-        <form
-          onSubmit={handleSubmit}
-          className="flex flex-col flex-1 overflow-hidden"
-        >
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
           <div className="space-y-4 p-6 overflow-y-auto">
             <div className="space-y-2">
               <Label htmlFor="type">Type</Label>
-              <Select
-                value={type}
-                onValueChange={(value: "rifle" | "handgun") => setType(value)}
-              >
+              <Select value={type} onValueChange={(value: 'rifle' | 'handgun') => setType(value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
@@ -139,9 +122,7 @@ export default function AddFirearmDialog({
               <Input
                 id="manufacturer"
                 value={manufacturer}
-                onChange={(e) =>
-                  setManufacturer(DOMPurify.sanitize(e.target.value))
-                }
+                onChange={(e) => setManufacturer(DOMPurify.sanitize(e.target.value))}
                 placeholder="Enter manufacturer"
               />
             </div>
@@ -152,16 +133,11 @@ export default function AddFirearmDialog({
               </div>
 
               {models.map((model, modelIndex) => (
-                <div
-                  key={modelIndex}
-                  className="space-y-2 p-4 border rounded-lg"
-                >
+                <div key={modelIndex} className="space-y-2 p-4 border rounded-lg">
                   <div className="flex items-center gap-2">
                     <Input
                       value={model.name}
-                      onChange={(e) =>
-                        handleModelNameChange(modelIndex, e.target.value)
-                      }
+                      onChange={(e) => handleModelNameChange(modelIndex, e.target.value)}
                       placeholder="Model name"
                       required
                     />
@@ -183,9 +159,7 @@ export default function AddFirearmDialog({
                     <div className="flex gap-2">
                       <Input
                         value={model.variations}
-                        onChange={(e) =>
-                          handleVariationChange(modelIndex, e.target.value)
-                        }
+                        onChange={(e) => handleVariationChange(modelIndex, e.target.value)}
                         placeholder="Add variation"
                         onFocus={() => setCurrentModelIndex(modelIndex)}
                       />
@@ -207,9 +181,7 @@ export default function AddFirearmDialog({
                 <Plus className="h-4 w-4" />
                 Add Model
               </Button>
-              <Button type="submit">
-                Add Firearm{models.length > 1 ? "s" : ""}
-              </Button>
+              <Button type="submit">Add Firearm{models.length > 1 ? 's' : ''}</Button>
             </div>
           </div>
         </form>

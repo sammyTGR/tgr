@@ -1,16 +1,16 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { ModeToggle } from "@/components/mode-toggle";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import { HomeIcon } from "@radix-ui/react-icons";
+import * as React from 'react';
+import { ModeToggle } from '@/components/mode-toggle';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { HomeIcon } from '@radix-ui/react-icons';
 import {
   NavigationMenu,
   NavigationMenuList,
   NavigationMenuItem,
-} from "@/components/ui/navigation-menu";
-import { SignedOut, SignUpButton } from "@clerk/nextjs";
+} from '@/components/ui/navigation-menu';
+import { SignedOut, SignUpButton } from '@clerk/nextjs';
 
 const HeaderPublicTest = React.memo(() => {
   return (
@@ -48,6 +48,6 @@ const HeaderPublicTest = React.memo(() => {
   );
 });
 
-HeaderPublicTest.displayName = "HeaderPublic";
+HeaderPublicTest.displayName = 'HeaderPublic';
 
 export default HeaderPublicTest;

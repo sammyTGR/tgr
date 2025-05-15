@@ -1,25 +1,25 @@
-"use client";
+'use client';
 
-import { Button } from "@/components/ui/button";
-import type { Tables } from "@/types_db";
-import { getStripe } from "@/utils/stripe/client";
-import { checkoutWithStripe } from "@/utils/stripe/server";
-import { User } from "@supabase/supabase-js";
-import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
-import Image from "next/image";
-import { Input } from "@/components/ui/input";
-import { useTransition } from "react";
-import { Price } from "@/types_db";
-import { supabase } from "@/utils/supabase/client";
-import { format, toZonedTime } from "date-fns-tz";
-import { useSidebar } from "@/components/ui/sidebar";
+import { Button } from '@/components/ui/button';
+import type { Tables } from '@/types_db';
+import { getStripe } from '@/utils/stripe/client';
+import { checkoutWithStripe } from '@/utils/stripe/server';
+import { User } from '@supabase/supabase-js';
+import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import Image from 'next/image';
+import { Input } from '@/components/ui/input';
+import { useTransition } from 'react';
+import { Price } from '@/types_db';
+import { supabase } from '@/utils/supabase/client';
+import { format, toZonedTime } from 'date-fns-tz';
+import { useSidebar } from '@/components/ui/sidebar';
 
-type Product = Tables<"products"> & {
-  prices: Tables<"prices">[];
-  metadata?: { product_type?: "training" | "physical" };
+type Product = Tables<'products'> & {
+  prices: Tables<'prices'>[];
+  metadata?: { product_type?: 'training' | 'physical' };
 };
-type Customer = Tables<"customers">;
+type Customer = Tables<'customers'>;
 type ClassSchedule = {
   id: number;
   title: string;
@@ -37,28 +37,27 @@ interface Props {
   subscription: Customer | null;
 }
 
-type BillingInterval = "one_time" | "training" | "monthly" | "yearly"; // Add other valid intervals
-type PriceType = "one_time" | "training" | "recurring"; // Add other valid price types
+type BillingInterval = 'one_time' | 'training' | 'monthly' | 'yearly'; // Add other valid intervals
+type PriceType = 'one_time' | 'training' | 'recurring'; // Add other valid price types
 
 export default function Pricing({ user, products, subscription }: Props) {
   const { state } = useSidebar();
   const router = useRouter();
-  const [billingInterval, setBillingInterval] =
-    useState<BillingInterval>("one_time");
+  const [billingInterval, setBillingInterval] = useState<BillingInterval>('one_time');
   const [priceIdLoading, setPriceIdLoading] = useState<string>();
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState('');
   const [isPending, startTransition] = useTransition();
   const [classSchedules, setClassSchedules] = useState<ClassSchedule[]>([]);
 
   useEffect(() => {
     const fetchClassSchedules = async () => {
       const { data, error } = await supabase
-        .from("class_schedules")
-        .select("*")
-        .order("start_time");
+        .from('class_schedules')
+        .select('*')
+        .order('start_time');
 
       if (error) {
-        console.error("Error fetching class schedules:", error);
+        console.error('Error fetching class schedules:', error);
       } else if (data) {
         setClassSchedules(data);
       }
@@ -69,16 +68,16 @@ export default function Pricing({ user, products, subscription }: Props) {
 
   const handleStripeCheckout = async (price: Price, product: Product) => {
     if (!user) {
-      return router.push("/sign-in");
+      return router.push('/sign-in');
     }
     startTransition(async () => {
       try {
-        const billingInterval: "one_time" | "month" | "year" =
-          price.type === "recurring"
-            ? price.interval === "year" || price.interval === "month"
+        const billingInterval: 'one_time' | 'month' | 'year' =
+          price.type === 'recurring'
+            ? price.interval === 'year' || price.interval === 'month'
               ? price.interval
-              : "month" // Default to "month" if interval is not "year" or "month"
-            : "one_time";
+              : 'month' // Default to "month" if interval is not "year" or "month"
+            : 'one_time';
 
         const { sessionId } = await checkoutWithStripe(price, {
           productId: product.id,
@@ -98,15 +97,15 @@ export default function Pricing({ user, products, subscription }: Props) {
 
   const handleClassEnrollment = async (classSchedule: ClassSchedule) => {
     if (!user) {
-      return router.push("/sign-in");
+      return router.push('/sign-in');
     }
     startTransition(async () => {
       try {
         // Fetch customer data
         const { data: customerData, error: customerError } = await supabase
-          .from("customers")
-          .select("first_name, last_name")
-          .eq("user_uuid", user.id)
+          .from('customers')
+          .select('first_name, last_name')
+          .eq('user_uuid', user.id)
           .single();
 
         if (customerError) throw customerError;
@@ -119,32 +118,31 @@ export default function Pricing({ user, products, subscription }: Props) {
             active: true,
             description: classSchedule.description,
             unit_amount: classSchedule.price ? classSchedule.price * 100 : 0,
-            currency: "usd",
-            type: "one_time",
+            currency: 'usd',
+            type: 'one_time',
             interval: null,
             interval_count: null,
             trial_period_days: null,
-            metadata: { product_type: "training" },
+            metadata: { product_type: 'training' },
           },
           {
             productId: classSchedule.stripe_product_id!,
             productName: classSchedule.title,
-            billingInterval: "one_time",
+            billingInterval: 'one_time',
           }
         );
 
         if (sessionId) {
           // Insert the enrollment into the class_enrollments table
           const { data, error } = await supabase
-            .from("class_enrollments")
+            .from('class_enrollments')
             .insert({
               user_id: user.id,
               class_id: classSchedule.id,
-              payment_status: "paid",
+              payment_status: 'paid',
               user_name:
-                `${customerData.first_name || ""} ${
-                  customerData.last_name || ""
-                }`.trim() || user.email,
+                `${customerData.first_name || ''} ${customerData.last_name || ''}`.trim() ||
+                user.email,
               stripe_session_id: sessionId,
             })
             .select();
@@ -155,17 +153,13 @@ export default function Pricing({ user, products, subscription }: Props) {
           stripe?.redirectToCheckout({ sessionId });
         }
       } catch (error) {
-        console.error("Error during class enrollment:", error);
+        console.error('Error during class enrollment:', error);
         alert((error as Error)?.message);
       }
     });
   };
 
-  const formatTZ = (
-    date: string | number | Date,
-    timeZone: string,
-    formatStr: string
-  ) => {
+  const formatTZ = (date: string | number | Date, timeZone: string, formatStr: string) => {
     const zonedDate = toZonedTime(new Date(date), timeZone);
     return format(zonedDate, formatStr, { timeZone });
   };
@@ -175,8 +169,8 @@ export default function Pricing({ user, products, subscription }: Props) {
     end: string | number | Date,
     timeZone: string
   ): { date: string; time: string } => {
-    const dateFormat = "EEEE, MMMM d";
-    const timeFormat = "h:mm a";
+    const dateFormat = 'EEEE, MMMM d';
+    const timeFormat = 'h:mm a';
 
     const startDate = formatTZ(start, timeZone, dateFormat);
     const startTime = formatTZ(start, timeZone, timeFormat);
@@ -191,19 +185,18 @@ export default function Pricing({ user, products, subscription }: Props) {
   // Separate products into physical products, training classes, and subscriptions
   const physicalProducts = products.filter(
     (product) =>
-      product.prices.some((price) => price.type === "one_time") &&
-      (!product.metadata?.product_type ||
-        product.metadata.product_type === "physical")
+      product.prices.some((price) => price.type === 'one_time') &&
+      (!product.metadata?.product_type || product.metadata.product_type === 'physical')
   );
 
   const trainingProducts = products.filter(
     (product) =>
-      product.prices.some((price) => price.type === "one_time") &&
-      product.metadata?.product_type === "training"
+      product.prices.some((price) => price.type === 'one_time') &&
+      product.metadata?.product_type === 'training'
   );
 
   const subscriptionProducts = products.filter((product) =>
-    product.prices.some((price) => price.type === "recurring")
+    product.prices.some((price) => price.type === 'recurring')
   );
 
   const filteredPhysicalProducts = physicalProducts.filter((product) =>
@@ -223,23 +216,19 @@ export default function Pricing({ user, products, subscription }: Props) {
   );
 
   if (!products.length && !classSchedules.length) {
-    return (
-      <p>
-        No subscription pricing plans or classes found. Please contact support.
-      </p>
-    );
+    return <p>No subscription pricing plans or classes found. Please contact support.</p>;
   }
 
   const intervals = [
-    { value: "one_time", label: "Products" },
-    { value: "training", label: "Training" },
-    { value: "month", label: "Monthly" },
-    { value: "year", label: "Annual" },
+    { value: 'one_time', label: 'Products' },
+    { value: 'training', label: 'Training' },
+    { value: 'month', label: 'Monthly' },
+    { value: 'year', label: 'Annual' },
   ];
 
   return (
     <div
-      className={`relative ${state === "collapsed" ? "w-[calc(100vw-20rem)] mx-auto ml-4" : "w-[calc(100vw-25rem)] mx-auto ml-4"} h-full overflow-auto flex-1 transition-all duration-300`}
+      className={`relative ${state === 'collapsed' ? 'w-[calc(100vw-20rem)] mx-auto ml-4' : 'w-[calc(100vw-25rem)] mx-auto ml-4'} h-full overflow-auto flex-1 transition-all duration-300`}
     >
       <div className="sm:flex sm:flex-col sm:align-center">
         <div className="w-full mx-auto items-center justify-center max-w-3xl">
@@ -252,22 +241,20 @@ export default function Pricing({ user, products, subscription }: Props) {
             className="w-full h-auto object-contain"
           />
           <p className="max-w-2xl m-auto text-xl sm:text-center sm:text-2xl">
-            Let&apos;s get you set up with a subscription and | or firearm
-            that&apos;s a ... blast... and works best for your goals!
+            Let&apos;s get you set up with a subscription and | or firearm that&apos;s a ...
+            blast... and works best for your goals!
           </p>
         </div>
         <div className="relative self-center mt-6 rounded-lg p-0.5 flex sm:mt-8 border border-zinc-800">
           {intervals.map((interval) => (
             <button
               key={interval.value}
-              onClick={() =>
-                setBillingInterval(interval.value as BillingInterval)
-              }
+              onClick={() => setBillingInterval(interval.value as BillingInterval)}
               type="button"
               className={`${
                 billingInterval === interval.value
-                  ? "relative w-1/3 border-zinc-800 shadow-sm text-muted-foreground ring-2 ring-pink-600 ring-opacity-50" // Added ring styles here
-                  : "ml-0.5 relative w-1/3 border border-transparent hover:bg-zinc-100 dark:hover:bg-zinc-900"
+                  ? 'relative w-1/3 border-zinc-800 shadow-sm text-muted-foreground ring-2 ring-pink-600 ring-opacity-50' // Added ring styles here
+                  : 'ml-0.5 relative w-1/3 border border-transparent hover:bg-zinc-100 dark:hover:bg-zinc-900'
               } rounded-md m-1 py-2 text-sm font-medium whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-opacity-50 focus:z-10 sm:w-auto sm:px-8`}
             >
               {interval.label}
@@ -277,14 +264,12 @@ export default function Pricing({ user, products, subscription }: Props) {
       </div>
       {/* Add search input for Products and Training tabs */}
       <div className="flex justify-start">
-        {(billingInterval === "one_time" || billingInterval === "training") && (
+        {(billingInterval === 'one_time' || billingInterval === 'training') && (
           <div className="mt-6">
             <Input
               type="text"
               placeholder={
-                billingInterval === "one_time"
-                  ? "Search products..."
-                  : "Search classes..."
+                billingInterval === 'one_time' ? 'Search products...' : 'Search classes...'
               }
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -294,29 +279,23 @@ export default function Pricing({ user, products, subscription }: Props) {
         )}
       </div>
       <div className="mt-12 space-y-4 sm:mt-16 sm:space-y-0 sm:grid sm:grid-cols-2 sm:gap-6 md:max-w-4xl md:grid-cols-3 md:mx-auto lg:max-w-none lg:mx-auto lg:grid-cols-4">
-        {billingInterval === "training" ? (
+        {billingInterval === 'training' ? (
           <>
             {filteredTrainingProducts.map((product) => {
               const price = product.prices.find((price) => {
-                if (billingInterval === "training") {
-                  return price.type === "training";
-                } else if (
-                  billingInterval === "monthly" ||
-                  billingInterval === "yearly"
-                ) {
-                  return (
-                    price.type === "recurring" &&
-                    price.interval === billingInterval
-                  );
+                if (billingInterval === 'training') {
+                  return price.type === 'training';
+                } else if (billingInterval === 'monthly' || billingInterval === 'yearly') {
+                  return price.type === 'recurring' && price.interval === billingInterval;
                 } else {
-                  return price.type === "one_time";
+                  return price.type === 'one_time';
                 }
               });
 
               if (!price) return null;
 
-              const priceString = new Intl.NumberFormat("en-US", {
-                style: "currency",
+              const priceString = new Intl.NumberFormat('en-US', {
+                style: 'currency',
                 currency: price.currency,
                 minimumFractionDigits: 0,
               }).format((price.unit_amount || 0) / 100);
@@ -336,20 +315,12 @@ export default function Pricing({ user, products, subscription }: Props) {
                         />
                       </div>
                     )}
-                    <h2 className="flex-grow text-2xl font-semibold leading-6">
-                      {product.name}
-                    </h2>
-                    <p className="mt-4 text-muted-foreground flex-grow">
-                      {product.description}
-                    </p>
+                    <h2 className="flex-grow text-2xl font-semibold leading-6">{product.name}</h2>
+                    <p className="mt-4 text-muted-foreground flex-grow">{product.description}</p>
                     <p className="flex-shrink mt-8">
-                      <span className="flex-shrink text-3xl font-extrabold">
-                        {priceString}
-                      </span>
-                      {price.type === "recurring" && (
-                        <span className="text-base font-medium">
-                          /{price.interval}
-                        </span>
+                      <span className="flex-shrink text-3xl font-extrabold">{priceString}</span>
+                      {price.type === 'recurring' && (
+                        <span className="text-base font-medium">/{price.interval}</span>
                       )}
                     </p>
                     <Button
@@ -359,10 +330,10 @@ export default function Pricing({ user, products, subscription }: Props) {
                       className="w-full py-2 mt-8 text-sm font-semibold text-center rounded-md hover:bg-muted"
                     >
                       {subscription
-                        ? "Manage"
-                        : price.type === "one_time"
-                          ? "Add to Cart"
-                          : "Subscribe"}
+                        ? 'Manage'
+                        : price.type === 'one_time'
+                          ? 'Add to Cart'
+                          : 'Subscribe'}
                     </Button>
                   </div>
                 </div>
@@ -372,7 +343,7 @@ export default function Pricing({ user, products, subscription }: Props) {
               const classTime = formatClassTime(
                 classSchedule.start_time,
                 classSchedule.end_time,
-                "America/Los_Angeles"
+                'America/Los_Angeles'
               );
 
               return (
@@ -394,9 +365,9 @@ export default function Pricing({ user, products, subscription }: Props) {
                     </p>
                     <p className="flex-shrink mt-8">
                       <span className="flex-shrink text-3xl font-extrabold">
-                        {new Intl.NumberFormat("en-US", {
-                          style: "currency",
-                          currency: "usd",
+                        {new Intl.NumberFormat('en-US', {
+                          style: 'currency',
+                          currency: 'usd',
                           minimumFractionDigits: 0,
                         }).format(classSchedule.price || 0)}
                       </span>
@@ -414,26 +385,20 @@ export default function Pricing({ user, products, subscription }: Props) {
               );
             })}
           </>
-        ) : billingInterval === "one_time" ? (
+        ) : billingInterval === 'one_time' ? (
           filteredPhysicalProducts.map((product) => {
             const price = product.prices.find((price) => {
-              if (
-                billingInterval === "one_time" ||
-                billingInterval === "training"
-              ) {
-                return price.type === "one_time";
+              if (billingInterval === 'one_time' || billingInterval === 'training') {
+                return price.type === 'one_time';
               } else {
-                return (
-                  price.type === "recurring" &&
-                  price.interval === billingInterval
-                );
+                return price.type === 'recurring' && price.interval === billingInterval;
               }
             });
 
             if (!price) return null;
 
-            const priceString = new Intl.NumberFormat("en-US", {
-              style: "currency",
+            const priceString = new Intl.NumberFormat('en-US', {
+              style: 'currency',
               currency: price.currency,
               minimumFractionDigits: 0,
             }).format((price.unit_amount || 0) / 100);
@@ -453,20 +418,12 @@ export default function Pricing({ user, products, subscription }: Props) {
                       />
                     </div>
                   )}
-                  <h2 className="flex-grow text-2xl font-semibold leading-6">
-                    {product.name}
-                  </h2>
-                  <p className="mt-4 text-muted-foreground flex-grow">
-                    {product.description}
-                  </p>
+                  <h2 className="flex-grow text-2xl font-semibold leading-6">{product.name}</h2>
+                  <p className="mt-4 text-muted-foreground flex-grow">{product.description}</p>
                   <p className="flex-shrink mt-8">
-                    <span className="flex-shrink text-3xl font-extrabold">
-                      {priceString}
-                    </span>
-                    {price.type === "recurring" && (
-                      <span className="text-base font-medium">
-                        /{price.interval}
-                      </span>
+                    <span className="flex-shrink text-3xl font-extrabold">{priceString}</span>
+                    {price.type === 'recurring' && (
+                      <span className="text-base font-medium">/{price.interval}</span>
                     )}
                   </p>
                   <Button
@@ -476,10 +433,10 @@ export default function Pricing({ user, products, subscription }: Props) {
                     className="w-full py-2 mt-8 text-sm font-semibold text-center rounded-md hover:bg-muted"
                   >
                     {subscription
-                      ? "Manage"
-                      : price.type === "one_time"
-                        ? "Add to Cart"
-                        : "Subscribe"}
+                      ? 'Manage'
+                      : price.type === 'one_time'
+                        ? 'Add to Cart'
+                        : 'Subscribe'}
                   </Button>
                 </div>
               </div>
@@ -488,14 +445,13 @@ export default function Pricing({ user, products, subscription }: Props) {
         ) : (
           filteredSubscriptionProducts.map((product) => {
             const price = product.prices.find(
-              (price) =>
-                price.type === "recurring" && price.interval === billingInterval
+              (price) => price.type === 'recurring' && price.interval === billingInterval
             );
 
             if (!price) return null;
 
-            const priceString = new Intl.NumberFormat("en-US", {
-              style: "currency",
+            const priceString = new Intl.NumberFormat('en-US', {
+              style: 'currency',
               currency: price.currency,
               minimumFractionDigits: 0,
             }).format((price.unit_amount || 0) / 100);
@@ -515,19 +471,11 @@ export default function Pricing({ user, products, subscription }: Props) {
                       />
                     </div>
                   )}
-                  <h2 className="flex-grow text-2xl font-semibold leading-6">
-                    {product.name}
-                  </h2>
-                  <p className="mt-4 text-muted-foreground flex-grow">
-                    {product.description}
-                  </p>
+                  <h2 className="flex-grow text-2xl font-semibold leading-6">{product.name}</h2>
+                  <p className="mt-4 text-muted-foreground flex-grow">{product.description}</p>
                   <p className="flex-shrink mt-8">
-                    <span className="flex-shrink text-3xl font-extrabold">
-                      {priceString}
-                    </span>
-                    <span className="text-base font-medium">
-                      /{price.interval}
-                    </span>
+                    <span className="flex-shrink text-3xl font-extrabold">{priceString}</span>
+                    <span className="text-base font-medium">/{price.interval}</span>
                   </p>
                   <Button
                     variant="outline"
@@ -535,7 +483,7 @@ export default function Pricing({ user, products, subscription }: Props) {
                     onClick={() => handleStripeCheckout(price, product)}
                     className="w-full py-2 mt-8 text-sm font-semibold text-center rounded-md hover:bg-muted"
                   >
-                    {subscription ? "Manage" : "Subscribe"}
+                    {subscription ? 'Manage' : 'Subscribe'}
                   </Button>
                 </div>
               </div>

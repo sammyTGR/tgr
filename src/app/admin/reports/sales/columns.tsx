@@ -1,12 +1,12 @@
 // src/app\admin\reports\sales\columns.tsx
 
 // import { format } from "date-fns";
-import { ColumnDef as BaseColumnDef } from "@tanstack/react-table";
-import { DataTableColumnHeader } from "./data-table-column-header";
-import SalesTableRowActions from "./sales-table-row-actions";
-import { includesArrayString } from "./custom-filter";
-import { compareAsc, format, parseISO } from "date-fns";
-import { toZonedTime } from "date-fns-tz";
+import { ColumnDef as BaseColumnDef } from '@tanstack/react-table';
+import { DataTableColumnHeader } from './data-table-column-header';
+import SalesTableRowActions from './sales-table-row-actions';
+import { includesArrayString } from './custom-filter';
+import { compareAsc, format, parseISO } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
 
 export interface SalesData {
   id: number;
@@ -37,10 +37,7 @@ export interface SalesData {
   total_net: number;
 }
 
-export type ColumnDef<TData, TValue = unknown> = BaseColumnDef<
-  TData,
-  TValue
-> & {
+export type ColumnDef<TData, TValue = unknown> = BaseColumnDef<TData, TValue> & {
   meta?: {
     style?: React.CSSProperties;
   };
@@ -51,21 +48,17 @@ export const salesColumns = (
   onUpdate: (id: number, updates: Partial<SalesData>) => void
 ): ColumnDef<SalesData>[] => [
   {
-    accessorKey: "Lanid",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Lanid" />
-    ),
+    accessorKey: 'Lanid',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Lanid" />,
     meta: {
-      style: { width: "150px" },
+      style: { width: '150px' },
     },
   },
   {
-    accessorKey: "Invoice",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Invoice" />
-    ),
+    accessorKey: 'Invoice',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Invoice" />,
     meta: {
-      style: { width: "150px" },
+      style: { width: '150px' },
     },
   },
   // {
@@ -80,12 +73,10 @@ export const salesColumns = (
   //   initial: false,
   // },
   {
-    accessorKey: "Desc",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Desc" />
-    ),
+    accessorKey: 'Desc',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Desc" />,
     meta: {
-      style: { width: "200px" },
+      style: { width: '200px' },
     },
   },
   // {
@@ -122,32 +113,28 @@ export const salesColumns = (
   //   initial: false,
   // },
   {
-    accessorKey: "Acct",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Acct" />
-    ),
+    accessorKey: 'Acct',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Acct" />,
     meta: {
-      style: { width: "100px" },
+      style: { width: '100px' },
     },
     enableHiding: true,
     initial: false,
   },
   {
-    accessorKey: "Date",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Date" />
-    ),
+    accessorKey: 'Date',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Date" />,
     cell: ({ row }) => {
       const originalDate = row.original.Date;
       const parsedDate = parseISO(originalDate);
-      const utcDate = toZonedTime(parsedDate, "UTC");
+      const utcDate = toZonedTime(parsedDate, 'UTC');
 
       // console.log('Original date:', originalDate, 'Parsed UTC date:', utcDate);
 
-      return format(utcDate, "MM/dd/yyyy");
+      return format(utcDate, 'MM/dd/yyyy');
     },
     meta: {
-      style: { width: "120px" },
+      style: { width: '120px' },
     },
     sortingFn: (rowA, rowB, columnId) => {
       const dateA = parseISO(rowA.original.Date);
@@ -156,18 +143,16 @@ export const salesColumns = (
     },
     filterFn: (row, columnId, filterValue) => {
       const date = parseISO(row.getValue(columnId));
-      const utcDate = toZonedTime(date, "UTC");
-      const formattedDate = format(utcDate, "yyyy-MM-dd");
+      const utcDate = toZonedTime(date, 'UTC');
+      const formattedDate = format(utcDate, 'yyyy-MM-dd');
       return formattedDate.includes(filterValue);
     },
   },
   {
-    accessorKey: "Last",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Last" />
-    ),
+    accessorKey: 'Last',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Last" />,
     meta: {
-      style: { width: "150px" },
+      style: { width: '150px' },
     },
     enableHiding: true,
     initial: false,
@@ -204,21 +189,17 @@ export const salesColumns = (
   //   initial: false,
   // },
   {
-    accessorKey: "category_label",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Category" />
-    ),
+    accessorKey: 'category_label',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Category" />,
     meta: {
-      style: { width: "150px" },
+      style: { width: '150px' },
     },
   },
   {
-    accessorKey: "subcategory_label",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Subcategory" />
-    ),
+    accessorKey: 'subcategory_label',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Subcategory" />,
     meta: {
-      style: { width: "150px" },
+      style: { width: '150px' },
     },
   },
   // {

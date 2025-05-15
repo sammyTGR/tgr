@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import {
   Table,
@@ -7,10 +7,10 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import LoadingIndicator from "@/components/LoadingIndicator";
-import { format } from "date-fns";
+} from '@/components/ui/table';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import LoadingIndicator from '@/components/LoadingIndicator';
+import { format } from 'date-fns';
 
 interface TimeTrackingData {
   id: number;
@@ -29,10 +29,7 @@ interface TimeTrackingDataTableProps {
   isLoading: boolean;
 }
 
-export function TimeTrackingDataTable({
-  data,
-  isLoading,
-}: TimeTrackingDataTableProps) {
+export function TimeTrackingDataTable({ data, isLoading }: TimeTrackingDataTableProps) {
   if (isLoading) {
     return <LoadingIndicator />;
   }
@@ -55,7 +52,7 @@ export function TimeTrackingDataTable({
         <TableBody>
           {data.map((row) => (
             <TableRow key={row.id}>
-              <TableCell>{format(new Date(row.date), "MM/dd/yyyy")}</TableCell>
+              <TableCell>{format(new Date(row.date), 'MM/dd/yyyy')}</TableCell>
               <TableCell>{row.name}</TableCell>
               <TableCell>{row.employee_id}</TableCell>
               <TableCell>{row.work_date_time}</TableCell>

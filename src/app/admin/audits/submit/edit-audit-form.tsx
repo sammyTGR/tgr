@@ -1,15 +1,15 @@
-"use client";
+'use client';
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import { format } from "date-fns";
-import { FormProvider, useForm } from "react-hook-form";
-import { z } from "zod";
-import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
+import { zodResolver } from '@hookform/resolvers/zod';
+import { format } from 'date-fns';
+import { FormProvider, useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   FormControl,
   FormDescription,
@@ -17,31 +17,27 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-} from "@/components/ui/popover";
-import { CalendarIcon } from "@radix-ui/react-icons";
-import { cn } from "@/lib/utils";
-import { CustomCalendar } from "@/components/ui/calendar";
-import { supabase } from "@/utils/supabase/client";
-import { RenderDropdown, OptionType } from "./RenderDropdown";
-import { PopoverForm } from "./PopoverForm";
-import { useMemo } from "react";
+} from '@/components/ui/form';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { CalendarIcon } from '@radix-ui/react-icons';
+import { cn } from '@/lib/utils';
+import { CustomCalendar } from '@/components/ui/calendar';
+import { supabase } from '@/utils/supabase/client';
+import { RenderDropdown, OptionType } from './RenderDropdown';
+import { PopoverForm } from './PopoverForm';
+import { useMemo } from 'react';
 
 const formSchema = z.object({
-  drosNumber: z.string().min(1, "DROS Number is required"),
-  salesRep: z.string().min(1, "Sales Rep is required"),
+  drosNumber: z.string().min(1, 'DROS Number is required'),
+  salesRep: z.string().min(1, 'Sales Rep is required'),
   transDate: z.date(),
   auditDate: z.date(),
   drosCancel: z.boolean(),
   audits: z.array(
     z.object({
-      auditType: z.string().min(1, "Audit Type is required"),
-      errorLocation: z.string().min(1, "Error Location is required"),
-      errorDetails: z.string().min(1, "Error Details are required"),
+      auditType: z.string().min(1, 'Audit Type is required'),
+      errorLocation: z.string().min(1, 'Error Location is required'),
+      errorDetails: z.string().min(1, 'Error Details are required'),
       errorNotes: z.string().optional(),
     })
   ),
@@ -55,7 +51,7 @@ export interface AuditData {
   salesreps: string | null;
   trans_date: string | null;
   audit_date: string | null;
-  dros_cancel: string | ""; // Changed to string to match DB
+  dros_cancel: string | ''; // Changed to string to match DB
   audit_type: string | null;
   error_location: string | null;
   error_details: string | null;
@@ -72,27 +68,23 @@ export interface EditAuditFormProps {
 }
 
 // Query keys
-const AUDIT_OPTIONS_KEY = ["audit-options"] as const;
-const EMPLOYEES_KEY = ["employees"] as const;
+const AUDIT_OPTIONS_KEY = ['audit-options'] as const;
+const EMPLOYEES_KEY = ['employees'] as const;
 
-export function EditAuditForm({
-  audit,
-  handleSubmit,
-  handleClose,
-}: EditAuditFormProps) {
+export function EditAuditForm({ audit, handleSubmit, handleClose }: EditAuditFormProps) {
   const queryClient = useQueryClient();
 
   // Update mutation
   const updateAuditMutation = useMutation({
     mutationFn: async (formData: FormData) => {
       const { error } = await supabase
-        .from("Auditsinput")
+        .from('Auditsinput')
         .update({
           dros_number: formData.drosNumber,
           salesreps: formData.salesRep,
-          trans_date: formData.transDate.toISOString().split("T")[0], // Format as YYYY-MM-DD for date type
-          audit_date: formData.auditDate.toISOString().split("T")[0], // Format as YYYY-MM-DD for date type
-          dros_cancel: formData.drosCancel ? "Yes" : "", // Convert boolean to string
+          trans_date: formData.transDate.toISOString().split('T')[0], // Format as YYYY-MM-DD for date type
+          audit_date: formData.auditDate.toISOString().split('T')[0], // Format as YYYY-MM-DD for date type
+          dros_cancel: formData.drosCancel ? 'Yes' : '', // Convert boolean to string
           audit_type: formData.audits[0].auditType,
           error_location: formData.audits[0].errorLocation,
           error_details: formData.audits[0].errorDetails,
@@ -100,24 +92,22 @@ export function EditAuditForm({
           // user_id and user_uuid will be handled by Supabase automatically
           // employee_lanid can be added if needed
         })
-        .eq("audits_id", audit.audits_id);
+        .eq('audits_id', audit.audits_id);
 
       if (error) {
-        console.error("Supabase error:", error); // Add detailed error logging
+        console.error('Supabase error:', error); // Add detailed error logging
         throw error;
       }
     },
     onSuccess: () => {
-      toast.success("Audit updated successfully");
-      queryClient.invalidateQueries({ queryKey: ["audits"] });
+      toast.success('Audit updated successfully');
+      queryClient.invalidateQueries({ queryKey: ['audits'] });
       handleClose();
     },
     onError: (error) => {
-      console.error("Update error:", error); // Add this for debugging
+      console.error('Update error:', error); // Add this for debugging
       toast.error(
-        `Error updating audit: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`
+        `Error updating audit: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
     },
   });
@@ -125,7 +115,7 @@ export function EditAuditForm({
   const { data: options } = useQuery({
     queryKey: AUDIT_OPTIONS_KEY,
     queryFn: async () => {
-      const { data, error } = await supabase.from("Auditsinput").select("*");
+      const { data, error } = await supabase.from('Auditsinput').select('*');
       if (error) throw error;
 
       const auditTypeSet = new Set<string>();
@@ -161,17 +151,17 @@ export function EditAuditForm({
   const methods = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      drosNumber: audit.dros_number || "",
-      salesRep: audit.salesreps || "", // Handle both possible field names
-      transDate: new Date(audit.trans_date || ""),
-      auditDate: new Date(audit.audit_date || ""),
-      drosCancel: audit.dros_cancel === "Yes",
+      drosNumber: audit.dros_number || '',
+      salesRep: audit.salesreps || '', // Handle both possible field names
+      transDate: new Date(audit.trans_date || ''),
+      auditDate: new Date(audit.audit_date || ''),
+      drosCancel: audit.dros_cancel === 'Yes',
       audits: [
         {
-          auditType: audit.audit_type || "",
-          errorLocation: audit.error_location || "",
-          errorDetails: audit.error_details || "",
-          errorNotes: audit.error_notes || "",
+          auditType: audit.audit_type || '',
+          errorLocation: audit.error_location || '',
+          errorDetails: audit.error_details || '',
+          errorNotes: audit.error_notes || '',
         },
       ],
     },
@@ -182,9 +172,9 @@ export function EditAuditForm({
     queryKey: EMPLOYEES_KEY,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("employees")
-        .select("*")
-        .order("lanid", { ascending: true });
+        .from('employees')
+        .select('*')
+        .order('lanid', { ascending: true });
 
       if (error) throw error;
       return data || [];
@@ -196,8 +186,8 @@ export function EditAuditForm({
     () =>
       employees
         ?.map((emp) => ({
-          value: emp.lanid || "",
-          label: emp.lanid || "", // Ensure we always have a string
+          value: emp.lanid || '',
+          label: emp.lanid || '', // Ensure we always have a string
         }))
         .filter((option) => option.value && option.label) ?? [], // Filter out any empty values
     [employees]
@@ -254,17 +244,13 @@ export function EditAuditForm({
                 <PopoverTrigger asChild>
                   <FormControl>
                     <Button
-                      variant={"outline"}
+                      variant={'outline'}
                       className={cn(
-                        "w-[240px] pl-3 text-left font-normal",
-                        !field.value && "text-muted-foreground"
+                        'w-[240px] pl-3 text-left font-normal',
+                        !field.value && 'text-muted-foreground'
                       )}
                     >
-                      {field.value ? (
-                        format(field.value, "PPP")
-                      ) : (
-                        <span>Pick a date</span>
-                      )}
+                      {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
                       <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                     </Button>
                   </FormControl>
@@ -326,10 +312,7 @@ export function EditAuditForm({
           render={({ field }) => (
             <FormItem className="flex flex-row items-start space-x-3 space-y-0">
               <FormControl>
-                <Checkbox
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
+                <Checkbox checked={field.value} onCheckedChange={field.onChange} />
               </FormControl>
               <div className="space-y-1 leading-none">
                 <FormLabel>Cancelled DROS</FormLabel>

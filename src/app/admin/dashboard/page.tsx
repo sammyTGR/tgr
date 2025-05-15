@@ -1,32 +1,28 @@
-"use client";
-import { useState } from "react";
-import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
-import RoleBasedWrapper from "@/components/RoleBasedWrapper";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { useRole } from "@/context/RoleContext";
-import { Input } from "@/components/ui/input";
-import { fetchEmployees, Employee } from "./actions";
-import { User } from "lucide-react";
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "@/components/ui/hover-card";
-import { PersonIcon } from "@radix-ui/react-icons";
-import { useSidebar } from "@/components/ui/sidebar";
+'use client';
+import { useState } from 'react';
+import Link from 'next/link';
+import { useQuery } from '@tanstack/react-query';
+import RoleBasedWrapper from '@/components/RoleBasedWrapper';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { useRole } from '@/context/RoleContext';
+import { Input } from '@/components/ui/input';
+import { fetchEmployees, Employee } from './actions';
+import { User } from 'lucide-react';
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
+import { PersonIcon } from '@radix-ui/react-icons';
+import { useSidebar } from '@/components/ui/sidebar';
 
 const Dashboard = () => {
   const { state } = useSidebar();
   const { role } = useRole();
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
 
   const { data: employees = [] } = useQuery<Employee[]>({
-    queryKey: ["employees", role],
+    queryKey: ['employees', role],
     queryFn: async () => {
       const result = await fetchEmployees(role);
-      if ("error" in result) {
+      if ('error' in result) {
         throw new Error(result.error as string);
       }
       return result as Employee[];
@@ -38,9 +34,7 @@ const Dashboard = () => {
   );
 
   return (
-    <RoleBasedWrapper
-      allowedRoles={["auditor", "admin", "ceo", "super admin", "dev"]}
-    >
+    <RoleBasedWrapper allowedRoles={['auditor', 'admin', 'ceo', 'super admin', 'dev']}>
       <div
         className={`relative w-full mx-auto ml-6 md:ml-6 lg:ml-6 md:w-[calc(100vw-20rem)] lg:w-[calc(100vw-30rem)] h-full overflow-hidden flex-1 transition-all duration-300`}
       >
@@ -70,15 +64,8 @@ const Dashboard = () => {
                   className="flex flex-col items-center justify-between p-4 shadow-md h-[300px]"
                 >
                   <div className="flex items-center justify-center flex-1">
-                    <Avatar
-                      className={
-                        employee.avatar_url ? "w-48 h-48" : "w-24 h-24"
-                      }
-                    >
-                      <AvatarImage
-                        src={employee.avatar_url || ""}
-                        alt={employee.name}
-                      />
+                    <Avatar className={employee.avatar_url ? 'w-48 h-48' : 'w-24 h-24'}>
+                      <AvatarImage src={employee.avatar_url || ''} alt={employee.name} />
                       <AvatarFallback>
                         <PersonIcon className="w-6 h-6" />
                       </AvatarFallback>
@@ -86,30 +73,23 @@ const Dashboard = () => {
                   </div>
                   <HoverCard>
                     <HoverCardTrigger asChild>
-                      <Link
-                        href={`/admin/team/profiles/${employee.employee_id}`}
-                      >
-                        <Button
-                          variant="ghost"
-                          className="text-xl font-semibold"
-                        >
+                      <Link href={`/admin/team/profiles/${employee.employee_id}`}>
+                        <Button variant="ghost" className="text-xl font-semibold">
                           {employee.name} {employee.last_name}
                         </Button>
                       </Link>
                     </HoverCardTrigger>
-                    {(employee.role === "admin" ||
-                      employee.role === "ceo" ||
-                      employee.role === "auditor" ||
-                      employee.role === "gunsmith" ||
-                      employee.role === "dev") && (
+                    {(employee.role === 'admin' ||
+                      employee.role === 'ceo' ||
+                      employee.role === 'auditor' ||
+                      employee.role === 'gunsmith' ||
+                      employee.role === 'dev') && (
                       <HoverCardContent className="w-80">
                         <div className="flex justify-between space-x-4">
                           <div className="space-y-1">
-                            <h4 className="text-sm font-semibold">
-                              Phone Extension:
-                            </h4>
+                            <h4 className="text-sm font-semibold">Phone Extension:</h4>
                             <p className="text-sm">
-                              {employee.extension || "No extension available"}
+                              {employee.extension || 'No extension available'}
                             </p>
                           </div>
                         </div>

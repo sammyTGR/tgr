@@ -1,17 +1,23 @@
 // src/components/TimeOffRequestComponent.tsx
-"use client";
-import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import { format } from "date-fns";
-import { Textarea } from "@/components/ui/textarea";
-import { toast } from "sonner";
-import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+'use client';
+import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import { format } from 'date-fns';
+import { Textarea } from '@/components/ui/textarea';
+import { toast } from 'sonner';
+import { TextGenerateEffect } from '@/components/ui/text-generate-effect';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const TimeOffRequestComponent = ({ employeeName }: { employeeName: string }) => {
   const [timeOffReasons, setTimeOffReasons] = useState<{ id: number; reason: string }[]>([]);
-  const [timeOffData, setTimeOffData] = useState({ reason: "", other_reason: "" });
+  const [timeOffData, setTimeOffData] = useState({ reason: '', other_reason: '' });
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const [showOtherTextarea, setShowOtherTextarea] = useState(false);
 
@@ -21,24 +27,24 @@ const TimeOffRequestComponent = ({ employeeName }: { employeeName: string }) => 
 
   const fetchTimeOffReasons = async () => {
     try {
-      const response = await fetch("/api/time_off_reasons");
+      const response = await fetch('/api/time_off_reasons');
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-      const otherExists = data.some((reason: { reason: string }) => reason.reason === "Other");
+      const otherExists = data.some((reason: { reason: string }) => reason.reason === 'Other');
       if (!otherExists) {
-        data.push({ id: data.length + 1, reason: "Other" });
+        data.push({ id: data.length + 1, reason: 'Other' });
       }
       setTimeOffReasons(data);
     } catch (error: any) {
-      console.error("Failed to fetch time off reasons:", error.message);
+      console.error('Failed to fetch time off reasons:', error.message);
     }
   };
 
   const handleReasonChange = (value: string) => {
     setTimeOffData({ ...timeOffData, reason: value });
-    setShowOtherTextarea(value === "Other");
+    setShowOtherTextarea(value === 'Other');
   };
 
   const handleSelectDates = (dates: Date[] | undefined) => {
@@ -48,36 +54,42 @@ const TimeOffRequestComponent = ({ employeeName }: { employeeName: string }) => 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedDates.length < 1) {
-      toast.error("Please select at least one date.");
+      toast.error('Please select at least one date.');
       return;
     }
-    const start_date = format(new Date(Math.min(...selectedDates.map((date) => date.getTime()))), "yyyy-MM-dd");
-    const end_date = format(new Date(Math.max(...selectedDates.map((date) => date.getTime()))), "yyyy-MM-dd");
+    const start_date = format(
+      new Date(Math.min(...selectedDates.map((date) => date.getTime()))),
+      'yyyy-MM-dd'
+    );
+    const end_date = format(
+      new Date(Math.max(...selectedDates.map((date) => date.getTime()))),
+      'yyyy-MM-dd'
+    );
     const payload = { ...timeOffData, start_date, end_date, employee_name: employeeName };
     try {
-      const response = await fetch("/api/time_off", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/time_off', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Server response:", errorText);
+        console.error('Server response:', errorText);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const result = await response.json();
-      setTimeOffData({ reason: "", other_reason: "" });
+      setTimeOffData({ reason: '', other_reason: '' });
       setSelectedDates([]);
       setShowOtherTextarea(false);
-      toast("Your Request Has Been Submitted", {
-        position: "bottom-right",
+      toast('Your Request Has Been Submitted', {
+        position: 'bottom-right',
         action: {
-          label: "Noice!",
+          label: 'Noice!',
           onClick: () => {},
         },
       });
     } catch (error: any) {
-      console.error("Failed to submit time off request:", error.message);
+      console.error('Failed to submit time off request:', error.message);
     }
   };
 

@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
-import { createClient } from "@/utils/supabase/server";
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
+import { NextResponse } from 'next/server';
+import { createClient } from '@/utils/supabase/server';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
 
 export async function GET() {
   const supabase = createRouteHandlerClient({ cookies });
@@ -12,17 +12,17 @@ export async function GET() {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { data, error } = await supabase
-      .from("orderlist")
-      .select("inquiry_type")
-      .neq("inquiry_type", null)
-      .order("inquiry_type", { ascending: true });
+      .from('orderlist')
+      .select('inquiry_type')
+      .neq('inquiry_type', null)
+      .order('inquiry_type', { ascending: true });
 
     if (error) {
-      console.error("Supabase error:", error);
+      console.error('Supabase error:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
@@ -33,15 +33,15 @@ export async function GET() {
       return NextResponse.json([]);
     }
 
-    const distinctTypes = Array.from(
-      new Set(data.map((item) => item.inquiry_type))
-    ).filter((type) => type && type.trim() !== "");
+    const distinctTypes = Array.from(new Set(data.map((item) => item.inquiry_type))).filter(
+      (type) => type && type.trim() !== ''
+    );
 
     // console.log("Distinct inquiry types:", distinctTypes);
 
     return NextResponse.json(distinctTypes);
   } catch (err: any) {
-    console.error("Unexpected error fetching inquiry types:", err);
+    console.error('Unexpected error fetching inquiry types:', err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

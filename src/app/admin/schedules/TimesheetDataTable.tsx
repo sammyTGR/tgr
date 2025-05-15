@@ -1,7 +1,7 @@
 // time sheet data table
-"use client";
+'use client';
 
-import * as React from "react";
+import * as React from 'react';
 import {
   useReactTable,
   ColumnDef,
@@ -15,32 +15,24 @@ import {
   ExpandedState,
   SortingState,
   Row,
-} from "@tanstack/react-table";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { TimesheetRowActions } from "./timesheet-row-actions";
-import { TimesheetPagination } from "./TimesheetPagination";
-import {
-  CrossCircledIcon,
-  DoubleArrowDownIcon,
-  DoubleArrowRightIcon,
-} from "@radix-ui/react-icons";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import styles from "./timesheet.module.css"; // Create this CSS module file
-import classNames from "classnames";
-import { formatTime } from "@/utils/time-format";
-import { columns } from "./columns";
-import { format, parseISO } from "date-fns";
-import * as XLSX from "xlsx";
-import { Calendar as CalendarIcon, DownloadIcon } from "lucide-react";
-import { DateRange } from "react-day-picker";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
+} from '@tanstack/react-table';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { TimesheetRowActions } from './timesheet-row-actions';
+import { TimesheetPagination } from './TimesheetPagination';
+import { CrossCircledIcon, DoubleArrowDownIcon, DoubleArrowRightIcon } from '@radix-ui/react-icons';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import styles from './timesheet.module.css'; // Create this CSS module file
+import classNames from 'classnames';
+import { formatTime } from '@/utils/time-format';
+import { columns } from './columns';
+import { format, parseISO } from 'date-fns';
+import * as XLSX from 'xlsx';
+import { Calendar as CalendarIcon, DownloadIcon } from 'lucide-react';
+import { DateRange } from 'react-day-picker';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 import {
   Command,
   CommandEmpty,
@@ -48,20 +40,20 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/ui/command";
-import { Check, ChevronsUpDown, ChevronUp, ChevronDown } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { startOfWeek, endOfWeek, addWeeks, isWithinInterval } from "date-fns";
-import { formatHoursAndMinutes } from "@/utils/format-hours";
-import { Updater } from "@tanstack/react-query";
-import { useQueryClient } from "@tanstack/react-query";
-import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
-import AddTimesheetForm from "./AddTimesheetForm";
-import { useState, useEffect, useCallback } from "react";
-import { TimesheetData } from "./data-schema";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+} from '@/components/ui/command';
+import { Check, ChevronsUpDown, ChevronUp, ChevronDown } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { startOfWeek, endOfWeek, addWeeks, isWithinInterval } from 'date-fns';
+import { formatHoursAndMinutes } from '@/utils/format-hours';
+import { Updater } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
+import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card';
+import AddTimesheetForm from './AddTimesheetForm';
+import { useState, useEffect, useCallback } from 'react';
+import { TimesheetData } from './data-schema';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 interface Employee {
   employee_id: number;
@@ -100,30 +92,24 @@ export function TimesheetDataTable({
   onShowDecimalHoursChange,
 }: TimesheetDataTableProps) {
   const [data, setData] = React.useState(initialData);
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
-  );
-  const [searchInput, setSearchInput] = React.useState("");
-  const [sorting, setSorting] = React.useState<SortingState>([
-    { id: "event_date", desc: true },
-  ]);
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+  const [searchInput, setSearchInput] = React.useState('');
+  const [sorting, setSorting] = React.useState<SortingState>([{ id: 'event_date', desc: true }]);
   const [isExpanded, setIsExpanded] = React.useState(false);
   const [date, setDate] = React.useState<DateRange | undefined>({
     from: undefined,
     to: undefined,
   });
   const [open, setOpen] = React.useState(false);
-  const [selectedEmployee, setSelectedEmployee] = React.useState<string>("");
+  const [selectedEmployee, setSelectedEmployee] = React.useState<string>('');
   const supabase = createClientComponentClient();
   const [isTableExpanded, setIsTableExpanded] = React.useState(false);
   const queryClient = useQueryClient();
   const [isAddCardExpanded, setIsAddCardExpanded] = React.useState(false);
-  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>(
-    {}
-  );
+  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
 
   const { data: expandedState = {} } = useQuery({
-    queryKey: ["timesheetExpandedState"],
+    queryKey: ['timesheetExpandedState'],
     queryFn: () => ({}),
     initialData: {},
     staleTime: Infinity,
@@ -135,8 +121,8 @@ export function TimesheetDataTable({
   const handleExpandedChange = React.useCallback(
     (updater: Updater<ExpandedState, unknown>) => {
       setExpanded((old) => {
-        const newState = typeof updater === "function" ? updater(old) : updater;
-        queryClient.setQueryData(["timesheetExpandedState"], newState);
+        const newState = typeof updater === 'function' ? updater(old) : updater;
+        queryClient.setQueryData(['timesheetExpandedState'], newState);
         return newState;
       });
     },
@@ -144,12 +130,10 @@ export function TimesheetDataTable({
   );
 
   const { data: employees } = useQuery({
-    queryKey: ["employees"],
+    queryKey: ['employees'],
     queryFn: async () => {
-      const response = await fetch(
-        "/api/fetchEmployees?status=active&pay_type=hourly,salary"
-      );
-      if (!response.ok) throw new Error("Failed to fetch employees");
+      const response = await fetch('/api/fetchEmployees?status=active&pay_type=hourly,salary');
+      if (!response.ok) throw new Error('Failed to fetch employees');
       const data = await response.json();
       return data as Employee[];
     },
@@ -160,9 +144,7 @@ export function TimesheetDataTable({
 
     const activeEmployeeNames = new Set(employees.map((emp) => emp.name));
     return initialData.filter(
-      (timesheet) =>
-        timesheet.employee_name &&
-        activeEmployeeNames.has(timesheet.employee_name)
+      (timesheet) => timesheet.employee_name && activeEmployeeNames.has(timesheet.employee_name)
     );
   }, [initialData, employees]);
 
@@ -204,23 +186,17 @@ export function TimesheetDataTable({
     const weeklyHours = new Map<string, Map<string, number>>();
 
     filteredInitialData.forEach((timesheet) => {
-      if (
-        !timesheet.employee_name ||
-        !timesheet.event_date ||
-        !timesheet.total_hours
-      )
-        return;
+      if (!timesheet.employee_name || !timesheet.event_date || !timesheet.total_hours) return;
 
       const eventDate = parseISO(timesheet.event_date);
-      if (!isWithinInterval(eventDate, { start: startDate, end: endDate }))
-        return;
+      if (!isWithinInterval(eventDate, { start: startDate, end: endDate })) return;
 
       const hours = parseFloat(timesheet.total_hours);
       if (isNaN(hours)) return;
 
       const employeeName = timesheet.employee_name;
-      const dateStr = format(eventDate, "yyyy-MM-dd");
-      const weekStr = format(startOfWeek(eventDate), "yyyy-MM-dd");
+      const dateStr = format(eventDate, 'yyyy-MM-dd');
+      const weekStr = format(startOfWeek(eventDate), 'yyyy-MM-dd');
 
       if (!dailyHours.has(employeeName)) {
         dailyHours.set(employeeName, new Map());
@@ -230,16 +206,10 @@ export function TimesheetDataTable({
       }
 
       const employeeDailyHours = dailyHours.get(employeeName)!;
-      employeeDailyHours.set(
-        dateStr,
-        (employeeDailyHours.get(dateStr) || 0) + hours
-      );
+      employeeDailyHours.set(dateStr, (employeeDailyHours.get(dateStr) || 0) + hours);
 
       const employeeWeeklyHours = weeklyHours.get(employeeName)!;
-      employeeWeeklyHours.set(
-        weekStr,
-        (employeeWeeklyHours.get(weekStr) || 0) + hours
-      );
+      employeeWeeklyHours.set(weekStr, (employeeWeeklyHours.get(weekStr) || 0) + hours);
 
       const currentSummary = summaries.get(employeeName) || {
         regularHours: 0,
@@ -290,9 +260,9 @@ export function TimesheetDataTable({
       const from = date.from;
       const to = date.to || date.from;
 
-      const itemDateStr = format(itemDate, "yyyy-MM-dd");
-      const fromStr = format(from, "yyyy-MM-dd");
-      const toStr = format(to, "yyyy-MM-dd");
+      const itemDateStr = format(itemDate, 'yyyy-MM-dd');
+      const fromStr = format(from, 'yyyy-MM-dd');
+      const toStr = format(to, 'yyyy-MM-dd');
 
       return itemDateStr >= fromStr && itemDateStr <= toStr;
     });
@@ -302,42 +272,35 @@ export function TimesheetDataTable({
     setData(filteredData);
   }, [filteredData]);
 
-  const updateTimesheet = React.useCallback(
-    (updatedTimesheet: TimesheetData) => {
-      setData((prevData) =>
-        prevData.map((item) =>
-          item.id === updatedTimesheet.id ? updatedTimesheet : item
-        )
-      );
-    },
-    []
-  );
+  const updateTimesheet = React.useCallback((updatedTimesheet: TimesheetData) => {
+    setData((prevData) =>
+      prevData.map((item) => (item.id === updatedTimesheet.id ? updatedTimesheet : item))
+    );
+  }, []);
 
   const calculateTotalHours = (timesheet: TimesheetData) => {
     try {
       const parseTimeString = (timeStr: string) => {
-        const [time, meridiem] = timeStr.split(" ");
-        let [hours, minutes] = time.split(":").map(Number);
-        if (meridiem === "PM" && hours !== 12) hours += 12;
-        if (meridiem === "AM" && hours === 12) hours = 0;
+        const [time, meridiem] = timeStr.split(' ');
+        let [hours, minutes] = time.split(':').map(Number);
+        if (meridiem === 'PM' && hours !== 12) hours += 12;
+        if (meridiem === 'AM' && hours === 12) hours = 0;
         return hours * 60 + minutes;
       };
 
       const startMinutes = parseTimeString(timesheet.start_time);
-      const endMinutes = parseTimeString(timesheet.end_time || "");
+      const endMinutes = parseTimeString(timesheet.end_time || '');
       const lunchStartMinutes = timesheet.lunch_start
         ? parseTimeString(timesheet.lunch_start)
         : null;
-      const lunchEndMinutes = timesheet.lunch_end
-        ? parseTimeString(timesheet.lunch_end)
-        : null;
+      const lunchEndMinutes = timesheet.lunch_end ? parseTimeString(timesheet.lunch_end) : null;
 
       // console.log("Start minutes:", startMinutes); // 5:30 AM = 330
       // console.log("End minutes:", endMinutes); // 1:59 PM = 839
       // console.log("Lunch start minutes:", lunchStartMinutes); // 10:46 AM = 646
       // console.log("Lunch end minutes:", lunchEndMinutes); // 11:16 AM = 676
 
-      if (!endMinutes) return "0:00";
+      if (!endMinutes) return '0:00';
 
       let totalMinutes = endMinutes - startMinutes; // 839 - 330 = 509 minutes
       // console.log("Total minutes before lunch:", totalMinutes);
@@ -356,30 +319,30 @@ export function TimesheetDataTable({
       const minutes = totalMinutes % 60;
 
       // Format with leading zeros for minutes
-      const result = `${hours}:${minutes.toString().padStart(2, "0")}`;
+      const result = `${hours}:${minutes.toString().padStart(2, '0')}`;
       // console.log("Calculated result:", result);
 
       return result;
     } catch (error) {
-      console.error("Error calculating total hours:", error);
-      return "0:00";
+      console.error('Error calculating total hours:', error);
+      return '0:00';
     }
   };
 
   const convertToDecimalHours = (timeStr: string): string => {
     try {
-      const [hours, minutes] = timeStr.split(":").map(Number);
+      const [hours, minutes] = timeStr.split(':').map(Number);
       const decimalHours = hours + minutes / 60;
       return decimalHours.toFixed(2);
     } catch (error) {
-      console.error("Error converting to decimal hours:", error);
+      console.error('Error converting to decimal hours:', error);
       return timeStr;
     }
   };
 
   const formattedColumns = React.useMemo(() => {
     return providedColumns.map((column) => {
-      if (column.id === "lunch_start") {
+      if (column.id === 'lunch_start') {
         return {
           ...column,
           cell: (info: any) => {
@@ -388,15 +351,15 @@ export function TimesheetDataTable({
             const lunchStart = row.lunch_start;
 
             if (!startTime || !lunchStart) {
-              return formatTime(lunchStart || "");
+              return formatTime(lunchStart || '');
             }
 
             try {
               const parseTimeString = (timeStr: string) => {
-                const [time, meridiem] = timeStr.split(" ");
-                let [hours, minutes] = time.split(":").map(Number);
-                if (meridiem === "PM" && hours !== 12) hours += 12;
-                if (meridiem === "AM" && hours === 12) hours = 0;
+                const [time, meridiem] = timeStr.split(' ');
+                let [hours, minutes] = time.split(':').map(Number);
+                if (meridiem === 'PM' && hours !== 12) hours += 12;
+                if (meridiem === 'AM' && hours === 12) hours = 0;
                 return { hours, minutes };
               };
 
@@ -404,31 +367,29 @@ export function TimesheetDataTable({
               const lunchStartTime = parseTimeString(lunchStart);
 
               const startTotalMinutes = start.hours * 60 + start.minutes;
-              const lunchStartTotalMinutes =
-                lunchStartTime.hours * 60 + lunchStartTime.minutes;
+              const lunchStartTotalMinutes = lunchStartTime.hours * 60 + lunchStartTime.minutes;
 
               const adjustedLunchStartMinutes =
                 lunchStartTotalMinutes < startTotalMinutes
                   ? lunchStartTotalMinutes + 24 * 60
                   : lunchStartTotalMinutes;
 
-              const durationInMinutes =
-                adjustedLunchStartMinutes - startTotalMinutes;
+              const durationInMinutes = adjustedLunchStartMinutes - startTotalMinutes;
               const durationInHours = durationInMinutes / 60;
 
               // console.log(
               //   `Duration in minutes: ${durationInMinutes}, hours: ${durationInHours}`
               // );
 
-              let colorClass = "";
+              let colorClass = '';
               if (durationInHours < 5.5) {
-                colorClass = "text-green-500";
+                colorClass = 'text-green-500';
               } else if (durationInHours < 6.5) {
-                colorClass = "text-orange-500";
+                colorClass = 'text-orange-500';
               } else if (durationInHours < 7.0) {
-                colorClass = "text-yellow-500";
+                colorClass = 'text-yellow-500';
               } else {
-                colorClass = "text-red-500";
+                colorClass = 'text-red-500';
               }
 
               return (
@@ -440,17 +401,14 @@ export function TimesheetDataTable({
                 </span>
               );
             } catch (error) {
-              console.error(
-                "Error calculating lunch start time difference:",
-                error
-              );
+              console.error('Error calculating lunch start time difference:', error);
               return formatTime(lunchStart);
             }
           },
         };
       }
 
-      if (column.id === "lunch_end") {
+      if (column.id === 'lunch_end') {
         return {
           ...column,
           cell: (info: any) => {
@@ -459,15 +417,15 @@ export function TimesheetDataTable({
             const lunchEnd = row.lunch_end;
 
             if (!lunchStart || !lunchEnd) {
-              return formatTime(lunchEnd || "");
+              return formatTime(lunchEnd || '');
             }
 
             try {
               const parseTimeString = (timeStr: string) => {
-                const [time, meridiem] = timeStr.split(" ");
-                let [hours, minutes] = time.split(":").map(Number);
-                if (meridiem === "PM" && hours !== 12) hours += 12;
-                if (meridiem === "AM" && hours === 12) hours = 0;
+                const [time, meridiem] = timeStr.split(' ');
+                let [hours, minutes] = time.split(':').map(Number);
+                if (meridiem === 'PM' && hours !== 12) hours += 12;
+                if (meridiem === 'AM' && hours === 12) hours = 0;
                 return { hours, minutes };
               };
 
@@ -478,19 +436,16 @@ export function TimesheetDataTable({
               const endTotalMinutes = end.hours * 60 + end.minutes;
 
               const adjustedEndTotalMinutes =
-                endTotalMinutes < startTotalMinutes
-                  ? endTotalMinutes + 24 * 60
-                  : endTotalMinutes;
+                endTotalMinutes < startTotalMinutes ? endTotalMinutes + 24 * 60 : endTotalMinutes;
 
-              const durationInMinutes =
-                adjustedEndTotalMinutes - startTotalMinutes;
+              const durationInMinutes = adjustedEndTotalMinutes - startTotalMinutes;
 
               return (
                 <span
                   className={
                     durationInMinutes >= 30
-                      ? "text-green-500 font-medium"
-                      : "text-red-500 font-medium"
+                      ? 'text-green-500 font-medium'
+                      : 'text-red-500 font-medium'
                   }
                   title={`Duration: ${durationInMinutes} minutes`}
                 >
@@ -498,21 +453,21 @@ export function TimesheetDataTable({
                 </span>
               );
             } catch (error) {
-              console.error("Error calculating lunch duration:", error);
+              console.error('Error calculating lunch duration:', error);
               return formatTime(lunchEnd);
             }
           },
         };
       }
 
-      if (["start_time", "end_time"].includes(column.id as string)) {
+      if (['start_time', 'end_time'].includes(column.id as string)) {
         return {
           ...column,
           cell: (info: any) => formatTime(info.getValue()),
         };
       }
 
-      if (column.id === "total_hours") {
+      if (column.id === 'total_hours') {
         return {
           ...column,
           cell: (info: any) => {
@@ -520,14 +475,14 @@ export function TimesheetDataTable({
 
             // Check if there's a VTO entry for this row
             const { data: vtoData } = useQuery({
-              queryKey: ["vto", row.employee_id, row.event_date],
+              queryKey: ['vto', row.employee_id, row.event_date],
               queryFn: async () => {
                 const supabase = createClientComponentClient();
                 const { data } = await supabase
-                  .from("employee_vto_events")
-                  .select("vto_type")
-                  .eq("employee_id", row.employee_id)
-                  .eq("event_date", row.event_date)
+                  .from('employee_vto_events')
+                  .select('vto_type')
+                  .eq('employee_id', row.employee_id)
+                  .eq('event_date', row.event_date)
                   .maybeSingle();
                 return data;
               },
@@ -535,27 +490,23 @@ export function TimesheetDataTable({
             });
 
             // If there's a VTO entry, don't show total_hours
-            if (
-              vtoData?.vto_type &&
-              ["called_out", "no_call_no_show"].includes(vtoData.vto_type)
-            ) {
+            if (vtoData?.vto_type && ['called_out', 'no_call_no_show'].includes(vtoData.vto_type)) {
               return null;
             }
 
             // For all other cases, show the total hours based on format preference
-            if (!row.total_hours) return "";
+            if (!row.total_hours) return '';
 
             try {
               const formatTotalHours = (totalHours: string | null): string => {
-                if (!totalHours) return "";
+                if (!totalHours) return '';
 
                 try {
                   // Handle HH:MM format
-                  if (totalHours.includes(":")) {
-                    const [hours, minutes] = totalHours.split(":");
+                  if (totalHours.includes(':')) {
+                    const [hours, minutes] = totalHours.split(':');
                     if (showDecimalHours) {
-                      const decimalHours =
-                        parseInt(hours) + parseInt(minutes) / 60;
+                      const decimalHours = parseInt(hours) + parseInt(minutes) / 60;
                       return decimalHours.toFixed(2);
                     }
                     return totalHours;
@@ -569,20 +520,20 @@ export function TimesheetDataTable({
                     }
                     const hours = Math.floor(numericHours);
                     const minutes = Math.round((numericHours - hours) * 60);
-                    return `${hours}:${minutes.toString().padStart(2, "0")}`;
+                    return `${hours}:${minutes.toString().padStart(2, '0')}`;
                   }
 
                   return totalHours;
                 } catch (error) {
-                  console.error("Error formatting total hours:", error);
+                  console.error('Error formatting total hours:', error);
                   return totalHours;
                 }
               };
 
               return formatTotalHours(row.total_hours);
             } catch (error) {
-              console.error("Error formatting total hours:", error);
-              const [hours, minutes] = row.total_hours.split(":");
+              console.error('Error formatting total hours:', error);
+              const [hours, minutes] = row.total_hours.split(':');
               const totalHours = parseInt(hours);
               const totalMinutes = parseInt(minutes);
 
@@ -591,22 +542,20 @@ export function TimesheetDataTable({
                 return `${decimalHours.toFixed(2)} hrs`;
               }
 
-              return `${totalHours}:${totalMinutes.toString().padStart(2, "0")}`;
+              return `${totalHours}:${totalMinutes.toString().padStart(2, '0')}`;
             }
           },
         };
       }
 
-      if (column.id === "sick_time") {
+      if (column.id === 'sick_time') {
         return {
           ...column,
-          cell: ({ row }: { row: Row<TimesheetData> }) => (
-            <SickTimeCell row={row} />
-          ),
+          cell: ({ row }: { row: Row<TimesheetData> }) => <SickTimeCell row={row} />,
         };
       }
 
-      if (column.id === "vto") {
+      if (column.id === 'vto') {
         return {
           ...column,
           cell: ({ row }: { row: Row<TimesheetData> }) => <VTOCell row={row} />,
@@ -617,10 +566,10 @@ export function TimesheetDataTable({
     });
   }, [providedColumns, showDecimalHours]);
 
-  const { data: sortingState = [{ id: "event_date", desc: true }] } = useQuery({
-    queryKey: ["timesheetSortingState"],
-    queryFn: () => [{ id: "event_date", desc: true }],
-    initialData: [{ id: "event_date", desc: true }],
+  const { data: sortingState = [{ id: 'event_date', desc: true }] } = useQuery({
+    queryKey: ['timesheetSortingState'],
+    queryFn: () => [{ id: 'event_date', desc: true }],
+    initialData: [{ id: 'event_date', desc: true }],
     staleTime: Infinity,
     gcTime: Infinity,
   });
@@ -628,8 +577,8 @@ export function TimesheetDataTable({
   const handleSortingChange = React.useCallback(
     (updater: Updater<SortingState, unknown>) => {
       setSorting((old) => {
-        const newState = typeof updater === "function" ? updater(old) : updater;
-        queryClient.setQueryData(["timesheetSortingState"], newState);
+        const newState = typeof updater === 'function' ? updater(old) : updater;
+        queryClient.setQueryData(['timesheetSortingState'], newState);
         return newState;
       });
     },
@@ -655,50 +604,45 @@ export function TimesheetDataTable({
     enableExpanding: true,
     enableGrouping: true,
     initialState: {
-      grouping: ["employee_name"],
-      sorting: [{ id: "event_date", desc: true }],
+      grouping: ['employee_name'],
+      sorting: [{ id: 'event_date', desc: true }],
     },
   });
 
   const handleResetFilter = () => {
-    table.getColumn("employee_name")?.setFilterValue("");
-    setSelectedEmployee("");
+    table.getColumn('employee_name')?.setFilterValue('');
+    setSelectedEmployee('');
   };
 
   const handleExpandCollapseAll = () => {
     const newState = Object.keys(expanded).length > 0 ? {} : true;
     setExpanded(newState);
-    queryClient.setQueryData(["timesheetExpandedState"], newState);
+    queryClient.setQueryData(['timesheetExpandedState'], newState);
     table.toggleAllRowsExpanded(!!newState);
   };
 
   const formatIntervalForExcel = (intervalStr: string | null) => {
-    if (!intervalStr) return "";
+    if (!intervalStr) return '';
     try {
       // Handle different PostgreSQL interval formats
-      if (intervalStr.includes(":")) {
-        const [hours, minutes] = intervalStr.split(":");
-        return `${parseInt(hours)}:${minutes.padStart(2, "0")}`;
-      } else if (intervalStr.includes("hours")) {
-        const parts = intervalStr.split(" ");
+      if (intervalStr.includes(':')) {
+        const [hours, minutes] = intervalStr.split(':');
+        return `${parseInt(hours)}:${minutes.padStart(2, '0')}`;
+      } else if (intervalStr.includes('hours')) {
+        const parts = intervalStr.split(' ');
         const hours = parseInt(parts[0]);
-        const minutes = parts.includes("minutes") ? parseInt(parts[2]) : 0;
-        return `${hours}:${minutes.toString().padStart(2, "0")}`;
+        const minutes = parts.includes('minutes') ? parseInt(parts[2]) : 0;
+        return `${hours}:${minutes.toString().padStart(2, '0')}`;
       } else {
         // If it's just a number, assume it's hours
         const hours = parseFloat(intervalStr);
         const wholeHours = Math.floor(hours);
         const minutes = Math.round((hours - wholeHours) * 60);
-        return `${wholeHours}:${minutes.toString().padStart(2, "0")}`;
+        return `${wholeHours}:${minutes.toString().padStart(2, '0')}`;
       }
     } catch (error) {
-      console.error(
-        "Error formatting interval for Excel:",
-        error,
-        "Input:",
-        intervalStr
-      );
-      return intervalStr || "";
+      console.error('Error formatting interval for Excel:', error, 'Input:', intervalStr);
+      return intervalStr || '';
     }
   };
 
@@ -706,18 +650,18 @@ export function TimesheetDataTable({
     let filename;
     if (date?.from) {
       if (date.to) {
-        filename = `Timesheets_${format(date.from, "MM-dd-yyyy")}_to_${format(
+        filename = `Timesheets_${format(date.from, 'MM-dd-yyyy')}_to_${format(
           date.to,
-          "MM-dd-yyyy"
+          'MM-dd-yyyy'
         )}`;
       } else {
-        filename = `Timesheets_${format(date.from, "MM-dd-yyyy")}`;
+        filename = `Timesheets_${format(date.from, 'MM-dd-yyyy')}`;
       }
     } else {
       const { periodStart, periodEnd } = getCurrentPayPeriod();
-      filename = `Timesheets_${format(periodStart, "MM-dd-yyyy")}_to_${format(
+      filename = `Timesheets_${format(periodStart, 'MM-dd-yyyy')}_to_${format(
         periodEnd,
-        "MM-dd-yyyy"
+        'MM-dd-yyyy'
       )}`;
     }
 
@@ -725,11 +669,11 @@ export function TimesheetDataTable({
 
     const summaryRows = [
       [
-        "Employee Name",
-        "Pay Period",
-        showDecimalHours ? "Regular Hours (Decimal)" : "Regular Hours",
-        showDecimalHours ? "Overtime Hours (Decimal)" : "Overtime Hours",
-        showDecimalHours ? "Total Hours (Decimal)" : "Total Hours",
+        'Employee Name',
+        'Pay Period',
+        showDecimalHours ? 'Regular Hours (Decimal)' : 'Regular Hours',
+        showDecimalHours ? 'Overtime Hours (Decimal)' : 'Overtime Hours',
+        showDecimalHours ? 'Total Hours (Decimal)' : 'Total Hours',
       ],
     ];
 
@@ -743,7 +687,7 @@ export function TimesheetDataTable({
 
       summaryRows.push([
         employeeName,
-        `${format(summary.startDate, "MM/dd/yyyy")} - ${format(summary.endDate, "MM/dd/yyyy")}`,
+        `${format(summary.startDate, 'MM/dd/yyyy')} - ${format(summary.endDate, 'MM/dd/yyyy')}`,
         formatHours(summary.regularHours),
         formatHours(summary.overtimeHours),
         formatHours(summary.regularHours + summary.overtimeHours),
@@ -752,7 +696,7 @@ export function TimesheetDataTable({
 
     const summaryWs = XLSX.utils.aoa_to_sheet(summaryRows);
 
-    summaryWs["!cols"] = [
+    summaryWs['!cols'] = [
       { width: 25 },
       { width: 25 },
       { width: 15 },
@@ -762,7 +706,7 @@ export function TimesheetDataTable({
 
     const headerStyle = {
       font: { bold: true },
-      fill: { fgColor: { rgb: "CCCCCC" } },
+      fill: { fgColor: { rgb: 'CCCCCC' } },
     };
 
     for (let i = 0; i < 5; i++) {
@@ -772,53 +716,49 @@ export function TimesheetDataTable({
 
     const detailRows = [
       [
-        "Employee Name",
-        "Date",
-        "Start Time",
-        "Lunch Start",
-        "Lunch End",
-        "End Time",
-        showDecimalHours ? "Total Hours (Decimal)" : "Total Hours",
-        "Lunch Duration (min)",
+        'Employee Name',
+        'Date',
+        'Start Time',
+        'Lunch Start',
+        'Lunch End',
+        'End Time',
+        showDecimalHours ? 'Total Hours (Decimal)' : 'Total Hours',
+        'Lunch Duration (min)',
       ],
     ];
 
     detailRows.push(
       ...data.map((item) => {
         const safeFormatTime = (timeStr: string | null) => {
-          if (!timeStr) return "";
+          if (!timeStr) return '';
           try {
-            if (timeStr.includes("AM") || timeStr.includes("PM")) {
+            if (timeStr.includes('AM') || timeStr.includes('PM')) {
               return timeStr;
             }
             return formatTime(timeStr);
           } catch (error) {
-            return timeStr || "";
+            return timeStr || '';
           }
         };
 
-        const getLunchDuration = (
-          lunchStart: string | null,
-          lunchEnd: string | null
-        ) => {
-          if (!lunchStart || !lunchEnd) return "";
+        const getLunchDuration = (lunchStart: string | null, lunchEnd: string | null) => {
+          if (!lunchStart || !lunchEnd) return '';
           try {
             const parseTimeString = (timeStr: string) => {
-              const [time, meridiem] = timeStr.split(" ");
-              let [hours, minutes] = time.split(":").map(Number);
-              if (meridiem === "PM" && hours !== 12) hours += 12;
-              if (meridiem === "AM" && hours === 12) hours = 0;
+              const [time, meridiem] = timeStr.split(' ');
+              let [hours, minutes] = time.split(':').map(Number);
+              if (meridiem === 'PM' && hours !== 12) hours += 12;
+              if (meridiem === 'AM' && hours === 12) hours = 0;
               return { hours, minutes };
             };
 
             const start = parseTimeString(lunchStart);
             const end = parseTimeString(lunchEnd);
 
-            const duration =
-              end.hours * 60 + end.minutes - (start.hours * 60 + start.minutes);
+            const duration = end.hours * 60 + end.minutes - (start.hours * 60 + start.minutes);
             return duration.toString();
           } catch (error) {
-            return "";
+            return '';
           }
         };
 
@@ -826,12 +766,12 @@ export function TimesheetDataTable({
         const lunchEnd = safeFormatTime(item.lunch_end);
 
         const formatTotalHours = (totalHours: string | null): string => {
-          if (!totalHours) return "";
+          if (!totalHours) return '';
 
           try {
             // Handle HH:MM format
-            if (totalHours.includes(":")) {
-              const [hours, minutes] = totalHours.split(":");
+            if (totalHours.includes(':')) {
+              const [hours, minutes] = totalHours.split(':');
               if (showDecimalHours) {
                 const decimalHours = parseInt(hours) + parseInt(minutes) / 60;
                 return decimalHours.toFixed(2);
@@ -847,21 +787,19 @@ export function TimesheetDataTable({
               }
               const hours = Math.floor(numericHours);
               const minutes = Math.round((numericHours - hours) * 60);
-              return `${hours}:${minutes.toString().padStart(2, "0")}`;
+              return `${hours}:${minutes.toString().padStart(2, '0')}`;
             }
 
             return totalHours;
           } catch (error) {
-            console.error("Error formatting total hours:", error);
+            console.error('Error formatting total hours:', error);
             return totalHours;
           }
         };
 
         return [
-          item.employee_name || "",
-          item.event_date
-            ? format(parseISO(item.event_date), "MM/dd/yyyy")
-            : "",
+          item.employee_name || '',
+          item.event_date ? format(parseISO(item.event_date), 'MM/dd/yyyy') : '',
           safeFormatTime(item.start_time),
           lunchStart,
           lunchEnd,
@@ -874,7 +812,7 @@ export function TimesheetDataTable({
 
     const detailWs = XLSX.utils.aoa_to_sheet(detailRows);
 
-    detailWs["!cols"] = [
+    detailWs['!cols'] = [
       { width: 25 },
       { width: 12 },
       { width: 12 },
@@ -890,14 +828,14 @@ export function TimesheetDataTable({
       detailWs[cellRef].s = headerStyle;
     }
 
-    XLSX.utils.book_append_sheet(wb, summaryWs, "Pay Period Summary");
-    XLSX.utils.book_append_sheet(wb, detailWs, "Timesheet Details");
+    XLSX.utils.book_append_sheet(wb, summaryWs, 'Pay Period Summary');
+    XLSX.utils.book_append_sheet(wb, detailWs, 'Timesheet Details');
 
     XLSX.writeFile(wb, `${filename}.xlsx`);
   };
 
   const handleAddTimeSheetEntry = (newTimesheet: TimesheetData) => {
-    queryClient.invalidateQueries({ queryKey: ["timesheets"] });
+    queryClient.invalidateQueries({ queryKey: ['timesheets'] });
   };
 
   const toggleCardExpansion = (cardId: string) => {
@@ -913,15 +851,11 @@ export function TimesheetDataTable({
     children: React.ReactNode;
   }
 
-  const ExpandableCard: React.FC<ExpandableCardProps> = ({
-    id,
-    title,
-    children,
-  }) => {
+  const ExpandableCard: React.FC<ExpandableCardProps> = ({ id, title, children }) => {
     const isExpanded = expandedCards[id];
 
     return (
-      <Card className={`relative ${isExpanded ? "h-auto" : "h-[200px]"}`}>
+      <Card className={`relative ${isExpanded ? 'h-auto' : 'h-[200px]'}`}>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>{title}</CardTitle>
           <Button
@@ -930,16 +864,12 @@ export function TimesheetDataTable({
             onClick={() => toggleCardExpansion(id)}
             className="h-8 w-8 p-0"
           >
-            {isExpanded ? (
-              <ChevronUp className="h-4 w-4" />
-            ) : (
-              <ChevronDown className="h-4 w-4" />
-            )}
+            {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </Button>
         </CardHeader>
         <CardContent
           className={`
-            ${isExpanded ? "" : "h-[100px] overflow-y-auto pr-4"}
+            ${isExpanded ? '' : 'h-[100px] overflow-y-auto pr-4'}
             space-y-4
           `}
         >
@@ -952,56 +882,43 @@ export function TimesheetDataTable({
   // Create separate components for Sick Time and VTO cells
   const SickTimeCell = ({ row }: { row: Row<TimesheetData> }) => {
     const isGrouped = row.getIsGrouped();
-    const employeeName = row.getValue("employee_name");
+    const employeeName = row.getValue('employee_name');
 
     const { data: sickTimeData } = useQuery({
-      queryKey: [
-        "sickTime",
-        employeeName,
-        row.original?.employee_id,
-        row.original?.event_date,
-      ],
+      queryKey: ['sickTime', employeeName, row.original?.employee_id, row.original?.event_date],
       queryFn: async () => {
         const supabase = createClientComponentClient();
         if (isGrouped) {
-          const { data } = await supabase.rpc("calculate_available_sick_time", {
+          const { data } = await supabase.rpc('calculate_available_sick_time', {
             p_emp_id: row.original.employee_id,
           });
           return { available: data };
         } else {
           const { data: historyData } = await supabase
-            .from("employee_sick_time_history")
-            .select("hours_used")
-            .eq("employee_id", row.original.employee_id)
-            .eq("date_used::date", row.original.event_date)
+            .from('employee_sick_time_history')
+            .select('hours_used')
+            .eq('employee_id', row.original.employee_id)
+            .eq('date_used::date', row.original.event_date)
             .maybeSingle();
 
           const { data: requestData } = await supabase
-            .from("time_off_requests")
-            .select("hours_deducted")
-            .eq("employee_id", row.original.employee_id)
-            .eq("start_date", row.original.event_date)
-            .eq("use_sick_time", true)
+            .from('time_off_requests')
+            .select('hours_deducted')
+            .eq('employee_id', row.original.employee_id)
+            .eq('start_date', row.original.event_date)
+            .eq('use_sick_time', true)
             .maybeSingle();
 
           return {
-            used:
-              (historyData?.hours_used || 0) +
-              (requestData?.hours_deducted || 0),
+            used: (historyData?.hours_used || 0) + (requestData?.hours_deducted || 0),
           };
         }
       },
-      enabled: Boolean(
-        employeeName && row.original?.employee_id && row.original?.event_date
-      ),
+      enabled: Boolean(employeeName && row.original?.employee_id && row.original?.event_date),
     });
 
     if (isGrouped) {
-      return (
-        <span>
-          Available: {sickTimeData?.available?.toFixed(2) || "0.00"} hrs
-        </span>
-      );
+      return <span>Available: {sickTimeData?.available?.toFixed(2) || '0.00'} hrs</span>;
     }
     return sickTimeData?.used ? (
       <span className="text-red-500">{sickTimeData.used.toFixed(2)} hrs</span>
@@ -1014,7 +931,7 @@ export function TimesheetDataTable({
     const vtoType = row.original.vto_type;
     const vtoHours = row.original.vto_hours;
 
-    if (!vtoType || !["called_out", "no_call_no_show"].includes(vtoType)) {
+    if (!vtoType || !['called_out', 'no_call_no_show'].includes(vtoType)) {
       return null;
     }
 
@@ -1029,16 +946,16 @@ export function TimesheetDataTable({
             const decimalHours = parseInt(hours) + parseInt(minutes) / 60;
             formattedHours = `${decimalHours.toFixed(2)} hrs`;
           } else {
-            formattedHours = `${parseInt(hours)}:${minutes.padStart(2, "0")}`;
+            formattedHours = `${parseInt(hours)}:${minutes.padStart(2, '0')}`;
           }
-        } else if (typeof vtoHours === "string" && vtoHours.includes(":")) {
+        } else if (typeof vtoHours === 'string' && vtoHours.includes(':')) {
           // Handle "HH:MM" format
-          const [hours, minutes] = vtoHours.split(":").map(Number);
+          const [hours, minutes] = vtoHours.split(':').map(Number);
           if (showDecimalHours) {
             const decimalHours = hours + minutes / 60;
             formattedHours = `${decimalHours.toFixed(2)} hrs`;
           } else {
-            formattedHours = `${hours}:${minutes.toString().padStart(2, "0")}`;
+            formattedHours = `${hours}:${minutes.toString().padStart(2, '0')}`;
           }
         } else {
           // Try to parse as a number
@@ -1049,29 +966,22 @@ export function TimesheetDataTable({
             } else {
               const hours = Math.floor(numericHours);
               const minutes = Math.round((numericHours - hours) * 60);
-              formattedHours = `${hours}:${minutes.toString().padStart(2, "0")}`;
+              formattedHours = `${hours}:${minutes.toString().padStart(2, '0')}`;
             }
           }
         }
       }
 
       if (!formattedHours) {
-        formattedHours = showDecimalHours ? "8.00 hrs" : "8:00";
+        formattedHours = showDecimalHours ? '8.00 hrs' : '8:00';
       }
     } catch (error) {
-      console.error(
-        "Error formatting VTO hours:",
-        error,
-        "Raw value:",
-        vtoHours
-      );
-      formattedHours = showDecimalHours ? "8.00 hrs" : "8:00";
+      console.error('Error formatting VTO hours:', error, 'Raw value:', vtoHours);
+      formattedHours = showDecimalHours ? '8.00 hrs' : '8:00';
     }
 
-    const colorClass =
-      vtoType === "called_out" ? "text-yellow-600" : "text-red-500";
-    const typeLabel =
-      vtoType === "called_out" ? "Called Out" : "No Call No Show";
+    const colorClass = vtoType === 'called_out' ? 'text-yellow-600' : 'text-red-500';
+    const typeLabel = vtoType === 'called_out' ? 'Called Out' : 'No Call No Show';
 
     return (
       <span className={`font-medium ${colorClass}`} title={typeLabel}>
@@ -1083,14 +993,14 @@ export function TimesheetDataTable({
   const parseInterval = (intervalStr: string): number => {
     try {
       // Handle PostgreSQL interval format "HH:MM:SS"
-      if (intervalStr.includes(":")) {
-        const [hours, minutes] = intervalStr.split(":");
+      if (intervalStr.includes(':')) {
+        const [hours, minutes] = intervalStr.split(':');
         return parseInt(hours) + parseInt(minutes) / 60;
       }
       // Handle other possible interval formats
       return parseFloat(intervalStr);
     } catch (error) {
-      console.error("Error parsing interval:", error);
+      console.error('Error parsing interval:', error);
       return 0;
     }
   };
@@ -1104,10 +1014,8 @@ export function TimesheetDataTable({
               <PopoverTrigger asChild>
                 <Button variant="outline" role="combobox" aria-expanded={open}>
                   {selectedEmployee
-                    ? employees?.find(
-                        (employee) => employee.name === selectedEmployee
-                      )?.name
-                    : "Select employee..."}
+                    ? employees?.find((employee) => employee.name === selectedEmployee)?.name
+                    : 'Select employee...'}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
@@ -1118,36 +1026,28 @@ export function TimesheetDataTable({
                       {employees
                         ?.filter((employee) => {
                           if (!searchInput) return true;
-                          return employee.name
-                            .toLowerCase()
-                            .includes(searchInput.toLowerCase());
+                          return employee.name.toLowerCase().includes(searchInput.toLowerCase());
                         })
                         .map((employee) => (
                           <CommandItem
                             key={employee.employee_id}
                             onSelect={() => {
                               setSelectedEmployee(
-                                employee.name === selectedEmployee
-                                  ? ""
-                                  : employee.name
+                                employee.name === selectedEmployee ? '' : employee.name
                               );
                               table
-                                .getColumn("employee_name")
+                                .getColumn('employee_name')
                                 ?.setFilterValue(
-                                  employee.name === selectedEmployee
-                                    ? ""
-                                    : employee.name
+                                  employee.name === selectedEmployee ? '' : employee.name
                                 );
                               setOpen(false);
-                              setSearchInput("");
+                              setSearchInput('');
                             }}
                           >
                             <Check
                               className={cn(
-                                "mr-2 h-4 w-4",
-                                selectedEmployee === employee.name
-                                  ? "opacity-100"
-                                  : "opacity-0"
+                                'mr-2 h-4 w-4',
+                                selectedEmployee === employee.name ? 'opacity-100' : 'opacity-0'
                               )}
                             />
                             {employee.name}
@@ -1163,19 +1063,18 @@ export function TimesheetDataTable({
                 <Button
                   variant="outline"
                   className={cn(
-                    "justify-start text-left font-normal",
-                    !date && "text-muted-foreground"
+                    'justify-start text-left font-normal',
+                    !date && 'text-muted-foreground'
                   )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {date?.from ? (
                     date.to ? (
                       <>
-                        {format(date.from, "LLL dd, y")} -{" "}
-                        {format(date.to, "LLL dd, y")}
+                        {format(date.from, 'LLL dd, y')} - {format(date.to, 'LLL dd, y')}
                       </>
                     ) : (
-                      format(date.from, "LLL dd, y")
+                      format(date.from, 'LLL dd, y')
                     )
                   ) : (
                     <span>Pick a date range</span>
@@ -1210,7 +1109,7 @@ export function TimesheetDataTable({
               Export to Excel
             </Button>
             <Button variant="outline" onClick={handleExpandCollapseAll}>
-              {Object.keys(expanded).length > 0 ? "Collapse All" : "Expand All"}
+              {Object.keys(expanded).length > 0 ? 'Collapse All' : 'Expand All'}
             </Button>
             <div className="flex items-center space-x-2">
               <Switch
@@ -1218,9 +1117,7 @@ export function TimesheetDataTable({
                 onCheckedChange={onShowDecimalHoursChange}
                 id="hours-format"
               />
-              <Label htmlFor="hours-format">
-                {showDecimalHours ? "Decimal" : "Hours"}
-              </Label>
+              <Label htmlFor="hours-format">{showDecimalHours ? 'Decimal' : 'Hours'}</Label>
             </div>
           </div>
         </div>
@@ -1242,8 +1139,8 @@ export function TimesheetDataTable({
       <div className="overflow-y-auto overflow-x-auto mx-4 sm:mx-0">
         <ScrollArea
           className={cn(
-            "transition-all duration-200 ease-in-out",
-            isTableExpanded ? "h-[calc(100vh-200px)]" : "h-[500px]"
+            'transition-all duration-200 ease-in-out',
+            isTableExpanded ? 'h-[calc(100vh-200px)]' : 'h-[500px]'
           )}
         >
           <div className="flex relative min-w-[calc(100vw-180px)]">
@@ -1258,10 +1155,7 @@ export function TimesheetDataTable({
                       >
                         {header.isPlaceholder
                           ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
+                          : flexRender(header.column.columnDef.header, header.getContext())}
                       </th>
                     ))}
                     <th className="px-1 py-1 text-left text-xs font-medium uppercase tracking-normal">
@@ -1276,9 +1170,7 @@ export function TimesheetDataTable({
               <tbody className="divide-y divide-gray-200">
                 {table.getRowModel().rows.map((row) => {
                   if (row.getIsGrouped()) {
-                    const employeeName = row.getValue(
-                      "employee_name"
-                    ) as string;
+                    const employeeName = row.getValue('employee_name') as string;
                     const summary = payPeriodSummaries.get(employeeName);
 
                     return (
@@ -1300,8 +1192,8 @@ export function TimesheetDataTable({
                         <td className="py-2">
                           {summary && (
                             <span>
-                              {format(summary.startDate, "M/dd/yyyy")} -{" "}
-                              {format(summary.endDate, "M/dd/yyyy")}
+                              {format(summary.startDate, 'M/dd/yyyy')} -{' '}
+                              {format(summary.endDate, 'M/dd/yyyy')}
                             </span>
                           )}
                         </td>
@@ -1313,18 +1205,10 @@ export function TimesheetDataTable({
                         <td></td>
                         <td className="py-2">
                           {summary && (
-                            <span
-                              className={
-                                summary.regularHours > 80
-                                  ? "text-yellow-600"
-                                  : ""
-                              }
-                            >
+                            <span className={summary.regularHours > 80 ? 'text-yellow-600' : ''}>
                               {showDecimalHours
                                 ? `${parseInterval(String(summary.regularHours)).toFixed(2)} hrs`
-                                : formatHoursAndMinutes(
-                                    String(summary.regularHours)
-                                  )}
+                                : formatHoursAndMinutes(String(summary.regularHours))}
                             </span>
                           )}
                         </td>
@@ -1333,9 +1217,7 @@ export function TimesheetDataTable({
                             <span className="text-red-600">
                               {showDecimalHours
                                 ? `${parseInterval(String(summary.overtimeHours)).toFixed(2)} hrs`
-                                : formatHoursAndMinutes(
-                                    String(summary.overtimeHours)
-                                  )}
+                                : formatHoursAndMinutes(String(summary.overtimeHours))}
                             </span>
                           )}
                         </td>
@@ -1353,14 +1235,8 @@ export function TimesheetDataTable({
                   return (
                     <tr key={row.id}>
                       {row.getVisibleCells().map((cell) => (
-                        <td
-                          key={cell.id}
-                          className="px-1 py-1 whitespace-nowrap"
-                        >
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext()
-                          )}
+                        <td key={cell.id} className="px-1 py-1 whitespace-nowrap">
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </td>
                       ))}
                       <td className="px-1 py-1 whitespace-nowrap"></td>

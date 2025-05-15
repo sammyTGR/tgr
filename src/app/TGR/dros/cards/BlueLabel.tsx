@@ -1,5 +1,5 @@
-import * as React from "react";
-import { useRouter } from "next/navigation";
+import * as React from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Card,
   CardContent,
@@ -7,8 +7,8 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { HoveredLink } from "@/components/ui/navbar-menu";
+} from '@/components/ui/card';
+import { HoveredLink } from '@/components/ui/navbar-menu';
 
 function BlueLabel({ className }: { className?: string }) {
   const router = useRouter();
@@ -17,26 +17,16 @@ function BlueLabel({ className }: { className?: string }) {
     <div className="flex flex-col items-center justify-center w-[515px]">
       <Card className="flex flex-col w-full">
         <CardHeader>
-          <CardTitle style={{ color: "#1583B3" }}>
-            Glock Blue Label Discount Program
-          </CardTitle>
+          <CardTitle style={{ color: '#1583B3' }}>Glock Blue Label Discount Program</CardTitle>
           <div className="space-y-1">
-            <p className="font-bold">
-              Available To Those Eligible Below With Valid Department ID
-            </p>
-            <p>
-              Those Who Qualify Will Receive A Discount On TWO Glock Pistols Per
-              Calendar Year
-            </p>
+            <p className="font-bold">Available To Those Eligible Below With Valid Department ID</p>
+            <p>Those Who Qualify Will Receive A Discount On TWO Glock Pistols Per Calendar Year</p>
           </div>
         </CardHeader>
         <CardContent>
           <div className="max-w-full">
             <p>Customer Must Present Valid Department ID</p>
-            <p>
-              Qualifying Departments & Agencies (Must Copy ID Front & Back Of
-              ID):
-            </p>
+            <p>Qualifying Departments & Agencies (Must Copy ID Front & Back Of ID):</p>
             <hr className="my-4" />
             <ul className="list-disc pl-4">
               <li>Law Enforcement:</li>
@@ -44,23 +34,13 @@ function BlueLabel({ className }: { className?: string }) {
                 <li>- Sworn Law Enforcement Officers With Powers Of Arrest</li>
                 <ul className="list-none list-inside pl-4">
                   <li>- Federal, State, County & City</li>
-                  <li>
-                    - Also Includes Retired LE Officers With “Retired”
-                    Credentials
-                  </li>
+                  <li>- Also Includes Retired LE Officers With “Retired” Credentials</li>
                 </ul>
-                <li>
-                  - Corrections Officers, including Parole and Probation
-                  Officers
-                </li>
-                <li>
-                  - LE Academy Cadets With Enrolment Documentation From Academy
-                </li>
+                <li>- Corrections Officers, including Parole and Probation Officers</li>
+                <li>- LE Academy Cadets With Enrolment Documentation From Academy</li>
                 <li>- Nationally Recognized Armed Security Officers</li>
                 <ul className="list-none list-inside pl-4">
-                  <li>
-                    - Officer Purchase For Full Time Armed Guards With Valid ID
-                  </li>
+                  <li>- Officer Purchase For Full Time Armed Guards With Valid ID</li>
                   <li>- Includes: Loomis, Garda & G4S</li>
                   <li>- Private Investigators Are NOT Eligible</li>
                 </ul>
@@ -72,9 +52,7 @@ function BlueLabel({ className }: { className?: string }) {
                 <li>- Military Personnel</li>
                 <ul className="list-none list-inside pl-4">
                   <li>- Including Reservists & National Guard (w/ ID)</li>
-                  <li>
-                    - Also Includes Retired Military With “Retired” Credentials
-                  </li>
+                  <li>- Also Includes Retired Military With “Retired” Credentials</li>
                 </ul>
                 <li>- Honorably Discharged Veterans</li>
                 <ul className="list-none list-inside pl-4">

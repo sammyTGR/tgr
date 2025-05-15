@@ -1,43 +1,38 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { Cross2Icon } from "@radix-ui/react-icons";
-import { Table } from "@tanstack/react-table";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { useState, useEffect } from 'react';
+import { Cross2Icon } from '@radix-ui/react-icons';
+import { Table } from '@tanstack/react-table';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from '@/components/ui/select';
 
 interface FirearmTableToolbarProps<TData> {
   table: Table<TData>;
 }
 
-export function FirearmTableToolbar<TData>({
-  table,
-}: FirearmTableToolbarProps<TData>) {
-  const [manufacturerFilter, setManufacturerFilter] = useState("");
-  const [modelFilter, setModelFilter] = useState("");
-  const [typeFilter, setTypeFilter] = useState("");
+export function FirearmTableToolbar<TData>({ table }: FirearmTableToolbarProps<TData>) {
+  const [manufacturerFilter, setManufacturerFilter] = useState('');
+  const [modelFilter, setModelFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
 
   // Check if any filter is applied
   const isFiltered =
-    manufacturerFilter.length > 0 ||
-    modelFilter.length > 0 ||
-    typeFilter.length > 0;
+    manufacturerFilter.length > 0 || modelFilter.length > 0 || typeFilter.length > 0;
 
   // Sync local state with table state
   useEffect(() => {
     const columnFilters = table.getState().columnFilters;
     columnFilters.forEach((filter) => {
-      if (filter.id === "manufacturer")
-        setManufacturerFilter(filter.value as string);
-      if (filter.id === "model") setModelFilter(filter.value as string);
-      if (filter.id === "type") setTypeFilter(filter.value as string);
+      if (filter.id === 'manufacturer') setManufacturerFilter(filter.value as string);
+      if (filter.id === 'model') setModelFilter(filter.value as string);
+      if (filter.id === 'type') setTypeFilter(filter.value as string);
     });
   }, [table]);
 
@@ -48,9 +43,7 @@ export function FirearmTableToolbar<TData>({
           value={typeFilter}
           onValueChange={(value) => {
             setTypeFilter(value);
-            table
-              .getColumn("type")
-              ?.setFilterValue(value === "all" ? "" : value);
+            table.getColumn('type')?.setFilterValue(value === 'all' ? '' : value);
           }}
         >
           <SelectTrigger className="h-8 w-[150px]">
@@ -68,7 +61,7 @@ export function FirearmTableToolbar<TData>({
           value={manufacturerFilter}
           onChange={(event) => {
             setManufacturerFilter(event.target.value);
-            table.getColumn("manufacturer")?.setFilterValue(event.target.value);
+            table.getColumn('manufacturer')?.setFilterValue(event.target.value);
           }}
           className="h-8 w-[150px] lg:w-[250px]"
         />
@@ -78,7 +71,7 @@ export function FirearmTableToolbar<TData>({
           value={modelFilter}
           onChange={(event) => {
             setModelFilter(event.target.value);
-            table.getColumn("model")?.setFilterValue(event.target.value);
+            table.getColumn('model')?.setFilterValue(event.target.value);
           }}
           className="h-8 w-[150px] lg:w-[250px]"
         />
@@ -88,9 +81,9 @@ export function FirearmTableToolbar<TData>({
             variant="ghost"
             onClick={() => {
               table.resetColumnFilters();
-              setManufacturerFilter("");
-              setModelFilter("");
-              setTypeFilter("");
+              setManufacturerFilter('');
+              setModelFilter('');
+              setTypeFilter('');
             }}
             className="h-8 px-2 lg:px-3"
           >

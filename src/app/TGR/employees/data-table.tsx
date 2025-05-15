@@ -6,7 +6,7 @@ import {
   getPaginationRowModel,
   getFilteredRowModel,
   getSortedRowModel,
-} from "@tanstack/react-table";
+} from '@tanstack/react-table';
 
 import {
   Table,
@@ -15,23 +15,20 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { DataTablePagination } from "./data-table-pagination";
-import { EmployeeTableToolbar } from "./employee-table-toolbar";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import classNames from "classnames";
-import styles from "./table.module.css";
-import { useSidebar } from "@/components/ui/sidebar";
+} from '@/components/ui/table';
+import { DataTablePagination } from './data-table-pagination';
+import { EmployeeTableToolbar } from './employee-table-toolbar';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import classNames from 'classnames';
+import styles from './table.module.css';
+import { useSidebar } from '@/components/ui/sidebar';
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
 }
 
-export function DataTable<TData, TValue>({
-  columns,
-  data,
-}: DataTableProps<TData, TValue>) {
+export function DataTable<TData, TValue>({ columns, data }: DataTableProps<TData, TValue>) {
   const { state } = useSidebar();
   // console.log("Data passed to DataTable:", data); // Add this line
   const table = useReactTable({
@@ -56,7 +53,7 @@ export function DataTable<TData, TValue>({
             <ScrollArea
               className={classNames(
                 styles.noScroll,
-                "h-[calc(100vh-20rem)] w-full md:w-[calc(100vw-15rem)] lg:w-[calc(100vw-20rem)] overflow-hidden relative"
+                'h-[calc(100vh-20rem)] w-full md:w-[calc(100vw-15rem)] lg:w-[calc(100vw-20rem)] overflow-hidden relative'
               )}
             >
               <Table className="w-full md:w-[calc(100vw-15rem)] lg:w-[calc(100vw-20rem)] overflow-hidden transition-all duration-300">
@@ -68,10 +65,7 @@ export function DataTable<TData, TValue>({
                           <TableHead key={header.id}>
                             {header.isPlaceholder
                               ? null
-                              : flexRender(
-                                  header.column.columnDef.header,
-                                  header.getContext()
-                                )}
+                              : flexRender(header.column.columnDef.header, header.getContext())}
                           </TableHead>
                         );
                       })}
@@ -81,26 +75,17 @@ export function DataTable<TData, TValue>({
                 <TableBody>
                   {table.getRowModel().rows?.length ? (
                     table.getRowModel().rows.map((row) => (
-                      <TableRow
-                        key={row.id}
-                        data-state={row.getIsSelected() && "selected"}
-                      >
+                      <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'}>
                         {row.getVisibleCells().map((cell) => (
                           <TableCell key={cell.id}>
-                            {flexRender(
-                              cell.column.columnDef.cell,
-                              cell.getContext()
-                            )}
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
                           </TableCell>
                         ))}
                       </TableRow>
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell
-                        colSpan={columns.length}
-                        className="h-24 text-center"
-                      >
+                      <TableCell colSpan={columns.length} className="h-24 text-center">
                         No results.
                       </TableCell>
                     </TableRow>

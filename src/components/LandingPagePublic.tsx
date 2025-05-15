@@ -1,25 +1,25 @@
-"use client";
-import React from "react";
-import Link from "next/link";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import Image from "next/image";
-import { TextGenerateEffect } from "./ui/text-generate-effect";
-import { TextGenerateColor } from "./ui/text-generate-color";
-import { TracingBeam } from "./ui/tracing-beam";
-import LoadingIndicator from "@/components/LoadingIndicator";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+'use client';
+import React from 'react';
+import Link from 'next/link';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import Image from 'next/image';
+import { TextGenerateEffect } from './ui/text-generate-effect';
+import { TextGenerateColor } from './ui/text-generate-color';
+import { TracingBeam } from './ui/tracing-beam';
+import LoadingIndicator from '@/components/LoadingIndicator';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
-const title = "The Gun Range";
-const sub = "Your One Stop Shop For All Of Your Shooting Needs";
+const title = 'The Gun Range';
+const sub = 'Your One Stop Shop For All Of Your Shooting Needs';
 
 const LandingPagePublic: React.FC = React.memo(() => {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
   const { isLoading } = useQuery({
-    queryKey: ["navigation", pathname, searchParams],
+    queryKey: ['navigation', pathname, searchParams],
     queryFn: async () => {
       // Simulate a delay to show the loading indicator
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -68,9 +68,8 @@ const LandingPagePublic: React.FC = React.memo(() => {
                     Elevate Your Shooting Skills
                   </h1>
                   <p className="mx-auto max-w-p[600] md:text-xl mt-4">
-                    With our diverse team of certified instructors, you can
-                    learn all about the basics of firearms, all the way up to
-                    getting your CCW and more!
+                    With our diverse team of certified instructors, you can learn all about the
+                    basics of firearms, all the way up to getting your CCW and more!
                   </p>
                   <div className="mt-6 space-x-4"></div>
                 </div>
@@ -98,10 +97,9 @@ const LandingPagePublic: React.FC = React.memo(() => {
                     Unlock Your Shooting Potential
                   </h2>
                   <p className="max-w-[600px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed dark:text-gray-400 mt-4">
-                    Our gun range offers 20 stalls, all of which are first come
-                    first served (we don&apos;t take appointments). There are
-                    ZERO time limits with your visits. You can rapid fire, and
-                    for CCW holders & Law Enforcement Officers, you can do
+                    Our gun range offers 20 stalls, all of which are first come first served (we
+                    don&apos;t take appointments). There are ZERO time limits with your visits. You
+                    can rapid fire, and for CCW holders & Law Enforcement Officers, you can do
                     holster work.
                   </p>
                 </div>
@@ -116,8 +114,7 @@ const LandingPagePublic: React.FC = React.memo(() => {
                     Join The List Of Champions!
                   </h2>
                   <p className="mx-auto max-w-[600px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed dark:text-gray-400">
-                    Join the thousands of other members that have come to call
-                    us their home range.
+                    Join the thousands of other members that have come to call us their home range.
                   </p>
                 </div>
                 <div className="mx-auto w-full max-w-sm space-y-2">
@@ -155,6 +152,6 @@ const LandingPagePublic: React.FC = React.memo(() => {
   );
 });
 
-LandingPagePublic.displayName = "LandingPagePublic";
+LandingPagePublic.displayName = 'LandingPagePublic';
 
 export default LandingPagePublic;

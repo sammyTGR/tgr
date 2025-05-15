@@ -1,4 +1,4 @@
-import { FC, useEffect } from "react";
+import { FC, useEffect } from 'react';
 import {
   Table,
   TableBody,
@@ -6,10 +6,10 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { format } from "date-fns";
-import { ChevronDown, ChevronRight } from "lucide-react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+} from '@/components/ui/table';
+import { format } from 'date-fns';
+import { ChevronDown, ChevronRight } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface SickTimeUsage {
   request_id: number;
@@ -47,17 +47,15 @@ export const SickTimeTable: FC<SickTimeTableProps> = ({
 
   // Use useQuery for reading the expanded state
   const { data: expandedRows = {} } = useQuery({
-    queryKey: ["sickTimeExpandedRows"],
-    queryFn: () => ({} as Record<number, boolean>),
+    queryKey: ['sickTimeExpandedRows'],
+    queryFn: () => ({}) as Record<number, boolean>,
     initialData: {},
   });
 
   // Use useMutation for updating the expanded state
   const setExpandedRows = useMutation({
     mutationFn: (newState: Record<number, boolean>) => {
-      return Promise.resolve(
-        queryClient.setQueryData(["sickTimeExpandedRows"], newState)
-      );
+      return Promise.resolve(queryClient.setQueryData(['sickTimeExpandedRows'], newState));
     },
   });
 
@@ -72,10 +70,13 @@ export const SickTimeTable: FC<SickTimeTableProps> = ({
   // Effect to handle isAllExpanded prop
   useEffect(() => {
     if (isAllExpanded) {
-      const expandAll = data.reduce((acc, row) => {
-        acc[row.employee_id] = true;
-        return acc;
-      }, {} as Record<number, boolean>);
+      const expandAll = data.reduce(
+        (acc, row) => {
+          acc[row.employee_id] = true;
+          return acc;
+        },
+        {} as Record<number, boolean>
+      );
       setExpandedRows.mutate(expandAll);
     } else {
       setExpandedRows.mutate({});
@@ -85,8 +86,7 @@ export const SickTimeTable: FC<SickTimeTableProps> = ({
   // Calculate remaining hours (40 - used hours for current year)
   const getCurrentYearRemaining = (history: YearlyHistory[]) => {
     const currentYear = new Date().getFullYear();
-    const currentYearUsage =
-      history.find((h) => h.year === currentYear)?.total_hours_used || 0;
+    const currentYearUsage = history.find((h) => h.year === currentYear)?.total_hours_used || 0;
     return Math.max(0, 40 - currentYearUsage);
   };
 
@@ -105,12 +105,8 @@ export const SickTimeTable: FC<SickTimeTableProps> = ({
         <TableBody>
           {data.map((row) => {
             const currentYear = new Date().getFullYear();
-            const currentYearData = row.sick_time_history.find(
-              (h) => h.year === currentYear
-            );
-            const availableHours = getCurrentYearRemaining(
-              row.sick_time_history
-            );
+            const currentYearData = row.sick_time_history.find((h) => h.year === currentYear);
+            const availableHours = getCurrentYearRemaining(row.sick_time_history);
 
             return (
               <>
@@ -129,25 +125,18 @@ export const SickTimeTable: FC<SickTimeTableProps> = ({
                   <TableCell>{row.name}</TableCell>
                   <TableCell>{availableHours.toFixed(2)} hours</TableCell>
                   <TableCell>
-                    {currentYearData?.total_hours_used.toFixed(2) || "0.00"}{" "}
-                    hours
+                    {currentYearData?.total_hours_used.toFixed(2) || '0.00'} hours
                   </TableCell>
-                  <TableCell>
-                    {currentYearData?.requests_count || 0} request(s)
-                  </TableCell>
+                  <TableCell>{currentYearData?.requests_count || 0} request(s)</TableCell>
                 </TableRow>
                 {expandedRows[row.employee_id] &&
                   row.sick_time_history.map((yearData) => (
                     <>
-                      <TableRow
-                        key={`${row.employee_id}-${yearData.year}`}
-                        className="bg-muted/30"
-                      >
+                      <TableRow key={`${row.employee_id}-${yearData.year}`} className="bg-muted/30">
                         <TableCell></TableCell>
                         <TableCell colSpan={4}>
-                          <strong>{yearData.year}</strong> -{" "}
-                          {yearData.total_hours_used.toFixed(2)} hours used
-                          across {yearData.requests_count} requests
+                          <strong>{yearData.year}</strong> - {yearData.total_hours_used.toFixed(2)}{' '}
+                          hours used across {yearData.requests_count} requests
                         </TableCell>
                       </TableRow>
                       {yearData.details.map((usage, index) => (
@@ -158,19 +147,12 @@ export const SickTimeTable: FC<SickTimeTableProps> = ({
                           <TableCell></TableCell>
                           <TableCell></TableCell>
                           <TableCell>
-                            {format(new Date(usage.start_date), "MM/dd/yyyy")}
+                            {format(new Date(usage.start_date), 'MM/dd/yyyy')}
                             {usage.start_date !== usage.end_date &&
-                              ` - ${format(
-                                new Date(usage.end_date),
-                                "MM/dd/yyyy"
-                              )}`}
+                              ` - ${format(new Date(usage.end_date), 'MM/dd/yyyy')}`}
                           </TableCell>
-                          <TableCell>
-                            {usage.hours_used.toFixed(2)} hours
-                          </TableCell>
-                          <TableCell>
-                            {format(new Date(usage.date_used), "MM/dd/yyyy")}
-                          </TableCell>
+                          <TableCell>{usage.hours_used.toFixed(2)} hours</TableCell>
+                          <TableCell>{format(new Date(usage.date_used), 'MM/dd/yyyy')}</TableCell>
                         </TableRow>
                       ))}
                     </>

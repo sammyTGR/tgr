@@ -1,5 +1,5 @@
-import * as React from "react";
-import { useRouter } from "next/navigation";
+import * as React from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Card,
   CardContent,
@@ -7,13 +7,8 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import {
-  HoveredLink,
-  Menu,
-  MenuItem,
-  ProductItem,
-} from "@/components/ui/navbar-menu";
+} from '@/components/ui/card';
+import { HoveredLink, Menu, MenuItem, ProductItem } from '@/components/ui/navbar-menu';
 
 function FedLimsName({ className }: { className?: string }) {
   const router = useRouter();
@@ -25,17 +20,14 @@ function FedLimsName({ className }: { className?: string }) {
           <CardTitle>Federal Limits Apply With Name Change</CardTitle>
           <div className="space-y-1">
             <p>
-              If The CA DL | CA ID States{" "}
-              <span className="text-blue-500">
-                &quot;Federal Limits Apply&quot;
-              </span>{" "}
+              If The CA DL | CA ID States{' '}
+              <span className="text-blue-500">&quot;Federal Limits Apply&quot;</span>{' '}
               <span className="text-red-500">AND </span>
               Their Name Doesn&apos;t Match The Proof Document
             </p>
             <p className="text-red-500">
-              If There Is A Suffix On One Of The Docs Below, It Must Be Included
-              On The DL | ID, Otherwise They Are Required To Get An Interim DL |
-              ID To Match
+              If There Is A Suffix On One Of The Docs Below, It Must Be Included On The DL | ID,
+              Otherwise They Are Required To Get An Interim DL | ID To Match
             </p>
           </div>
         </CardHeader>
@@ -44,31 +36,30 @@ function FedLimsName({ className }: { className?: string }) {
             <h2>Required Documents:</h2>
             <ul className="list-disc pl-4">
               <li>
-                An Adoption Document That Contains The Legal Name Of The
-                Applicant As A Result Of The Adoption
+                An Adoption Document That Contains The Legal Name Of The Applicant As A Result Of
+                The Adoption
               </li>
               <li>
-                A Name Change Document That Contains The Applicant’s Legal Name
-                Both Before And, As A Result Of, The Name Change
+                A Name Change Document That Contains The Applicant’s Legal Name Both Before And, As
+                A Result Of, The Name Change
               </li>
               <li>Married | Divorced:</li>
               <ul className="list-none list-inside pl-4">
                 <li>- A Marriage Certificate</li>
                 <li>
-                  - A Dissolution Of Marriage Document That Contains The Legal
-                  Name Of The Applicant As A Result Of The Court Action
+                  - A Dissolution Of Marriage Document That Contains The Legal Name Of The Applicant
+                  As A Result Of The Court Action
                 </li>
               </ul>
               <li>Domestic Partnerships:</li>
               <ul className="list-none list-inside pl-4">
                 <li>
-                  - A Certificate, Declaration Or Registration Document
-                  Verifying The Formation Of A Domestic Partnership
+                  - A Certificate, Declaration Or Registration Document Verifying The Formation Of A
+                  Domestic Partnership
                 </li>
                 <li>
-                  - A Dissolution Of Domestic Partnership Document That Contains
-                  The Legal Name Of The Applicant As A Result Of The Court
-                  Action
+                  - A Dissolution Of Domestic Partnership Document That Contains The Legal Name Of
+                  The Applicant As A Result Of The Court Action
                 </li>
               </ul>
             </ul>

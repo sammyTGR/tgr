@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { useSupabase } from "@/providers/supabase-provider";
+import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+import { useSupabase } from '@/providers/supabase-provider';
 
 export default function AuthCodeErrorPage() {
   const router = useRouter();
@@ -22,18 +22,13 @@ export default function AuthCodeErrorPage() {
       <div className="max-w-md w-full space-y-8 text-center">
         <h1 className="text-2xl font-bold">Authentication Error</h1>
         <p className="text-muted-foreground">
-          There was a problem with the authentication process. Please try
-          signing in again.
+          There was a problem with the authentication process. Please try signing in again.
         </p>
         <div className="space-y-4">
-          <Button onClick={() => router.push("/sign-in")} className="w-full">
+          <Button onClick={() => router.push('/sign-in')} className="w-full">
             Return to Sign In
           </Button>
-          <Button
-            variant="outline"
-            onClick={() => router.push("/")}
-            className="w-full"
-          >
+          <Button variant="outline" onClick={() => router.push('/')} className="w-full">
             Return to Home
           </Button>
         </div>

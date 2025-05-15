@@ -1,6 +1,6 @@
-import React from "react";
-import { Progress } from "@/components/ui/progress";
-import { useSidebar } from "@/components/ui/sidebar";
+import React from 'react';
+import { Progress } from '@/components/ui/progress';
+import { useSidebar } from '@/components/ui/sidebar';
 
 const LoadingIndicator = () => {
   const { state } = useSidebar();

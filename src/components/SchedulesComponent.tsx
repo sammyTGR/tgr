@@ -1,12 +1,8 @@
-"use client";
-import { useCallback, useState } from "react";
-import { Button } from "@/components/ui/button";
-import {
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  CaretUpIcon,
-} from "@radix-ui/react-icons";
-import { supabase } from "@/utils/supabase/client";
+'use client';
+import { useCallback, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { ChevronLeftIcon, ChevronRightIcon, CaretUpIcon } from '@radix-ui/react-icons';
+import { supabase } from '@/utils/supabase/client';
 import {
   TableHead,
   TableRow,
@@ -14,22 +10,18 @@ import {
   TableCell,
   TableBody,
   Table,
-} from "@/components/ui/table";
-import { useRole } from "@/context/RoleContext";
+} from '@/components/ui/table';
+import { useRole } from '@/context/RoleContext';
 import {
   Dialog,
   DialogTrigger,
   DialogContent,
   DialogTitle,
   DialogClose,
-} from "@radix-ui/react-dialog";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-} from "@/components/ui/popover";
-import { toZonedTime, format as formatTZ } from "date-fns-tz";
+} from '@radix-ui/react-dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { toZonedTime, format as formatTZ } from 'date-fns-tz';
 import {
   startOfWeek,
   addDays,
@@ -39,20 +31,12 @@ import {
   format,
   getMonth,
   getDate,
-} from "date-fns";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+} from 'date-fns';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
-const daysOfWeek = [
-  "Sunday",
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-];
+const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-const timeZone = "America/Los_Angeles";
+const timeZone = 'America/Los_Angeles';
 
 interface CalendarEvent {
   day_of_week: string;
@@ -81,17 +65,15 @@ type BreakRoomDuty = {
 
 // Add this helper function at the top of your file, outside of the component
 const isSameDayOfYear = (date1: Date, date2: Date) => {
-  return (
-    getMonth(date1) === getMonth(date2) && getDate(date1) === getDate(date2)
-  );
+  return getMonth(date1) === getMonth(date2) && getDate(date1) === getDate(date2);
 };
 
 const SchedulesComponent = ({ employeeId }: { employeeId: number }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [customStatus, setCustomStatus] = useState("");
+  const [customStatus, setCustomStatus] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [currentEvent, setCurrentEvent] = useState<CalendarEvent | null>(null);
-  const [lateStartTime, setLateStartTime] = useState("");
+  const [lateStartTime, setLateStartTime] = useState('');
   const role = useRole().role;
   const queryClient = useQueryClient();
 
@@ -100,14 +82,12 @@ const SchedulesComponent = ({ employeeId }: { employeeId: number }) => {
     return toZonedTime(start, timeZone);
   };
 
-  const fetchCalendarData = useCallback(async (): Promise<
-    EmployeeCalendar[]
-  > => {
+  const fetchCalendarData = useCallback(async (): Promise<EmployeeCalendar[]> => {
     const startOfWeek = getStartOfWeek(currentDate);
     const endOfWeek = addDays(startOfWeek, 6);
 
     const { data, error } = await supabase
-      .from("schedules")
+      .from('schedules')
       .select(
         `
         schedule_date,
@@ -119,9 +99,9 @@ const SchedulesComponent = ({ employeeId }: { employeeId: number }) => {
         employees:employee_id (name, birthday, department, hire_date)
       `
       )
-      .eq("employee_id", employeeId)
-      .gte("schedule_date", formatTZ(startOfWeek, "yyyy-MM-dd", { timeZone }))
-      .lte("schedule_date", formatTZ(endOfWeek, "yyyy-MM-dd", { timeZone }));
+      .eq('employee_id', employeeId)
+      .gte('schedule_date', formatTZ(startOfWeek, 'yyyy-MM-dd', { timeZone }))
+      .lte('schedule_date', formatTZ(endOfWeek, 'yyyy-MM-dd', { timeZone }));
 
     if (error) throw error;
 
@@ -158,32 +138,27 @@ const SchedulesComponent = ({ employeeId }: { employeeId: number }) => {
     isLoading: calendarLoading,
     error: calendarError,
   } = useQuery({
-    queryKey: ["calendarData", currentDate, employeeId],
+    queryKey: ['calendarData', currentDate, employeeId],
     queryFn: fetchCalendarData,
   });
 
   const getBreakRoomDutyEmployee = useCallback(
-    async (
-      employees: EmployeeCalendar[],
-      currentWeekStart: Date
-    ): Promise<BreakRoomDuty> => {
-      const formattedWeekStart = format(currentWeekStart, "yyyy-MM-dd");
+    async (employees: EmployeeCalendar[], currentWeekStart: Date): Promise<BreakRoomDuty> => {
+      const formattedWeekStart = format(currentWeekStart, 'yyyy-MM-dd');
       const fridayOfWeek = addDays(startOfWeek(currentWeekStart), 5);
 
       const { data: existingDuty, error: existingDutyError } = await supabase
-        .from("break_room_duty")
-        .select("*")
-        .eq("week_start", formattedWeekStart);
+        .from('break_room_duty')
+        .select('*')
+        .eq('week_start', formattedWeekStart);
 
       if (existingDutyError) {
-        console.error("Error fetching existing duty:", existingDutyError);
+        console.error('Error fetching existing duty:', existingDutyError);
         return null;
       }
 
       if (existingDuty && existingDuty.length > 0) {
-        const employee = employees.find(
-          (emp) => emp.employee_id === existingDuty[0].employee_id
-        );
+        const employee = employees.find((emp) => emp.employee_id === existingDuty[0].employee_id);
         return employee
           ? {
               employee,
@@ -195,26 +170,23 @@ const SchedulesComponent = ({ employeeId }: { employeeId: number }) => {
 
       // If no existing duty, create a new assignment
       const salesEmployees = employees
-        .filter((emp) => emp.department === "Sales")
+        .filter((emp) => emp.department === 'Sales')
         .sort((a, b) => a.rank - b.rank);
 
       if (salesEmployees.length === 0) {
-        console.error(
-          "No sales employees found for break room duty assignment"
-        );
+        console.error('No sales employees found for break room duty assignment');
         return null;
       }
 
       // Find the next employee in the rotation
-      const { data: lastAssignment, error: lastAssignmentError } =
-        await supabase
-          .from("break_room_duty")
-          .select("employee_id")
-          .order("week_start", { ascending: false })
-          .limit(1);
+      const { data: lastAssignment, error: lastAssignmentError } = await supabase
+        .from('break_room_duty')
+        .select('employee_id')
+        .order('week_start', { ascending: false })
+        .limit(1);
 
       if (lastAssignmentError) {
-        console.error("Error fetching last assignment:", lastAssignmentError);
+        console.error('Error fetching last assignment:', lastAssignmentError);
         return null;
       }
 
@@ -230,30 +202,30 @@ const SchedulesComponent = ({ employeeId }: { employeeId: number }) => {
 
       // Define the order of days to check, starting with Friday, then Thursday backwards
       const daysToCheck = [
-        "Friday",
-        "Thursday",
-        "Wednesday",
-        "Tuesday",
-        "Monday",
-        "Sunday",
-        "Saturday",
+        'Friday',
+        'Thursday',
+        'Wednesday',
+        'Tuesday',
+        'Monday',
+        'Sunday',
+        'Saturday',
       ];
       let actualDutyDate = null;
 
       for (const day of daysToCheck) {
         const dayIndex = daysOfWeek.indexOf(day);
         const checkDate = addDays(currentWeekStart, dayIndex);
-        const formattedDate = format(checkDate, "yyyy-MM-dd");
+        const formattedDate = format(checkDate, 'yyyy-MM-dd');
 
         const { data: schedules, error } = await supabase
-          .from("schedules")
-          .select("*")
-          .eq("employee_id", selectedEmployee.employee_id)
-          .eq("schedule_date", formattedDate)
-          .in("status", ["scheduled", "added_day"]);
+          .from('schedules')
+          .select('*')
+          .eq('employee_id', selectedEmployee.employee_id)
+          .eq('schedule_date', formattedDate)
+          .in('status', ['scheduled', 'added_day']);
 
         if (error) {
-          console.error("Error fetching schedule:", error);
+          console.error('Error fetching schedule:', error);
           continue;
         }
 
@@ -264,24 +236,20 @@ const SchedulesComponent = ({ employeeId }: { employeeId: number }) => {
       }
 
       if (!actualDutyDate) {
-        console.error(
-          "No scheduled work day found for the selected employee this week"
-        );
+        console.error('No scheduled work day found for the selected employee this week');
         return null;
       }
 
       // Insert the new assignment into the break_room_duty table
-      const { error: insertError } = await supabase
-        .from("break_room_duty")
-        .insert({
-          week_start: formattedWeekStart,
-          employee_id: selectedEmployee.employee_id,
-          duty_date: format(fridayOfWeek, "yyyy-MM-dd"), // Always set to Friday
-          actual_duty_date: format(actualDutyDate, "yyyy-MM-dd"), // The day they're actually working
-        });
+      const { error: insertError } = await supabase.from('break_room_duty').insert({
+        week_start: formattedWeekStart,
+        employee_id: selectedEmployee.employee_id,
+        duty_date: format(fridayOfWeek, 'yyyy-MM-dd'), // Always set to Friday
+        actual_duty_date: format(actualDutyDate, 'yyyy-MM-dd'), // The day they're actually working
+      });
 
       if (insertError) {
-        console.error("Error inserting break room duty:", insertError);
+        console.error('Error inserting break room duty:', insertError);
         return null;
       }
 
@@ -299,12 +267,8 @@ const SchedulesComponent = ({ employeeId }: { employeeId: number }) => {
     isLoading: breakRoomDutyLoading,
     error: breakRoomDutyError,
   } = useQuery<BreakRoomDuty, Error>({
-    queryKey: [
-      "breakRoomDuty",
-      format(getStartOfWeek(currentDate), "yyyy-MM-dd"),
-    ],
-    queryFn: () =>
-      getBreakRoomDutyEmployee(calendarData || [], getStartOfWeek(currentDate)),
+    queryKey: ['breakRoomDuty', format(getStartOfWeek(currentDate), 'yyyy-MM-dd')],
+    queryFn: () => getBreakRoomDutyEmployee(calendarData || [], getStartOfWeek(currentDate)),
     enabled: !!calendarData,
   });
 
@@ -322,10 +286,10 @@ const SchedulesComponent = ({ employeeId }: { employeeId: number }) => {
       start_time?: string;
       end_time?: string;
     }) => {
-      const formattedDate = format(parseISO(schedule_date), "yyyy-MM-dd");
-      const response = await fetch("/api/update_schedule_status", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const formattedDate = format(parseISO(schedule_date), 'yyyy-MM-dd');
+      const response = await fetch('/api/update_schedule_status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           employee_id,
           schedule_date: formattedDate,
@@ -334,13 +298,12 @@ const SchedulesComponent = ({ employeeId }: { employeeId: number }) => {
           end_time,
         }),
       });
-      if (!response.ok)
-        throw new Error(`HTTP error! status: ${response.status}`);
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["calendarData", currentDate, employeeId],
+        queryKey: ['calendarData', currentDate, employeeId],
       });
     },
   });
@@ -353,11 +316,11 @@ const SchedulesComponent = ({ employeeId }: { employeeId: number }) => {
     end_time?: string
   ) => {
     try {
-      const formattedDate = format(parseISO(schedule_date), "yyyy-MM-dd");
-      const response = await fetch("/api/update_schedule_status", {
-        method: "POST",
+      const formattedDate = format(parseISO(schedule_date), 'yyyy-MM-dd');
+      const response = await fetch('/api/update_schedule_status', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           employee_id,
@@ -373,13 +336,10 @@ const SchedulesComponent = ({ employeeId }: { employeeId: number }) => {
       }
 
       queryClient.invalidateQueries({
-        queryKey: ["calendarData", currentDate],
+        queryKey: ['calendarData', currentDate],
       });
     } catch (error) {
-      console.error(
-        "Failed to update schedule status:",
-        (error as Error).message
-      );
+      console.error('Failed to update schedule status:', (error as Error).message);
     }
   };
 
@@ -391,7 +351,7 @@ const SchedulesComponent = ({ employeeId }: { employeeId: number }) => {
         status: `Custom:${customStatus}`,
       });
       setDialogOpen(false);
-      setCustomStatus("");
+      setCustomStatus('');
     }
   };
 
@@ -404,12 +364,8 @@ const SchedulesComponent = ({ employeeId }: { employeeId: number }) => {
   };
 
   const formatTime = (time: string | null) => {
-    if (!time || isNaN(Date.parse(`1970-01-01T${time}`))) return "N/A";
-    return formatTZ(
-      toZonedTime(new Date(`1970-01-01T${time}`), timeZone),
-      "hh:mma",
-      { timeZone }
-    );
+    if (!time || isNaN(Date.parse(`1970-01-01T${time}`))) return 'N/A';
+    return formatTZ(toZonedTime(new Date(`1970-01-01T${time}`), timeZone), 'hh:mma', { timeZone });
   };
 
   const renderEmployeeRow = useCallback(
@@ -428,71 +384,47 @@ const SchedulesComponent = ({ employeeId }: { employeeId: number }) => {
               {eventsByDay[day].map((event, index) => (
                 <div key={index} className="relative">
                   {event.birthday &&
-                  isSameDayOfYear(
-                    parseISO(event.schedule_date),
-                    parseISO(event.birthday)
-                  ) ? (
+                  isSameDayOfYear(parseISO(event.schedule_date), parseISO(event.birthday)) ? (
                     <div className="text-teal-500 dark:text-teal-400 font-bold">
                       Happy Birthday! 🎉
                     </div>
                   ) : null}
                   {employee.hire_date &&
-                  isSameDayOfYear(
-                    parseISO(event.schedule_date),
-                    parseISO(employee.hire_date)
-                  ) ? (
+                  isSameDayOfYear(parseISO(event.schedule_date), parseISO(employee.hire_date)) ? (
                     <div className="text-indigo-500 dark:text-indigo-400 font-bold">
                       Work Anniversary!
                     </div>
                   ) : null}
                   {breakRoomDuty &&
                   breakRoomDuty.employee.employee_id === employee.employee_id &&
-                  isSameDay(
-                    parseISO(event.schedule_date),
-                    breakRoomDuty.actualDutyDate
-                  ) ? (
+                  isSameDay(parseISO(event.schedule_date), breakRoomDuty.actualDutyDate) ? (
                     <div className="text-red-500 font-bold">
                       Break Room Duty
-                      {!isSameDay(
-                        breakRoomDuty.actualDutyDate,
-                        breakRoomDuty.dutyDate
-                      ) && " (Rescheduled)"}
+                      {!isSameDay(breakRoomDuty.actualDutyDate, breakRoomDuty.dutyDate) &&
+                        ' (Rescheduled)'}
                     </div>
                   ) : null}
-                  {event.status === "added_day" ? (
+                  {event.status === 'added_day' ? (
                     <div className="text-pink-500 dark:text-pink-300">
-                      {`${formatTime(event.start_time)}-${formatTime(
-                        event.end_time
-                      )}`}
+                      {`${formatTime(event.start_time)}-${formatTime(event.end_time)}`}
                     </div>
                   ) : event.start_time && event.end_time ? (
-                    event.status === "time_off" ? (
-                      <div className="text-purple-600 dark:text-purple-500">
-                        Approved Time Off
-                      </div>
-                    ) : event.status === "called_out" ? (
-                      <div className="text-red-500 dark:text-red-400">
-                        Called Out
-                      </div>
-                    ) : event.status === "left_early" ? (
+                    event.status === 'time_off' ? (
+                      <div className="text-purple-600 dark:text-purple-500">Approved Time Off</div>
+                    ) : event.status === 'called_out' ? (
+                      <div className="text-red-500 dark:text-red-400">Called Out</div>
+                    ) : event.status === 'left_early' ? (
+                      <div className="text-orange-500 dark:text-orange-400">Left Early</div>
+                    ) : event.status === 'updated_shift' ? (
                       <div className="text-orange-500 dark:text-orange-400">
-                        Left Early
+                        {`${formatTime(event.start_time)}-${formatTime(event.end_time)}`}
                       </div>
-                    ) : event.status === "updated_shift" ? (
-                      <div className="text-orange-500 dark:text-orange-400">
-                        {`${formatTime(event.start_time)}-${formatTime(
-                          event.end_time
-                        )}`}
-                      </div>
-                    ) : event.status && event.status.startsWith("Custom:") ? (
+                    ) : event.status && event.status.startsWith('Custom:') ? (
                       <div className="text-green-500 dark:text-green-400">
-                        {event.status.replace("Custom:", "").trim()}
+                        {event.status.replace('Custom:', '').trim()}
                       </div>
-                    ) : event.status &&
-                      event.status.startsWith("Late Start") ? (
-                      <div className="text-yellow-500 dark:text-yellow-400">
-                        {event.status}
-                      </div>
+                    ) : event.status && event.status.startsWith('Late Start') ? (
+                      <div className="text-yellow-500 dark:text-yellow-400">{event.status}</div>
                     ) : (
                       <div
                         className={
@@ -500,20 +432,16 @@ const SchedulesComponent = ({ employeeId }: { employeeId: number }) => {
                             new Date(`1970-01-01T${event.start_time}`),
                             timeZone
                           ).getHours() < 12
-                            ? "text-amber-500 dark:text-amber-400"
-                            : "text-blue-500 dark:text-blue-400"
+                            ? 'text-amber-500 dark:text-amber-400'
+                            : 'text-blue-500 dark:text-blue-400'
                         }
                       >
-                        {`${formatTime(event.start_time)}-${formatTime(
-                          event.end_time
-                        )}`}
+                        {`${formatTime(event.start_time)}-${formatTime(event.end_time)}`}
                       </div>
                     )
                   ) : null}
 
-                  {(role === "admin" ||
-                    role === "super admin" ||
-                    role === "dev") && (
+                  {(role === 'admin' || role === 'super admin' || role === 'dev') && (
                     <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100">
                       <Popover>
                         <PopoverTrigger asChild>
@@ -528,7 +456,7 @@ const SchedulesComponent = ({ employeeId }: { employeeId: number }) => {
                               updateScheduleStatusMutation.mutate({
                                 employee_id: event.employee_id,
                                 schedule_date: event.schedule_date,
-                                status: "called_out",
+                                status: 'called_out',
                               })
                             }
                           >
@@ -540,7 +468,7 @@ const SchedulesComponent = ({ employeeId }: { employeeId: number }) => {
                               updateScheduleStatusMutation.mutate({
                                 employee_id: event.employee_id,
                                 schedule_date: event.schedule_date,
-                                status: "left_early",
+                                status: 'left_early',
                               })
                             }
                           >
@@ -552,16 +480,13 @@ const SchedulesComponent = ({ employeeId }: { employeeId: number }) => {
                               updateScheduleStatusMutation.mutate({
                                 employee_id: event.employee_id,
                                 schedule_date: event.schedule_date,
-                                status: "Custom:Off",
+                                status: 'Custom:Off',
                               })
                             }
                           >
                             Off
                           </Button>
-                          <Dialog
-                            open={dialogOpen}
-                            onOpenChange={setDialogOpen}
-                          >
+                          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                             <DialogTrigger asChild>
                               <Button
                                 className="p-4"
@@ -575,15 +500,11 @@ const SchedulesComponent = ({ employeeId }: { employeeId: number }) => {
                               </Button>
                             </DialogTrigger>
                             <DialogContent>
-                              <DialogTitle className="p-4">
-                                Enter Late Start Time
-                              </DialogTitle>
+                              <DialogTitle className="p-4">Enter Late Start Time</DialogTitle>
                               <input
                                 type="time"
                                 value={lateStartTime}
-                                onChange={(e) =>
-                                  setLateStartTime(e.target.value)
-                                }
+                                onChange={(e) => setLateStartTime(e.target.value)}
                                 className="border rounded p-2"
                               />
                               <Button
@@ -591,9 +512,9 @@ const SchedulesComponent = ({ employeeId }: { employeeId: number }) => {
                                 onClick={() => {
                                   const formattedTime = new Date(
                                     `1970-01-01T${lateStartTime}`
-                                  ).toLocaleTimeString("en-US", {
-                                    hour: "numeric",
-                                    minute: "2-digit",
+                                  ).toLocaleTimeString('en-US', {
+                                    hour: 'numeric',
+                                    minute: '2-digit',
                                     hour12: true,
                                   });
                                   updateScheduleStatus(
@@ -602,7 +523,7 @@ const SchedulesComponent = ({ employeeId }: { employeeId: number }) => {
                                     `Late Start ${formattedTime}`
                                   );
                                   setDialogOpen(false);
-                                  setLateStartTime("");
+                                  setLateStartTime('');
                                 }}
                               >
                                 Submit
@@ -623,14 +544,7 @@ const SchedulesComponent = ({ employeeId }: { employeeId: number }) => {
         </TableRow>
       );
     },
-    [
-      breakRoomDuty,
-      role,
-      updateScheduleStatusMutation,
-      formatTime,
-      dialogOpen,
-      lateStartTime,
-    ]
+    [breakRoomDuty, role, updateScheduleStatusMutation, formatTime, dialogOpen, lateStartTime]
   );
 
   if (calendarLoading || breakRoomDutyLoading) {
@@ -641,11 +555,14 @@ const SchedulesComponent = ({ employeeId }: { employeeId: number }) => {
     return <div>Error loading data</div>;
   }
 
-  const weekDates = daysOfWeek.reduce((acc, day, index) => {
-    const date = addDays(getStartOfWeek(currentDate), index);
-    acc[day] = format(date, "M/d");
-    return acc;
-  }, {} as { [key: string]: string });
+  const weekDates = daysOfWeek.reduce(
+    (acc, day, index) => {
+      const date = addDays(getStartOfWeek(currentDate), index);
+      acc[day] = format(date, 'M/d');
+      return acc;
+    },
+    {} as { [key: string]: string }
+  );
 
   return (
     <div className="flex flex-col items-center space-y-4 p-4 overflow-hidden">
@@ -671,9 +588,7 @@ const SchedulesComponent = ({ employeeId }: { employeeId: number }) => {
             ))}
           </TableRow>
         </TableHeader>
-        <TableBody>
-          {calendarData?.map((employee) => renderEmployeeRow(employee))}
-        </TableBody>
+        <TableBody>{calendarData?.map((employee) => renderEmployeeRow(employee))}</TableBody>
       </Table>
     </div>
   );

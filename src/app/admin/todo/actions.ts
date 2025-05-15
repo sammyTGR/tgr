@@ -1,8 +1,8 @@
-"use server";
+'use server';
 
-import { createClient } from "@/utils/supabase/server";
-import { revalidatePath } from "next/cache";
-import { Todo } from "@/lib/interface";
+import { createClient } from '@/utils/supabase/server';
+import { revalidatePath } from 'next/cache';
+import { Todo } from '@/lib/interface';
 
 export async function addTodo(formData: FormData) {
   try {
@@ -14,21 +14,21 @@ export async function addTodo(formData: FormData) {
     } = await supabase.auth.getUser();
 
     if (userError) {
-      console.error("Error getting user:", userError);
-      throw new Error("Authentication failed");
+      console.error('Error getting user:', userError);
+      throw new Error('Authentication failed');
     }
 
     if (!user) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
-    const task = formData.get("task");
-    if (typeof task !== "string" || task.trim() === "") {
-      throw new Error("Invalid task");
+    const task = formData.get('task');
+    if (typeof task !== 'string' || task.trim() === '') {
+      throw new Error('Invalid task');
     }
 
     const { error } = await supabase
-      .from("todos")
+      .from('todos')
       .insert([
         {
           user_id: user.id,
@@ -40,13 +40,13 @@ export async function addTodo(formData: FormData) {
       .select();
 
     if (error) {
-      console.error("Error inserting todo:", error);
+      console.error('Error inserting todo:', error);
       throw new Error(error.message);
     }
 
-    revalidatePath("/");
+    revalidatePath('/');
   } catch (error) {
-    console.error("Error in addTodo:", error);
+    console.error('Error in addTodo:', error);
     throw error;
   }
 }
@@ -59,10 +59,10 @@ export async function editTodo(todo: Todo) {
   } = await supabase.auth.getUser();
 
   const { error } = await supabase
-    .from("todos")
+    .from('todos')
     .update({ task: todo.task })
-    .eq("id", todo.id)
-    .eq("user_id", user?.id)
+    .eq('id', todo.id)
+    .eq('user_id', user?.id)
     .select();
 
   if (error) {
@@ -73,28 +73,25 @@ export async function editTodo(todo: Todo) {
 export async function deleteTodo(id: number) {
   const supabase = createClient();
 
-  const { error } = await supabase.from("todos").delete().eq("id", id);
+  const { error } = await supabase.from('todos').delete().eq('id', id);
 
   if (error) {
     throw new Error(error.message);
   }
 
-  revalidatePath("/");
+  revalidatePath('/');
 }
 
 export async function deleteCompletedTodos() {
   const supabase = createClient();
 
-  const { error } = await supabase
-    .from("todos")
-    .delete()
-    .eq("is_complete", true);
+  const { error } = await supabase.from('todos').delete().eq('is_complete', true);
 
   if (error) {
     throw new Error(error.message);
   }
 
-  revalidatePath("/");
+  revalidatePath('/');
 }
 
 export async function deleteAllTodos() {
@@ -104,45 +101,42 @@ export async function deleteAllTodos() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { error } = await supabase
-    .from("todos")
-    .delete()
-    .eq("user_id", user?.id);
+  const { error } = await supabase.from('todos').delete().eq('user_id', user?.id);
 
   if (error) {
     throw new Error(error.message);
   }
 
-  revalidatePath("/");
+  revalidatePath('/');
 }
 
 export async function onCheckChange(todo: Todo) {
   try {
     const supabase = createClient();
 
-    if (!todo || typeof todo.id === "undefined") {
-      throw new Error("Invalid todo object");
+    if (!todo || typeof todo.id === 'undefined') {
+      throw new Error('Invalid todo object');
     }
 
     const completed_at = !todo.is_complete ? new Date().toISOString() : null;
 
     const { error } = await supabase
-      .from("todos")
-      .update({ 
+      .from('todos')
+      .update({
         is_complete: !todo.is_complete,
-        completed_at: completed_at
+        completed_at: completed_at,
       })
-      .eq("id", todo.id)
+      .eq('id', todo.id)
       .select();
 
     if (error) {
-      console.error("Error updating todo:", error);
+      console.error('Error updating todo:', error);
       throw new Error(error.message);
     }
 
-    revalidatePath("/");
+    revalidatePath('/');
   } catch (error) {
-    console.error("Error in onCheckChange:", error);
+    console.error('Error in onCheckChange:', error);
     throw error;
   }
 }

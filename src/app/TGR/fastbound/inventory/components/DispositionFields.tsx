@@ -1,16 +1,16 @@
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { SearchParams } from "../types";
-import { DateInput } from "./DateInput";
-import { validateDateRange } from "../utils/dateValidation";
-import { useState, useEffect } from "react";
+} from '@/components/ui/select';
+import { SearchParams } from '../types';
+import { DateInput } from './DateInput';
+import { validateDateRange } from '../utils/dateValidation';
+import { useState, useEffect } from 'react';
 
 interface DispositionFieldsProps {
   searchParams: SearchParams | undefined;
@@ -27,34 +27,34 @@ export function DispositionFields({
 
   useEffect(() => {
     const error = validateDateRange(
-      searchParams?.disposedOnAfter || "",
-      searchParams?.disposedOnBefore || ""
+      searchParams?.disposedOnAfter || '',
+      searchParams?.disposedOnBefore || ''
     );
     setDateRangeError(error);
   }, [searchParams?.disposedOnAfter, searchParams?.disposedOnBefore]);
 
   const dispositionFields = [
-    "disposedOnAfter",
-    "disposedOnBefore",
-    "disposedType",
-    "manufacturingDisposedType",
-    "disposedToLicenseName",
-    "disposedToFFL",
-    "disposedToTradeName",
-    "disposedToFirstName",
-    "disposedToLastName",
-    "disposedOrganizationName",
-    "disposedToAddress1",
-    "disposedToAddress2",
-    "disposedToCity",
-    "disposedToState",
-    "disposedToZip",
-    "disposedToCountry",
-    "disposedToPONumber",
-    "disposedToInvoiceNumber",
-    "disposedToShipmentTracking",
-    "ttsn",
-    "otsn",
+    'disposedOnAfter',
+    'disposedOnBefore',
+    'disposedType',
+    'manufacturingDisposedType',
+    'disposedToLicenseName',
+    'disposedToFFL',
+    'disposedToTradeName',
+    'disposedToFirstName',
+    'disposedToLastName',
+    'disposedOrganizationName',
+    'disposedToAddress1',
+    'disposedToAddress2',
+    'disposedToCity',
+    'disposedToState',
+    'disposedToZip',
+    'disposedToCountry',
+    'disposedToPONumber',
+    'disposedToInvoiceNumber',
+    'disposedToShipmentTracking',
+    'ttsn',
+    'otsn',
   ];
 
   return (
@@ -64,7 +64,7 @@ export function DispositionFields({
           id="disposedOnAfter"
           name="disposedOnAfter"
           label="Disposed On or After"
-          value={searchParams?.disposedOnAfter || ""}
+          value={searchParams?.disposedOnAfter || ''}
           onChange={onInputChange}
           error={dateRangeError ?? undefined}
         />
@@ -72,7 +72,7 @@ export function DispositionFields({
           id="disposedOnBefore"
           name="disposedOnBefore"
           label="Disposed On or Before"
-          value={searchParams?.disposedOnBefore || ""}
+          value={searchParams?.disposedOnBefore || ''}
           onChange={onInputChange}
           error={dateRangeError ?? undefined}
         />
@@ -80,35 +80,31 @@ export function DispositionFields({
       {dispositionFields.map((field) => (
         <div key={field}>
           <Label htmlFor={field}>
-            {field === "ttsn"
-              ? "T.T.S.N"
-              : field === "otsn"
-              ? "O.T.S.N"
-              : field.split(/(?=[A-Z])/).join(" ")}
+            {field === 'ttsn'
+              ? 'T.T.S.N'
+              : field === 'otsn'
+                ? 'O.T.S.N'
+                : field.split(/(?=[A-Z])/).join(' ')}
           </Label>
-          {field === "disposedType" || field === "manufacturingDisposedType" ? (
+          {field === 'disposedType' || field === 'manufacturingDisposedType' ? (
             <Select
               onValueChange={(value) => onSelectChange(field, value)}
-              value={
-                searchParams?.[field as keyof SearchParams]?.toString() ?? ""
-              }
+              value={searchParams?.[field as keyof SearchParams]?.toString() ?? ''}
             >
               <SelectTrigger>
                 <SelectValue placeholder={`Select ${field}`} />
               </SelectTrigger>
               <SelectContent>
-                {field === "disposedType" && (
+                {field === 'disposedType' && (
                   <>
                     <SelectItem value="sale">Sale</SelectItem>
                     <SelectItem value="theft">Theft/Loss</SelectItem>
-                    <SelectItem value="return">
-                      Return to Manufacturer
-                    </SelectItem>
+                    <SelectItem value="return">Return to Manufacturer</SelectItem>
                     <SelectItem value="destruction">Destruction</SelectItem>
                     <SelectItem value="error">Error/Correction</SelectItem>
                   </>
                 )}
-                {field === "manufacturingDisposedType" && (
+                {field === 'manufacturingDisposedType' && (
                   <>
                     <SelectItem value="manufacture">Manufacture</SelectItem>
                     <SelectItem value="assembly">Assembly</SelectItem>
@@ -122,11 +118,9 @@ export function DispositionFields({
             <Input
               id={field}
               name={field}
-              value={
-                searchParams?.[field as keyof SearchParams]?.toString() ?? ""
-              }
+              value={searchParams?.[field as keyof SearchParams]?.toString() ?? ''}
               onChange={onInputChange}
-              type={field.includes("Date") ? "date" : "text"}
+              type={field.includes('Date') ? 'date' : 'text'}
             />
           )}
         </div>

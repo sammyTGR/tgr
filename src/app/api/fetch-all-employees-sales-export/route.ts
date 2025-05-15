@@ -1,12 +1,12 @@
-import { NextResponse } from "next/server";
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
-import { formatInTimeZone } from "date-fns-tz";
-import { parseISO } from "date-fns";
-import { Database } from "@/types_db";
-import { toZonedTime } from "date-fns-tz";
+import { NextResponse } from 'next/server';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
+import { formatInTimeZone } from 'date-fns-tz';
+import { parseISO } from 'date-fns';
+import { Database } from '@/types_db';
+import { toZonedTime } from 'date-fns-tz';
 
-const TIMEZONE = "America/Los_Angeles";
+const TIMEZONE = 'America/Los_Angeles';
 const PAGE_SIZE = 1000;
 
 export async function POST(request: Request) {
@@ -17,10 +17,7 @@ export async function POST(request: Request) {
     const { dateRange, employeeLanids, descriptionSearch } = body;
 
     if (!dateRange) {
-      return NextResponse.json(
-        { error: "Missing date range" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Missing date range' }, { status: 400 });
     }
 
     // Convert dates to UTC with timezone consideration
@@ -34,10 +31,10 @@ export async function POST(request: Request) {
 
     // First get active employees
     const { data: activeEmployees, error: employeesError } = await supabase
-      .from("employees")
-      .select("lanid, name, last_name")
-      .eq("status", "active")
-      .in("department", ["Sales", "Range", "Operations"]);
+      .from('employees')
+      .select('lanid, name, last_name')
+      .eq('status', 'active')
+      .in('department', ['Sales', 'Range', 'Operations']);
 
     if (employeesError) {
       throw employeesError;
@@ -47,21 +44,21 @@ export async function POST(request: Request) {
     const employeeMap = new Map(
       activeEmployees?.map((emp) => [
         emp.lanid?.toLowerCase(),
-        `${emp.name || ""} ${emp.last_name || ""}`.trim(),
+        `${emp.name || ''} ${emp.last_name || ''}`.trim(),
       ]) || []
     );
 
     // Get total count first
     let query = supabase
-      .from("detailed_sales_data")
-      .select("*", { count: "exact", head: true })
-      .gte("SoldDate", fromDate.toISOString())
-      .lte("SoldDate", toDate.toISOString())
-      .not("SoldDate", "is", null);
+      .from('detailed_sales_data')
+      .select('*', { count: 'exact', head: true })
+      .gte('SoldDate', fromDate.toISOString())
+      .lte('SoldDate', toDate.toISOString())
+      .not('SoldDate', 'is', null);
 
     // Apply employee filter
-    if (employeeLanids && !employeeLanids.includes("all")) {
-      query = query.in("Lanid", employeeLanids);
+    if (employeeLanids && !employeeLanids.includes('all')) {
+      query = query.in('Lanid', employeeLanids);
     }
 
     // Add description search
@@ -87,7 +84,7 @@ export async function POST(request: Request) {
       const to = from + PAGE_SIZE - 1;
 
       let pageQuery = supabase
-        .from("detailed_sales_data")
+        .from('detailed_sales_data')
         .select(
           `
           "SoldDate",
@@ -106,14 +103,14 @@ export async function POST(request: Request) {
           "Full_Name"
         `
         )
-        .gte("SoldDate", fromDate.toISOString())
-        .lte("SoldDate", toDate.toISOString())
-        .not("SoldDate", "is", null)
-        .order("SoldDate", { ascending: true })
+        .gte('SoldDate', fromDate.toISOString())
+        .lte('SoldDate', toDate.toISOString())
+        .not('SoldDate', 'is', null)
+        .order('SoldDate', { ascending: true })
         .range(from, to);
 
-      if (employeeLanids && !employeeLanids.includes("all")) {
-        pageQuery = pageQuery.in("Lanid", employeeLanids);
+      if (employeeLanids && !employeeLanids.includes('all')) {
+        pageQuery = pageQuery.in('Lanid', employeeLanids);
       }
 
       if (descriptionSearch) {
@@ -141,15 +138,13 @@ export async function POST(request: Request) {
         const saleDate = toZonedTime(new Date(sale.SoldDate), TIMEZONE);
         return {
           ...sale,
-          Date: formatInTimeZone(saleDate, TIMEZONE, "yyyy-MM-dd"),
+          Date: formatInTimeZone(saleDate, TIMEZONE, 'yyyy-MM-dd'),
           Invoice: sale.SoldRef,
           employee_name:
-            employeeMap.get(sale.Lanid?.toLowerCase() || "") ||
-            sale.Full_Name ||
-            "Unknown",
+            employeeMap.get(sale.Lanid?.toLowerCase() || '') || sale.Full_Name || 'Unknown',
           Category: sale.CatDesc,
           Subcategory: sale.SubDesc,
-          "Sold Quantity": sale.Qty,
+          'Sold Quantity': sale.Qty,
           total_net: sale.Margin,
         };
       });
@@ -168,11 +163,11 @@ export async function POST(request: Request) {
       data: transformedData,
     });
   } catch (error) {
-    console.error("Failed to fetch export data:", error);
+    console.error('Failed to fetch export data:', error);
     return NextResponse.json(
       {
-        error: "Failed to fetch export data",
-        details: error instanceof Error ? error.message : "Unknown error",
+        error: 'Failed to fetch export data',
+        details: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );

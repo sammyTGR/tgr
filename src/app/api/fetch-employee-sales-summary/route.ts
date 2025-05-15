@@ -1,8 +1,8 @@
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
-import { Database } from "@/types_db";
-import { toZonedTime as zonedTimeToUtc } from "date-fns-tz";
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
+import { NextResponse } from 'next/server';
+import { Database } from '@/types_db';
+import { toZonedTime as zonedTimeToUtc } from 'date-fns-tz';
 
 interface RequestBody {
   dateRange: {
@@ -18,15 +18,13 @@ interface SalesAggregation {
   total_net: number;
 }
 
-const TIMEZONE = "America/Los_Angeles";
+const TIMEZONE = 'America/Los_Angeles';
 
 // Add validation and debug logging for date ranges
 const validateDateRange = (from: string, to: string) => {
   const fromDate = new Date(from);
   const toDate = new Date(to);
-  const daysDifference = Math.ceil(
-    (toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24)
-  );
+  const daysDifference = Math.ceil((toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24));
 
   // console.log("Date Range Validation:", {
   //   from,
@@ -83,25 +81,22 @@ export async function POST(req: Request) {
     // console.log("Date validation:", { isValid, daysDifference });
 
     if (!isValid) {
-      console.error("Invalid date range:", {
+      console.error('Invalid date range:', {
         from: fromDate.toISOString(),
         to: toDate.toISOString(),
       });
-      return NextResponse.json(
-        { error: "Invalid date range" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Invalid date range' }, { status: 400 });
     }
 
     // First get active employees
     const { data: activeEmployees, error: employeesError } = await supabase
-      .from("employees")
-      .select("lanid, name")
-      .eq("status", "active")
-      .in("department", ["Sales", "Range", "Operations"]);
+      .from('employees')
+      .select('lanid, name')
+      .eq('status', 'active')
+      .in('department', ['Sales', 'Range', 'Operations']);
 
     if (employeesError) {
-      console.error("Error fetching employees:", employeesError);
+      console.error('Error fetching employees:', employeesError);
       throw employeesError;
     }
 
@@ -115,8 +110,7 @@ export async function POST(req: Request) {
       activeEmployees?.map((emp) => [emp.lanid?.toLowerCase(), emp.name]) || []
     );
 
-    const employeeLanids =
-      body.employeeLanids || activeEmployees?.map((e) => e.lanid) || [];
+    const employeeLanids = body.employeeLanids || activeEmployees?.map((e) => e.lanid) || [];
 
     // Get aggregated sales data with timeout
     const rpcParams = {
@@ -133,24 +127,23 @@ export async function POST(req: Request) {
 
     // Race between the RPC call and a timeout
     const { data: salesData, error: salesError } = (await Promise.race([
-      supabase.rpc("get_employee_sales_summary", rpcParams),
+      supabase.rpc('get_employee_sales_summary', rpcParams),
       timeoutPromise(30000), // 30 second timeout
     ])) as { data: SalesAggregation[] | null; error: any };
 
     if (salesError) {
-      console.error("RPC Error:", {
+      console.error('RPC Error:', {
         error: salesError,
         params: rpcParams,
         timestamp: new Date().toISOString(),
       });
 
       // Check if it's a timeout error
-      if (salesError.message?.includes("timeout")) {
+      if (salesError.message?.includes('timeout')) {
         return NextResponse.json(
           {
-            error: "Request timed out",
-            details:
-              "The request took too long to process. Please try with a smaller date range.",
+            error: 'Request timed out',
+            details: 'The request took too long to process. Please try with a smaller date range.',
           },
           { status: 504 }
         );
@@ -167,8 +160,8 @@ export async function POST(req: Request) {
     // Process the pre-aggregated data
     const processedData = (salesData || [])
       .map((row: SalesAggregation) => ({
-        Lanid: row.Lanid || "",
-        employee_name: employeeMap.get(row.Lanid?.toLowerCase() || "") || "",
+        Lanid: row.Lanid || '',
+        employee_name: employeeMap.get(row.Lanid?.toLowerCase() || '') || '',
         total_gross: Number(row.total_gross) || 0,
         total_net: Number(row.total_net) || 0,
       }))
@@ -176,24 +169,23 @@ export async function POST(req: Request) {
 
     return NextResponse.json(processedData);
   } catch (error) {
-    console.error("API Error:", {
-      message: error instanceof Error ? error.message : "Unknown error",
+    console.error('API Error:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
       error,
       timestamp: new Date().toISOString(),
     });
 
     // Return a more specific error message
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
-    const status = errorMessage.includes("timeout") ? 504 : 500;
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const status = errorMessage.includes('timeout') ? 504 : 500;
 
     return NextResponse.json(
       {
-        error: "Failed to fetch employee summary",
+        error: 'Failed to fetch employee summary',
         details: errorMessage,
         suggestion:
           status === 504
-            ? "Try reducing the date range or filtering by specific employees"
+            ? 'Try reducing the date range or filtering by specific employees'
             : undefined,
       },
       { status }

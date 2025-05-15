@@ -1,8 +1,8 @@
-"use client";
-import { useState } from "react";
-import { DotsHorizontalIcon } from "@radix-ui/react-icons";
-import { Row } from "@tanstack/react-table";
-import { Button } from "@/components/ui/button";
+'use client';
+import { useState } from 'react';
+import { DotsHorizontalIcon } from '@radix-ui/react-icons';
+import { Row } from '@tanstack/react-table';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,11 +12,11 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Textarea } from "@/components/ui/textarea";
-import { supabase } from "@/utils/supabase/client";
-import { FirearmsMaintenanceData } from "./columns";
-import { maintenanceFrequencies } from "./columns"; // Import frequency options
+} from '@/components/ui/dropdown-menu';
+import { Textarea } from '@/components/ui/textarea';
+import { supabase } from '@/utils/supabase/client';
+import { FirearmsMaintenanceData } from './columns';
+import { maintenanceFrequencies } from './columns'; // Import frequency options
 import {
   Dialog,
   DialogClose,
@@ -25,7 +25,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 
 interface DataTableRowActionsProps {
   row: Row<FirearmsMaintenanceData>;
@@ -48,43 +48,41 @@ export function DataTableRowActions({
 }: DataTableRowActionsProps) {
   const task = row.original;
   const [open, setOpen] = useState(false);
-  const [maintenanceNotes, setMaintenanceNotes] = useState(
-    task.maintenance_notes || ""
-  );
+  const [maintenanceNotes, setMaintenanceNotes] = useState(task.maintenance_notes || '');
 
   const handleStatusChange = async (status: string | null) => {
     const { error } = await supabase
-      .from("firearms_maintenance")
+      .from('firearms_maintenance')
       .update({ status })
-      .eq("id", task.id);
+      .eq('id', task.id);
 
     if (error) {
-      console.error("Error updating status:", error.message);
+      console.error('Error updating status:', error.message);
     } else {
       onStatusChange(task.id, status);
     }
   };
 
   const newStatusOptions = [
-    "Repaired",
-    "Under Repair",
-    "Had To Send Out",
-    "Waiting For Parts",
-    "Prepping For Sale",
+    'Repaired',
+    'Under Repair',
+    'Had To Send Out',
+    'Waiting For Parts',
+    'Prepping For Sale',
     null, // Clear status
   ];
 
   const handleSaveNotes = async () => {
     const { error } = await supabase
-      .from("firearms_maintenance")
+      .from('firearms_maintenance')
       .update({
         maintenance_notes: maintenanceNotes,
         last_maintenance_date: new Date().toISOString(),
       })
-      .eq("id", task.id);
+      .eq('id', task.id);
 
     if (error) {
-      console.error("Error saving maintenance notes:", error.message);
+      console.error('Error saving maintenance notes:', error.message);
     } else {
       onNotesChange(task.id, maintenanceNotes);
       setOpen(false);
@@ -93,30 +91,25 @@ export function DataTableRowActions({
 
   const handleFrequencyChange = async (frequency: number) => {
     const { error } = await supabase
-      .from("firearms_maintenance")
+      .from('firearms_maintenance')
       .update({ maintenance_frequency: frequency })
-      .eq("id", task.id);
+      .eq('id', task.id);
 
     if (error) {
-      console.error("Error updating frequency:", error.message);
+      console.error('Error updating frequency:', error.message);
     } else {
       onUpdateFrequency(task.id, frequency);
     }
   };
 
-  const canEditNotes = ["gunsmith", "admin", "super admin", "dev"].includes(
-    userRole
-  );
-  const canDeleteFirearm = ["admin", "super admin", "dev"].includes(userRole);
+  const canEditNotes = ['gunsmith', 'admin', 'super admin', 'dev'].includes(userRole);
+  const canDeleteFirearm = ['admin', 'super admin', 'dev'].includes(userRole);
 
   return (
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            className="flex h-8 w-8 p-0 data-[state=open]:bg-muted"
-          >
+          <Button variant="ghost" className="flex h-8 w-8 p-0 data-[state=open]:bg-muted">
             <DotsHorizontalIcon className="h-4 w-4" />
             <span className="sr-only">Open menu</span>
           </Button>
@@ -132,10 +125,7 @@ export function DataTableRowActions({
             <DropdownMenuSubTrigger>Frequency</DropdownMenuSubTrigger>
             <DropdownMenuSubContent>
               {maintenanceFrequencies.map(({ label, value }) => (
-                <DropdownMenuItem
-                  key={value}
-                  onSelect={() => handleFrequencyChange(value)}
-                >
+                <DropdownMenuItem key={value} onSelect={() => handleFrequencyChange(value)}>
                   {label}
                 </DropdownMenuItem>
               ))}
@@ -145,32 +135,22 @@ export function DataTableRowActions({
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>Status</DropdownMenuSubTrigger>
             <DropdownMenuSubContent>
-              <DropdownMenuItem onSelect={() => handleStatusChange("Repaired")}>
+              <DropdownMenuItem onSelect={() => handleStatusChange('Repaired')}>
                 Repaired
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onSelect={() => handleStatusChange("Under Repair")}
-              >
+              <DropdownMenuItem onSelect={() => handleStatusChange('Under Repair')}>
                 Under Repair
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onSelect={() => handleStatusChange("Maintenance Completed")}
-              >
+              <DropdownMenuItem onSelect={() => handleStatusChange('Maintenance Completed')}>
                 Maintenance Completed
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onSelect={() => handleStatusChange("Had To Send Out")}
-              >
+              <DropdownMenuItem onSelect={() => handleStatusChange('Had To Send Out')}>
                 Had To Send Out
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onSelect={() => handleStatusChange("Waiting For Parts")}
-              >
+              <DropdownMenuItem onSelect={() => handleStatusChange('Waiting For Parts')}>
                 Waiting For Parts
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onSelect={() => handleStatusChange("Prepping For Sale")}
-              >
+              <DropdownMenuItem onSelect={() => handleStatusChange('Prepping For Sale')}>
                 Prepping For Sale
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => handleStatusChange(null)}>
@@ -192,9 +172,7 @@ export function DataTableRowActions({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Enter Maintenance Notes</DialogTitle>
-            <DialogDescription>
-              Please enter the details of the maintenance.
-            </DialogDescription>
+            <DialogDescription>Please enter the details of the maintenance.</DialogDescription>
           </DialogHeader>
           <Textarea
             placeholder="Enter maintenance notes..."

@@ -1,4 +1,4 @@
-import * as React from "react";
+import * as React from 'react';
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -9,7 +9,7 @@ import {
   getFilteredRowModel,
   getSortedRowModel,
   useReactTable,
-} from "@tanstack/react-table";
+} from '@tanstack/react-table';
 import {
   Table,
   TableBody,
@@ -17,19 +17,19 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { ChevronDown, X } from "lucide-react";
+} from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { ChevronDown, X } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { FirearmsMaintenanceData, columns } from "./columns";
-import { DataTableFacetedFilter } from "./data-table-faceted-filter";
-import { Input } from "@/components/ui/input";
-import { DataTableRowActions } from "./data-table-row-actions";
+} from '@/components/ui/dropdown-menu';
+import { FirearmsMaintenanceData, columns } from './columns';
+import { DataTableFacetedFilter } from './data-table-faceted-filter';
+import { Input } from '@/components/ui/input';
+import { DataTableRowActions } from './data-table-row-actions';
 
 interface DataTableProps<TData extends FirearmsMaintenanceData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -60,12 +60,9 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
   onRequestInspection,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [searchValue, setSearchValue] = React.useState("");
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
-  );
-  const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({});
+  const [searchValue, setSearchValue] = React.useState('');
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
 
   const table = useReactTable({
     data,
@@ -91,18 +88,18 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
   });
 
   const handleSelect = (selectedValues: string[]) => {
-    table.getColumn("notes")?.setFilterValue(selectedValues);
+    table.getColumn('notes')?.setFilterValue(selectedValues);
   };
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value;
     setSearchValue(value);
-    table.getColumn("firearm_name")?.setFilterValue(value);
+    table.getColumn('firearm_name')?.setFilterValue(value);
   };
 
   const clearSearch = () => {
-    setSearchValue("");
-    table.getColumn("firearm_name")?.setFilterValue("");
+    setSearchValue('');
+    table.getColumn('firearm_name')?.setFilterValue('');
   };
 
   return (
@@ -131,11 +128,11 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
             columnId="notes"
             title="Filter By Notes"
             options={[
-              { label: "With Gunsmith", value: "With Gunsmith" },
-              { label: "Currently Rented Out", value: "Currently Rented Out" },
+              { label: 'With Gunsmith', value: 'With Gunsmith' },
+              { label: 'Currently Rented Out', value: 'Currently Rented Out' },
             ]}
             onSelect={(selectedValues) =>
-              table.getColumn("notes")?.setFilterValue(selectedValues.join(","))
+              table.getColumn('notes')?.setFilterValue(selectedValues.join(','))
             }
           />
         </div>
@@ -155,9 +152,7 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
                     key={column.id}
                     className="capitalize"
                     checked={column.getIsVisible()}
-                    onCheckedChange={(value) =>
-                      column.toggleVisibility(!!value)
-                    }
+                    onCheckedChange={(value) => column.toggleVisibility(!!value)}
                   >
                     {column.id}
                   </DropdownMenuCheckboxItem>
@@ -181,10 +176,7 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
                     <TableHead key={header.id} style={metaStyle}>
                       {header.isPlaceholder
                         ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
+                        : flexRender(header.column.columnDef.header, header.getContext())}
                     </TableHead>
                   );
                 })}
@@ -196,12 +188,8 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                  className={
-                    row.original.highlight
-                      ? `text-${row.original.highlight}`
-                      : ""
-                  }
+                  data-state={row.getIsSelected() && 'selected'}
+                  className={row.original.highlight ? `text-${row.original.highlight}` : ''}
                 >
                   {row.getVisibleCells().map((cell) => {
                     const metaStyle = (
@@ -211,10 +199,7 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
                     )?.style;
                     return (
                       <TableCell key={cell.id} style={metaStyle}>
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </TableCell>
                     );
                   })}
@@ -234,10 +219,7 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
               ))
             ) : (
               <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
+                <TableCell colSpan={columns.length} className="h-24 text-center">
                   No results.
                 </TableCell>
               </TableRow>

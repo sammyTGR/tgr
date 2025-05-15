@@ -1,9 +1,9 @@
-"use client";
-import { ColumnDef as BaseColumnDef } from "@tanstack/react-table";
-import { DataTableColumnHeader } from "../../admin/audits/review/data-table-column-header";
-import { OrderTableRowActions } from "./order-table-row-actions";
-import { statuses } from "./data";
-import { includesArrayString } from "./custom-filter";
+'use client';
+import { ColumnDef as BaseColumnDef } from '@tanstack/react-table';
+import { DataTableColumnHeader } from '../../admin/audits/review/data-table-column-header';
+import { OrderTableRowActions } from './order-table-row-actions';
+import { statuses } from './data';
+import { includesArrayString } from './custom-filter';
 
 export type Order = {
   is_read: any;
@@ -23,10 +23,7 @@ export type Order = {
   status: string;
 };
 
-export type ColumnDef<TData, TValue = unknown> = BaseColumnDef<
-  TData,
-  TValue
-> & {
+export type ColumnDef<TData, TValue = unknown> = BaseColumnDef<TData, TValue> & {
   meta?: {
     style?: React.CSSProperties;
   };
@@ -37,123 +34,101 @@ export const createColumns = (
   markAsContacted: (id: number) => void
 ): ColumnDef<Order>[] => [
   {
-    accessorKey: "employee",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Employee" />
-    ),
+    accessorKey: 'employee',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Employee" />,
     meta: {
-      style: { width: "30px" },
+      style: { width: '30px' },
     },
   },
   {
-    accessorKey: "customer_type",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Customer Type" />
-    ),
+    accessorKey: 'customer_type',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Customer Type" />,
     meta: {
-      style: { width: "30px", overflow: "hidden" },
+      style: { width: '30px', overflow: 'hidden' },
     },
   },
   {
-    accessorKey: "inquiry_type",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Inquiry Type" />
-    ),
+    accessorKey: 'inquiry_type',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Inquiry Type" />,
     meta: {
-      style: { width: "100px" },
+      style: { width: '100px' },
     },
   },
   {
-    accessorKey: "customer_name",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Customer Name" />
-    ),
+    accessorKey: 'customer_name',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Customer Name" />,
     meta: {
-      style: { width: "200px" },
+      style: { width: '200px' },
     },
   },
   {
-    accessorKey: "email",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Email" />
-    ),
+    accessorKey: 'email',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Email" />,
     meta: {
-      style: { width: "200px" },
+      style: { width: '200px' },
     },
   },
   {
-    accessorKey: "phone",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Phone" />
-    ),
+    accessorKey: 'phone',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Phone" />,
     meta: {
-      style: { width: "200px" },
+      style: { width: '200px' },
     },
   },
   {
-    accessorKey: "manufacturer",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Manufacturer" />
-    ),
+    accessorKey: 'manufacturer',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Manufacturer" />,
     meta: {
-      style: { width: "150px" },
+      style: { width: '150px' },
     },
   },
   {
-    accessorKey: "item",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Item/Model" />
-    ),
+    accessorKey: 'item',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Item/Model" />,
     meta: {
-      style: { width: "150px" },
+      style: { width: '150px' },
     },
   },
   {
-    accessorKey: "details",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Details" />
-    ),
+    accessorKey: 'details',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Details" />,
     meta: {
-      style: { width: "250px", overflow: "hidden" },
+      style: { width: '250px', overflow: 'hidden' },
     },
   },
   {
-    accessorKey: "created_at",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Date Submitted" />
-    ),
+    accessorKey: 'created_at',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Date Submitted" />,
     cell: ({ row }) => new Date(row.original.created_at).toLocaleDateString(),
     meta: {
-      style: { width: "150px" },
+      style: { width: '150px' },
     },
   },
   {
-    accessorKey: "status",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Status" />
-    ),
+    accessorKey: 'status',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
     cell: ({ row }) => {
       const status = statuses.find((s) => s.value === row.original.status);
       return status ? status.label : row.original.status;
     },
     meta: {
-      style: { width: "150px" },
+      style: { width: '150px' },
     },
     filterFn: includesArrayString,
   },
   {
-    accessorKey: "action",
-    header: "Action",
+    accessorKey: 'action',
+    header: 'Action',
     cell: ({ row }) => (
       <OrderTableRowActions
         row={row}
         markAsContacted={markAsContacted}
-        undoMarkAsContacted={(id) => setStatus(id, "not_contacted")}
+        undoMarkAsContacted={(id) => setStatus(id, 'not_contacted')}
         setStatus={setStatus}
       />
     ),
     meta: {
-      style: { width: "150px" },
+      style: { width: '150px' },
     },
   },
 ];

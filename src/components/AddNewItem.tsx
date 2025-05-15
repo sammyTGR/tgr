@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -7,31 +7,27 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import React, { useCallback, useState } from "react";
-import { PlusIcon } from "@radix-ui/react-icons";
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import React, { useCallback, useState } from 'react';
+import { PlusIcon } from '@radix-ui/react-icons';
 
-export function AddNewItem({
-  addNewItem,
-}: {
-  addNewItem: (name: string) => void;
-}) {
-  const [itemName, setItemName] = React.useState("");
+export function AddNewItem({ addNewItem }: { addNewItem: (name: string) => void }) {
+  const [itemName, setItemName] = React.useState('');
   const [isOpen, setIsOpen] = useState(false);
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
-      if (itemName.trim() === "") {
+      if (itemName.trim() === '') {
         return;
       }
       try {
         await addNewItem(itemName);
         // console.log("New item added successfully");
-        setItemName("");
+        setItemName('');
       } catch (error) {
-        console.error("Error adding new item:", error);
+        console.error('Error adding new item:', error);
       } finally {
         setIsOpen(false);
       }
@@ -49,17 +45,13 @@ export function AddNewItem({
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader className="text-start">
           <DialogTitle>Add New Item</DialogTitle>
-          <DialogDescription>
-            You Can Drag Your Items To Different Lists
-          </DialogDescription>
+          <DialogDescription>You Can Drag Your Items To Different Lists</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 pt-2">
           <Input
             id="name"
             value={itemName}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              setItemName(e.target.value)
-            }
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setItemName(e.target.value)}
           />
         </div>
         <DialogFooter>

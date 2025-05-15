@@ -1,29 +1,25 @@
 // src/app/admin/reports/sales/sales-data-table-employee.tsx
-import React from "react";
+import React from 'react';
 import {
   useReactTable,
   getCoreRowModel,
   getPaginationRowModel,
   getFilteredRowModel,
   SortingState,
-} from "@tanstack/react-table";
-import { DataTableEmployee } from "./data-table-employee";
-import { employeeSalesColumns } from "./columns-employee";
-import { toast } from "sonner";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Calendar } from "@/components/ui/calendar";
-import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { format, startOfDay, endOfDay } from "date-fns";
-import { formatInTimeZone } from "date-fns-tz";
-import { type DateRange } from "react-day-picker";
-import { Card } from "@/components/ui/card";
+} from '@tanstack/react-table';
+import { DataTableEmployee } from './data-table-employee';
+import { employeeSalesColumns } from './columns-employee';
+import { toast } from 'sonner';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Calendar } from '@/components/ui/calendar';
+import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { format, startOfDay, endOfDay } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
+import { type DateRange } from 'react-day-picker';
+import { Card } from '@/components/ui/card';
 
-const TIMEZONE = "America/Los_Angeles";
+const TIMEZONE = 'America/Los_Angeles';
 
 interface SalesData {
   id: number;
@@ -42,16 +38,12 @@ interface SalesDataTableEmployeeProps {
   employeeId: number;
 }
 
-const SalesDataTableEmployee: React.FC<SalesDataTableEmployeeProps> = ({
-  employeeId,
-}) => {
+const SalesDataTableEmployee: React.FC<SalesDataTableEmployeeProps> = ({ employeeId }) => {
   const queryClient = useQueryClient();
   const [pageIndex, setPageIndex] = React.useState(0);
   const [pageSize, setPageSize] = React.useState(10);
   const [filters, setFilters] = React.useState<any[]>([]);
-  const [sorting, setSorting] = React.useState<SortingState>([
-    { id: "Date", desc: true },
-  ]);
+  const [sorting, setSorting] = React.useState<SortingState>([{ id: 'Date', desc: true }]);
   const [dateRange, setDateRange] = React.useState<DateRange>({
     from: undefined,
     to: undefined,
@@ -59,34 +51,20 @@ const SalesDataTableEmployee: React.FC<SalesDataTableEmployeeProps> = ({
 
   // Updated query with proper timezone handling
   const { data: salesData, isLoading } = useQuery({
-    queryKey: [
-      "employeeSales",
-      employeeId,
-      pageIndex,
-      pageSize,
-      filters,
-      sorting,
-      dateRange,
-    ],
+    queryKey: ['employeeSales', employeeId, pageIndex, pageSize, filters, sorting, dateRange],
     queryFn: async () => {
       const adjustedDateRange =
         dateRange.from && dateRange.to
           ? {
-              from: format(
-                startOfDay(new Date(dateRange.from)),
-                "yyyy-MM-dd'T'00:00:00.000'Z'"
-              ),
-              to: format(
-                endOfDay(new Date(dateRange.to)),
-                "yyyy-MM-dd'T'23:59:59.999'Z'"
-              ),
+              from: format(startOfDay(new Date(dateRange.from)), "yyyy-MM-dd'T'00:00:00.000'Z'"),
+              to: format(endOfDay(new Date(dateRange.to)), "yyyy-MM-dd'T'23:59:59.999'Z'"),
             }
           : undefined;
 
-      const response = await fetch("/api/fetch-employee-sales-data", {
-        method: "POST",
+      const response = await fetch('/api/fetch-employee-sales-data', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           employeeId,
@@ -99,7 +77,7 @@ const SalesDataTableEmployee: React.FC<SalesDataTableEmployeeProps> = ({
       });
 
       if (!response.ok) {
-        throw new Error("Failed to fetch sales data");
+        throw new Error('Failed to fetch sales data');
       }
 
       return response.json();
@@ -109,17 +87,11 @@ const SalesDataTableEmployee: React.FC<SalesDataTableEmployeeProps> = ({
 
   // Update sales data mutation
   const updateSalesMutation = useMutation({
-    mutationFn: async ({
-      id,
-      updates,
-    }: {
-      id: number;
-      updates: Partial<SalesData>;
-    }) => {
+    mutationFn: async ({ id, updates }: { id: number; updates: Partial<SalesData> }) => {
       const response = await fetch(`/api/update-sales-data/${id}`, {
-        method: "PUT",
+        method: 'PUT',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify(updates),
       });
@@ -131,11 +103,11 @@ const SalesDataTableEmployee: React.FC<SalesDataTableEmployeeProps> = ({
       return response.json();
     },
     onSuccess: () => {
-      toast.success("Labels updated successfully.");
-      queryClient.invalidateQueries({ queryKey: ["employeeSales"] });
+      toast.success('Labels updated successfully.');
+      queryClient.invalidateQueries({ queryKey: ['employeeSales'] });
     },
     onError: () => {
-      toast.error("Failed to update labels.");
+      toast.error('Failed to update labels.');
     },
   });
 
@@ -152,9 +124,7 @@ const SalesDataTableEmployee: React.FC<SalesDataTableEmployeeProps> = ({
     },
     onPaginationChange: (updater) => {
       const newPaginationState =
-        typeof updater === "function"
-          ? updater({ pageIndex, pageSize })
-          : updater;
+        typeof updater === 'function' ? updater({ pageIndex, pageSize }) : updater;
       setPageIndex(newPaginationState.pageIndex);
       setPageSize(newPaginationState.pageSize);
     },
@@ -181,14 +151,13 @@ const SalesDataTableEmployee: React.FC<SalesDataTableEmployeeProps> = ({
               {dateRange.from ? (
                 dateRange.to ? (
                   <>
-                    {format(dateRange.from, "LLL dd, y")} -{" "}
-                    {format(dateRange.to, "LLL dd, y")}
+                    {format(dateRange.from, 'LLL dd, y')} - {format(dateRange.to, 'LLL dd, y')}
                   </>
                 ) : (
-                  format(dateRange.from, "LLL dd, y")
+                  format(dateRange.from, 'LLL dd, y')
                 )
               ) : (
-                "Pick a date range"
+                'Pick a date range'
               )}
             </Button>
           </PopoverTrigger>

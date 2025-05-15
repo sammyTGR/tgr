@@ -1,17 +1,11 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { useState, useEffect } from "react";
-import { ModeToggle } from "@/components/mode-toggle";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import {
-  AvatarIcon,
-  HomeIcon,
-  MoonIcon,
-  ShadowIcon,
-  SunIcon,
-} from "@radix-ui/react-icons";
+import * as React from 'react';
+import { useState, useEffect } from 'react';
+import { ModeToggle } from '@/components/mode-toggle';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { AvatarIcon, HomeIcon, MoonIcon, ShadowIcon, SunIcon } from '@radix-ui/react-icons';
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -19,11 +13,11 @@ import {
   NavigationMenuLink,
   NavigationMenuList,
   NavigationMenuTrigger,
-} from "@/components/ui/navigation-menu";
-import { cn } from "@/lib/utils";
-import { supabase } from "@/utils/supabase/client";
-import RoleBasedWrapper from "@/components/RoleBasedWrapper";
-import { PersonIcon, ChevronDownIcon } from "@radix-ui/react-icons"; // Add icons import
+} from '@/components/ui/navigation-menu';
+import { cn } from '@/lib/utils';
+import { supabase } from '@/utils/supabase/client';
+import RoleBasedWrapper from '@/components/RoleBasedWrapper';
+import { PersonIcon, ChevronDownIcon } from '@radix-ui/react-icons'; // Add icons import
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,37 +28,37 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { useTheme } from "next-themes";
-import LoadingIndicator from "@/components/LoadingIndicator";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import dynamic from "next/dynamic";
+} from '@/components/ui/dropdown-menu';
+import { useTheme } from 'next-themes';
+import LoadingIndicator from '@/components/LoadingIndicator';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import dynamic from 'next/dynamic';
 
 const accountComponents = [
   {
-    title: "Account Settings",
-    href: "/customer/profiles",
-    description: "Manage your account settings and preferences.",
+    title: 'Account Settings',
+    href: '/customer/profiles',
+    description: 'Manage your account settings and preferences.',
   },
   {
-    title: "Order History",
-    href: "/customer/orders",
-    description: "View your past orders and track current ones.",
+    title: 'Order History',
+    href: '/customer/orders',
+    description: 'View your past orders and track current ones.',
   },
 ];
 
 const profileMenuItems = [
   {
-    title: "Settings",
-    href: "/public/profiles",
-    description: "Manage your account settings and preferences.",
+    title: 'Settings',
+    href: '/public/profiles',
+    description: 'Manage your account settings and preferences.',
   },
 ];
 
 const LazyNavigationMenu = dynamic(
   () =>
-    import("@/components/ui/navigation-menu").then((module) => ({
+    import('@/components/ui/navigation-menu').then((module) => ({
       default: module.NavigationMenu,
     })),
   {
@@ -74,7 +68,7 @@ const LazyNavigationMenu = dynamic(
 
 const LazyNavigationMenuList = dynamic(
   () =>
-    import("@/components/ui/navigation-menu").then((module) => ({
+    import('@/components/ui/navigation-menu').then((module) => ({
       default: module.NavigationMenuList,
     })),
   {
@@ -84,7 +78,7 @@ const LazyNavigationMenuList = dynamic(
 
 const LazyDropdownMenu = dynamic(
   () =>
-    import("@/components/ui/dropdown-menu").then((module) => ({
+    import('@/components/ui/dropdown-menu').then((module) => ({
       default: module.DropdownMenu,
     })),
   {
@@ -98,18 +92,18 @@ const HeaderCustomer = React.memo(() => {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-const { isLoading } = useQuery({
-  queryKey: ["navigation", pathname, searchParams],
-  queryFn: () => {
-    return Promise.resolve(
-      new Promise((resolve) => {
-        setTimeout(() => resolve(null), 100);
-      })
-    );
-  },
-  staleTime: 0, // Always refetch on route change
-  refetchInterval: 0, // Disable automatic refetching
-});
+  const { isLoading } = useQuery({
+    queryKey: ['navigation', pathname, searchParams],
+    queryFn: () => {
+      return Promise.resolve(
+        new Promise((resolve) => {
+          setTimeout(() => resolve(null), 100);
+        })
+      );
+    },
+    staleTime: 0, // Always refetch on route change
+    refetchInterval: 0, // Disable automatic refetching
+  });
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -124,11 +118,11 @@ const { isLoading } = useQuery({
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
-    window.location.href = "/"; // Redirect to sign-in page after sign-out
+    window.location.href = '/'; // Redirect to sign-in page after sign-out
   };
 
   return (
-    <RoleBasedWrapper allowedRoles={["customer"]}>
+    <RoleBasedWrapper allowedRoles={['customer']}>
       {isLoading && <LoadingIndicator />}
       <header className="flex justify-between items-center">
         <LazyNavigationMenu>
@@ -156,11 +150,7 @@ const { isLoading } = useQuery({
               <NavigationMenuContent>
                 <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
                   {accountComponents.map((component) => (
-                    <ListItem
-                      key={component.title}
-                      title={component.title}
-                      href={component.href}
-                    >
+                    <ListItem key={component.title} title={component.title} href={component.href}>
                       {component.description}
                     </ListItem>
                   ))}
@@ -215,11 +205,11 @@ const { isLoading } = useQuery({
                     </DropdownMenuSubTrigger>
                     <DropdownMenuPortal>
                       <DropdownMenuSubContent>
-                        <DropdownMenuItem onClick={() => setTheme("light")}>
+                        <DropdownMenuItem onClick={() => setTheme('light')}>
                           <SunIcon className="mr-2 h-4 w-4" />
                           <span>Light</span>
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setTheme("dark")}>
+                        <DropdownMenuItem onClick={() => setTheme('dark')}>
                           <MoonIcon className="mr-2 h-4 w-4" />
                           <span>Dark</span>
                         </DropdownMenuItem>
@@ -228,9 +218,7 @@ const { isLoading } = useQuery({
                   </DropdownMenuSub>
 
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut}>
-                    Sign Out
-                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleSignOut}>Sign Out</DropdownMenuItem>
                 </DropdownMenuContent>
               </LazyDropdownMenu>
             </>
@@ -251,44 +239,41 @@ const { isLoading } = useQuery({
   );
 });
 
-HeaderCustomer.displayName = "HeaderCustomer";
+HeaderCustomer.displayName = 'HeaderCustomer';
 
-const ListItem = React.forwardRef<
-  React.ElementRef<"a">,
-  React.ComponentPropsWithoutRef<"a">
->(({ className, title, children, href, ...props }, ref) => {
-  const queryClient = useQueryClient();
-  const router = useRouter();
+const ListItem = React.forwardRef<React.ElementRef<'a'>, React.ComponentPropsWithoutRef<'a'>>(
+  ({ className, title, children, href, ...props }, ref) => {
+    const queryClient = useQueryClient();
+    const router = useRouter();
 
-  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault();
-    queryClient.invalidateQueries({ queryKey: ["navigation"] });
-    router.push(href || "");
-  };
+    const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+      e.preventDefault();
+      queryClient.invalidateQueries({ queryKey: ['navigation'] });
+      router.push(href || '');
+    };
 
-  return (
-    <li>
-      <NavigationMenuLink asChild>
-        <a
-          ref={ref}
-          href={href}
-          onClick={handleClick}
-          className={cn(
-            "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
-            className
-          )}
-          {...props}
-        >
-          <div className="text-sm font-medium leading-none">{title}</div>
-          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-            {children}
-          </p>
-        </a>
-      </NavigationMenuLink>
-    </li>
-  );
-});
+    return (
+      <li>
+        <NavigationMenuLink asChild>
+          <a
+            ref={ref}
+            href={href}
+            onClick={handleClick}
+            className={cn(
+              'block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground',
+              className
+            )}
+            {...props}
+          >
+            <div className="text-sm font-medium leading-none">{title}</div>
+            <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">{children}</p>
+          </a>
+        </NavigationMenuLink>
+      </li>
+    );
+  }
+);
 
-ListItem.displayName = "ListItem";
+ListItem.displayName = 'ListItem';
 
 export default HeaderCustomer;

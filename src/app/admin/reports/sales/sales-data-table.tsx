@@ -1,5 +1,5 @@
 // src/app/admin/reports/sales/sales-data-table.tsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -12,11 +12,11 @@ import {
   ColumnFiltersState,
   VisibilityState,
   OnChangeFn,
-} from "@tanstack/react-table";
-import { SalesTableToolbar } from "./sales-table-toolbar";
-import { salesColumns } from "./columns";
-import { toast } from "sonner";
-import { supabase } from "@/utils/supabase/client";
+} from '@tanstack/react-table';
+import { SalesTableToolbar } from './sales-table-toolbar';
+import { salesColumns } from './columns';
+import { toast } from 'sonner';
+import { supabase } from '@/utils/supabase/client';
 import {
   Table,
   TableBody,
@@ -24,21 +24,21 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
+} from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { ChevronDown } from "lucide-react";
-import { SalesDataTablePagination } from "./data-table-pagination";
-import { Input } from "@/components/ui/input";
-import { format, startOfDay, endOfDay, parseISO, addDays } from "date-fns";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import classNames from "classnames";
-import styles from "./table.module.css";
+} from '@/components/ui/dropdown-menu';
+import { ChevronDown } from 'lucide-react';
+import { SalesDataTablePagination } from './data-table-pagination';
+import { Input } from '@/components/ui/input';
+import { format, startOfDay, endOfDay, parseISO, addDays } from 'date-fns';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import classNames from 'classnames';
+import styles from './table.module.css';
 
 interface SalesData {
   id: number;
@@ -74,10 +74,7 @@ interface SalesDataTableProps {
   endDate?: string;
 }
 
-const SalesDataTable: React.FC<SalesDataTableProps> = ({
-  startDate,
-  endDate,
-}) => {
+const SalesDataTable: React.FC<SalesDataTableProps> = ({ startDate, endDate }) => {
   const [sales, setSales] = useState<SalesData[]>([]);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -89,45 +86,38 @@ const SalesDataTable: React.FC<SalesDataTableProps> = ({
   const [isLoading, setIsLoading] = useState(false);
 
   const onUpdate = async (id: number, updates: Partial<SalesData>) => {
-    const { error } = await supabase
-      .from("sales_data")
-      .update(updates)
-      .eq("id", id);
+    const { error } = await supabase.from('sales_data').update(updates).eq('id', id);
     if (error) {
       //console.("Error updating sales data:", error);
-      toast.error("Failed to update labels.");
+      toast.error('Failed to update labels.');
     } else {
       setSales((currentSales) =>
-        currentSales.map((sale) =>
-          sale.id === id ? { ...sale, ...updates } : sale
-        )
+        currentSales.map((sale) => (sale.id === id ? { ...sale, ...updates } : sale))
       );
-      toast.success("Labels updated successfully.");
+      toast.success('Labels updated successfully.');
     }
   };
 
   const columns = useMemo(() => salesColumns(onUpdate), []);
 
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(
-    () => {
-      const initialVisibility: VisibilityState = {};
-      columns.forEach((column) => {
-        if (column.id) {
-          initialVisibility[column.id] = column.initial !== false;
-        }
-      });
-      return initialVisibility;
-    }
-  );
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(() => {
+    const initialVisibility: VisibilityState = {};
+    columns.forEach((column) => {
+      if (column.id) {
+        initialVisibility[column.id] = column.initial !== false;
+      }
+    });
+    return initialVisibility;
+  });
 
   const fetchSalesData = async () => {
     setIsLoading(true);
     try {
       // console.log("Fetching data with dates:", { startDate, endDate });
-      const response = await fetch("/api/fetch-sales-data", {
-        method: "POST",
+      const response = await fetch('/api/fetch-sales-data', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           startDate,
@@ -143,15 +133,15 @@ const SalesDataTable: React.FC<SalesDataTableProps> = ({
         // Convert dates to UTC
         const formattedData = data.map((item) => ({
           ...item,
-          Date: new Date(item.Date + "T00:00:00Z").toISOString().split("T")[0],
+          Date: new Date(item.Date + 'T00:00:00Z').toISOString().split('T')[0],
         }));
         // console.log("Formatted data:", formattedData);
 
         // Filter data based on UTC dates
         const filteredData = formattedData.filter((item) => {
-          const itemDate = new Date(item.Date + "T00:00:00Z");
-          const start = new Date(startDate + "T00:00:00Z");
-          const end = new Date(endDate + "T23:59:59.999Z");
+          const itemDate = new Date(item.Date + 'T00:00:00Z');
+          const start = new Date(startDate + 'T00:00:00Z');
+          const end = new Date(endDate + 'T23:59:59.999Z');
 
           // console.log("Comparing dates:", {
           //   itemDate: itemDate.toISOString(),
@@ -168,11 +158,11 @@ const SalesDataTable: React.FC<SalesDataTableProps> = ({
         setPageCount(Math.ceil(filteredData.length / pageSize));
       } else {
         //console.("Unexpected data format:", data);
-        toast.error("Received unexpected data format");
+        toast.error('Received unexpected data format');
       }
     } catch (error) {
       //console.("Failed to fetch sales data:", error);
-      toast.error("Failed to fetch sales data.");
+      toast.error('Failed to fetch sales data.');
     } finally {
       setIsLoading(false);
     }
@@ -184,13 +174,9 @@ const SalesDataTable: React.FC<SalesDataTableProps> = ({
     }
   }, [startDate, endDate, pageIndex, pageSize, sorting, columnFilters]);
 
-  const handleFilterChange: OnChangeFn<ColumnFiltersState> = (
-    updaterOrValue
-  ) => {
+  const handleFilterChange: OnChangeFn<ColumnFiltersState> = (updaterOrValue) => {
     setColumnFilters((old) =>
-      typeof updaterOrValue === "function"
-        ? updaterOrValue(old)
-        : updaterOrValue
+      typeof updaterOrValue === 'function' ? updaterOrValue(old) : updaterOrValue
     );
   };
 
@@ -198,9 +184,7 @@ const SalesDataTable: React.FC<SalesDataTableProps> = ({
     updaterOrValue: SortingState | ((old: SortingState) => SortingState)
   ) => {
     setSorting((old) =>
-      typeof updaterOrValue === "function"
-        ? updaterOrValue(old)
-        : updaterOrValue
+      typeof updaterOrValue === 'function' ? updaterOrValue(old) : updaterOrValue
     );
   };
 
@@ -225,9 +209,7 @@ const SalesDataTable: React.FC<SalesDataTableProps> = ({
 
     onPaginationChange: (updater) => {
       const newPaginationState =
-        typeof updater === "function"
-          ? updater({ pageIndex, pageSize })
-          : updater;
+        typeof updater === 'function' ? updater({ pageIndex, pageSize }) : updater;
       setPageIndex(newPaginationState.pageIndex);
       setPageSize(newPaginationState.pageSize);
     },
@@ -244,10 +226,8 @@ const SalesDataTable: React.FC<SalesDataTableProps> = ({
       <div className="flex flex-row items-center justify-between mx-2 my-2 overflow-hidden">
         <Input
           placeholder="Filter sales by rep..."
-          value={(table.getColumn("Lanid")?.getFilterValue() as string) ?? ""}
-          onChange={(event) =>
-            table.getColumn("Lanid")?.setFilterValue(event.target.value)
-          }
+          value={(table.getColumn('Lanid')?.getFilterValue() as string) ?? ''}
+          onChange={(event) => table.getColumn('Lanid')?.setFilterValue(event.target.value)}
           className=" max-w-sm w-full"
         />
         <DropdownMenu>
@@ -266,9 +246,7 @@ const SalesDataTable: React.FC<SalesDataTableProps> = ({
                     key={column.id}
                     className="capitalize"
                     checked={column.getIsVisible()}
-                    onCheckedChange={(value) =>
-                      column.toggleVisibility(!!value)
-                    }
+                    onCheckedChange={(value) => column.toggleVisibility(!!value)}
                   >
                     {column.id}
                   </DropdownMenuCheckboxItem>
@@ -282,7 +260,7 @@ const SalesDataTable: React.FC<SalesDataTableProps> = ({
           <ScrollArea
             className={classNames(
               styles.noScroll,
-              "h-[calc(100vh-500px)] w-[calc(100vw-100px)] overflow-auto relative"
+              'h-[calc(100vh-500px)] w-[calc(100vw-100px)] overflow-auto relative'
             )}
           >
             <Table className="w-full overflow-hidden">
@@ -293,10 +271,7 @@ const SalesDataTable: React.FC<SalesDataTableProps> = ({
                       <TableHead key={header.id}>
                         {header.isPlaceholder
                           ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
+                          : flexRender(header.column.columnDef.header, header.getContext())}
                       </TableHead>
                     ))}
                   </TableRow>
@@ -305,33 +280,21 @@ const SalesDataTable: React.FC<SalesDataTableProps> = ({
               <TableBody className="overflow-hidden">
                 {isLoading ? (
                   <TableRow className="overflow-hidden">
-                    <TableCell
-                      colSpan={columns.length}
-                      className="h-24 text-center"
-                    ></TableCell>
+                    <TableCell colSpan={columns.length} className="h-24 text-center"></TableCell>
                   </TableRow>
                 ) : table.getRowModel().rows?.length ? (
                   table.getRowModel().rows.map((row) => (
-                    <TableRow
-                      key={row.id}
-                      data-state={row.getIsSelected() && "selected"}
-                    >
+                    <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'}>
                       {row.getVisibleCells().map((cell) => (
                         <TableCell key={cell.id}>
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext()
-                          )}
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </TableCell>
                       ))}
                     </TableRow>
                   ))
                 ) : (
                   <TableRow className="overflow-hidden">
-                    <TableCell
-                      colSpan={columns.length}
-                      className="h-24 text-left"
-                    >
+                    <TableCell colSpan={columns.length} className="h-24 text-left">
                       No results found.
                     </TableCell>
                   </TableRow>

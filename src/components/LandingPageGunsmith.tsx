@@ -1,7 +1,7 @@
-"use client";
-import React from "react";
-import Link from "next/link";
-import { TextGenerateEffect } from "./ui/text-generate-effect";
+'use client';
+import React from 'react';
+import Link from 'next/link';
+import { TextGenerateEffect } from './ui/text-generate-effect';
 import {
   DrosGuidanceCard,
   TimeOffRequestCard,
@@ -15,15 +15,15 @@ import {
   PointsCard,
   CrewOrdersCard,
   GunsmithingCard,
-} from "@/components/LandingCards";
-import { Separator } from "./ui/separator";
-import { useRole } from "../context/RoleContext";
-import { Button } from "./ui/button";
-import LoadingIndicator from "@/components/LoadingIndicator";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+} from '@/components/LandingCards';
+import { Separator } from './ui/separator';
+import { useRole } from '../context/RoleContext';
+import { Button } from './ui/button';
+import LoadingIndicator from '@/components/LoadingIndicator';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
-const words = "Gunsmithing Dashboard";
+const words = 'Gunsmithing Dashboard';
 const subwords = "Let's Fix Shit!";
 
 const LandingPageGunsmith: React.FC = React.memo(() => {
@@ -31,7 +31,7 @@ const LandingPageGunsmith: React.FC = React.memo(() => {
   const searchParams = useSearchParams();
 
   const { isLoading } = useQuery({
-    queryKey: ["navigation", pathname, searchParams],
+    queryKey: ['navigation', pathname, searchParams],
     queryFn: async () => {
       // Simulate a delay to show the loading indicator
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -43,7 +43,7 @@ const LandingPageGunsmith: React.FC = React.memo(() => {
 
   const { role } = useRole();
 
-  if (role !== "gunsmith") {
+  if (role !== 'gunsmith') {
     return (
       <div>
         {isLoading && <LoadingIndicator />}
@@ -111,6 +111,6 @@ const LandingPageGunsmith: React.FC = React.memo(() => {
   );
 });
 
-LandingPageGunsmith.displayName = "LandingPageGunsmith";
+LandingPageGunsmith.displayName = 'LandingPageGunsmith';
 
 export default LandingPageGunsmith;

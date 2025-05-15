@@ -26,17 +26,15 @@ export const useFilteredEmployees = () => {
       );
 
       // Get unique salesreps from audit data
-      const uniqueSalesReps = Array.from(
-        new Set(auditData.map(audit => audit.salesreps))
-      );
+      const uniqueSalesReps = Array.from(new Set(auditData.map((audit) => audit.salesreps)));
 
       // Filter and transform the data
       return uniqueSalesReps
-        .map(lanid => ({
+        .map((lanid) => ({
           lanid,
-          department: employeeDepartments.get(lanid)
+          department: employeeDepartments.get(lanid),
         }))
-        .filter(emp => emp.department !== 'Operations')
+        .filter((emp) => emp.department !== 'Operations')
         .sort((a, b) => a.lanid.localeCompare(b.lanid));
     },
   });

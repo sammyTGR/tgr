@@ -1,22 +1,19 @@
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
-import { toZonedTime, formatInTimeZone } from "date-fns-tz";
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
+import { NextResponse } from 'next/server';
+import { toZonedTime, formatInTimeZone } from 'date-fns-tz';
 
-const TIMEZONE = "America/Los_Angeles";
+const TIMEZONE = 'America/Los_Angeles';
 
 export async function GET(request: Request) {
   try {
     const supabase = createRouteHandlerClient({ cookies });
     const { searchParams } = new URL(request.url);
-    const start = searchParams.get("start");
-    const end = searchParams.get("end");
+    const start = searchParams.get('start');
+    const end = searchParams.get('end');
 
     if (!start || !end) {
-      return NextResponse.json(
-        { error: "Date range is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Date range is required' }, { status: 400 });
     }
 
     // Convert the input dates to Pacific time
@@ -28,16 +25,8 @@ export async function GET(request: Request) {
     endDatePacific.setHours(23, 59, 59, 999);
 
     // Format the dates in Pacific time for the database query
-    const startDate = formatInTimeZone(
-      startDatePacific,
-      TIMEZONE,
-      "yyyy-MM-dd'T'HH:mm:ss.SSSXXX"
-    );
-    const endDate = formatInTimeZone(
-      endDatePacific,
-      TIMEZONE,
-      "yyyy-MM-dd'T'HH:mm:ss.SSSXXX"
-    );
+    const startDate = formatInTimeZone(startDatePacific, TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
+    const endDate = formatInTimeZone(endDatePacific, TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
 
     // console.log("Date processing:", {
     //   rawStart: start,
@@ -57,10 +46,10 @@ export async function GET(request: Request) {
     // });
 
     // Set timezone for the database session
-    await supabase.rpc("set_timezone", { timezone: TIMEZONE });
+    await supabase.rpc('set_timezone', { timezone: TIMEZONE });
 
     const { data, error } = await supabase
-      .from("detailed_sales_data")
+      .from('detailed_sales_data')
       .select(
         `
         "Lanid",
@@ -72,9 +61,9 @@ export async function GET(request: Request) {
         "SoldDate"
       `
       )
-      .gte("SoldDate", startDate)
-      .lte("SoldDate", endDate)
-      .order("SoldDate", { ascending: true });
+      .gte('SoldDate', startDate)
+      .lte('SoldDate', endDate)
+      .order('SoldDate', { ascending: true });
 
     // console.log("Query result:", {
     //   recordCount: data?.length,
@@ -91,11 +80,8 @@ export async function GET(request: Request) {
     // });
 
     if (error) {
-      console.error("Database error:", error);
-      return NextResponse.json(
-        { error: "Error fetching sales data" },
-        { status: 500 }
-      );
+      console.error('Database error:', error);
+      return NextResponse.json({ error: 'Error fetching sales data' }, { status: 500 });
     }
 
     // Create a map to track unique transactions
@@ -118,15 +104,15 @@ export async function GET(request: Request) {
 
     // Process the filtered data
     const processedData = uniqueData.reduce((acc: any, sale: any) => {
-      const lanid = sale.Lanid || "Unknown";
-      const category = sale.CatDesc || "Uncategorized";
+      const lanid = sale.Lanid || 'Unknown';
+      const category = sale.CatDesc || 'Uncategorized';
       const grossValue = Number(sale.total_gross) || 0;
       const netValue = Number(sale.Margin) || 0;
 
       if (!acc[lanid]) {
         acc[lanid] = {
           Lanid: lanid,
-          last_name: sale.Last || "Unknown",
+          last_name: sale.Last || 'Unknown',
           Total: 0,
           TotalMinusExclusions: 0,
         };
@@ -141,10 +127,10 @@ export async function GET(request: Request) {
       acc[lanid].Total += netValue;
 
       const excludeFromTotal = [
-        "CA Tax Gun Transfer",
-        "CA Tax Adjust",
-        "CA Excise Tax",
-        "CA Excise Tax Adjustment",
+        'CA Tax Gun Transfer',
+        'CA Tax Adjust',
+        'CA Excise Tax',
+        'CA Excise Tax Adjustment',
       ];
 
       if (!excludeFromTotal.includes(category)) {
@@ -179,10 +165,7 @@ export async function GET(request: Request) {
     const result = Object.values(processedData);
     return NextResponse.json(result);
   } catch (error) {
-    console.error("Server error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    console.error('Server error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

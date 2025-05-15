@@ -1,28 +1,28 @@
-"use client";
-import React from "react";
-import { Button } from "@/components/ui/button";
+'use client';
+import React from 'react';
+import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import IDsCard from "../cards/IDsCard";
-import dynamic from "next/dynamic";
-import { supabase } from "../../../../utils/supabase/client";
-import FedsCard from "../cards/FedsCard";
-import RoleBasedWrapper from "@/components/RoleBasedWrapper";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import BannedFirearmsPage from "../banned/page";
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useSidebar } from "@/components/ui/sidebar";
+} from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import IDsCard from '../cards/IDsCard';
+import dynamic from 'next/dynamic';
+import { supabase } from '../../../../utils/supabase/client';
+import FedsCard from '../cards/FedsCard';
+import RoleBasedWrapper from '@/components/RoleBasedWrapper';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import BannedFirearmsPage from '../banned/page';
+import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useSidebar } from '@/components/ui/sidebar';
 
 type DataRow = string[];
 type Data = DataRow[];
-const SupportMenu = dynamic(() => import("@/components/ui/SupportNavMenu"), {
+const SupportMenu = dynamic(() => import('@/components/ui/SupportNavMenu'), {
   ssr: false,
 });
 
@@ -41,23 +41,19 @@ interface DropdownItem {
 export default function DROSGuide() {
   const { state } = useSidebar();
   const queryClient = useQueryClient();
-  const [activeDialogContentId, setActiveDialogContentId] = useState<
-    string | null
-  >(null);
+  const [activeDialogContentId, setActiveDialogContentId] = useState<string | null>(null);
 
   const { data: dropsData = [], isLoading } = useQuery({
-    queryKey: ["drops-data"],
+    queryKey: ['drops-data'],
     queryFn: async () => {
-      const { data: fetchedData, error } = await supabase
-        .from("Drops")
-        .select("*");
+      const { data: fetchedData, error } = await supabase.from('Drops').select('*');
       if (error) throw error;
       return fetchedData as DropdownItem[];
     },
   });
 
   const { data: selections = Array(8).fill(null) } = useQuery({
-    queryKey: ["selections"],
+    queryKey: ['selections'],
     initialData: Array(8).fill(null),
   });
 
@@ -66,7 +62,7 @@ export default function DROSGuide() {
       return Promise.resolve(newSelections);
     },
     onSuccess: (newSelections) => {
-      queryClient.setQueryData(["selections"], newSelections);
+      queryClient.setQueryData(['selections'], newSelections);
     },
   });
 
@@ -76,9 +72,9 @@ export default function DROSGuide() {
 
   const renderDialogContent = () => {
     switch (activeDialogContentId) {
-      case "IDsCard":
+      case 'IDsCard':
         return <IDsCard />;
-      case "FedsCard":
+      case 'FedsCard':
         return <FedsCard />;
       default:
         return null;
@@ -90,27 +86,23 @@ export default function DROSGuide() {
 
     let filteredData = dropsData;
     const keys: (keyof DropdownItem)[] = [
-      "product",
-      "type",
-      "availability",
-      "validity",
-      "residency",
-      "address",
-      "document",
-      "blank",
-      "requirements",
+      'product',
+      'type',
+      'availability',
+      'validity',
+      'residency',
+      'address',
+      'document',
+      'blank',
+      'requirements',
     ];
 
     for (let i = 0; i < index; i++) {
       if (selections[i] !== null) {
-        filteredData = filteredData.filter(
-          (item) => item[keys[i]] === selections[i]
-        );
+        filteredData = filteredData.filter((item) => item[keys[i]] === selections[i]);
       }
     }
-    return Array.from(
-      new Set(filteredData.map((item) => item[keys[index]]))
-    ).filter(Boolean);
+    return Array.from(new Set(filteredData.map((item) => item[keys[index]]))).filter(Boolean);
   };
 
   const handleSelectionChange = (selectIndex: number, value: string) => {
@@ -137,7 +129,7 @@ export default function DROSGuide() {
     const areSevenDropdownsSelected = selections
       .slice(0, 7)
       .every((selection) => selection !== null);
-    const isBlankAutomaticallySet = selections[7] === "";
+    const isBlankAutomaticallySet = selections[7] === '';
 
     if (areSevenDropdownsSelected && isBlankAutomaticallySet) {
       return true;
@@ -151,26 +143,23 @@ export default function DROSGuide() {
   const columnHText = canShowColumnH()
     ? dropsData.find((row) => {
         const keys: (keyof DropdownItem)[] = [
-          "product",
-          "type",
-          "availability",
-          "validity",
-          "residency",
-          "address",
-          "document",
-          "requirements",
+          'product',
+          'type',
+          'availability',
+          'validity',
+          'residency',
+          'address',
+          'document',
+          'requirements',
         ];
         return selections.every(
-          (selection, index) =>
-            selection === null || row[keys[index]] === selection
+          (selection, index) => selection === null || row[keys[index]] === selection
         );
       })?.requirements
-    : "";
+    : '';
 
   return (
-    <RoleBasedWrapper
-      allowedRoles={["user", "auditor", "admin", "super admin", "dev"]}
-    >
+    <RoleBasedWrapper allowedRoles={['user', 'auditor', 'admin', 'super admin', 'dev']}>
       <div
         className={`flex flex-col space-y-4 w-full ml-4 md:ml-4 lg:ml-4 overflow-hidden md:w-[calc(100vw-15rem)] lg:w-[calc(100vw-20rem)] transition-all duration-300`}
       >
@@ -183,9 +172,7 @@ export default function DROSGuide() {
         <Tabs defaultValue="dros-guide" className="space-y-6">
           <TabsList>
             <TabsTrigger value="dros-guide">DROS Guide</TabsTrigger>
-            <TabsTrigger value="assault-weapons">
-              Banned Assault Weapons
-            </TabsTrigger>
+            <TabsTrigger value="assault-weapons">Banned Assault Weapons</TabsTrigger>
           </TabsList>
 
           <TabsContent value="dros-guide">
@@ -209,24 +196,18 @@ export default function DROSGuide() {
                         <Select
                           key={index}
                           disabled={index > 0 && selections[index - 1] === null}
-                          onValueChange={(value) =>
-                            handleSelectionChange(index, value)
-                          }
+                          onValueChange={(value) => handleSelectionChange(index, value)}
                           value={selection || undefined}
                         >
                           <SelectTrigger>
-                            <SelectValue
-                              placeholder={selection === null ? `` : selection}
-                            />
+                            <SelectValue placeholder={selection === null ? `` : selection} />
                           </SelectTrigger>
                           <SelectContent>
-                            {getOptionsForSelect(index).map(
-                              (option, optionIndex) => (
-                                <SelectItem key={optionIndex} value={option}>
-                                  {option}
-                                </SelectItem>
-                              )
-                            )}
+                            {getOptionsForSelect(index).map((option, optionIndex) => (
+                              <SelectItem key={optionIndex} value={option}>
+                                {option}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       );
@@ -242,22 +223,16 @@ export default function DROSGuide() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-1">
-                      {(columnHText as string)
-                        .split("\n")
-                        .map((line, index) => (
-                          <p key={index}>{line}</p>
-                        ))}
+                      {(columnHText as string).split('\n').map((line, index) => (
+                        <p key={index}>{line}</p>
+                      ))}
                     </div>
                   </CardContent>
                 </Card>
               )}
 
               <div className="flex justify-end">
-                <Button
-                  variant="gooeyLeft"
-                  onClick={resetSelections}
-                  className="w-full sm:w-auto"
-                >
+                <Button variant="gooeyLeft" onClick={resetSelections} className="w-full sm:w-auto">
                   Reset Selections
                 </Button>
               </div>

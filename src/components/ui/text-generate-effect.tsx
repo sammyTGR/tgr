@@ -1,20 +1,14 @@
-"use client";
-import { useEffect } from "react";
-import { motion, stagger, useAnimate } from "framer-motion";
-import { cn } from "@/lib/cn";
+'use client';
+import { useEffect } from 'react';
+import { motion, stagger, useAnimate } from 'framer-motion';
+import { cn } from '@/lib/cn';
 
-export const TextGenerateEffect = ({
-  words,
-  className,
-}: {
-  words: string;
-  className?: string;
-}) => {
+export const TextGenerateEffect = ({ words, className }: { words: string; className?: string }) => {
   const [scope, animate] = useAnimate();
-  let wordsArray = words.split(" ");
+  let wordsArray = words.split(' ');
   useEffect(() => {
     animate(
-      "span",
+      'span',
       {
         opacity: 1,
       },
@@ -35,7 +29,7 @@ export const TextGenerateEffect = ({
               key={word + idx}
               className="dark:text-white text-gray-800 opacity-0 leading-snug tracking-tight"
             >
-              {word}{" "}
+              {word}{' '}
             </motion.span>
           );
         })}
@@ -44,7 +38,7 @@ export const TextGenerateEffect = ({
   };
 
   return (
-    <div className={cn("font-bold", className)}>
+    <div className={cn('font-bold', className)}>
       <div className="">
         <div className="dark:text-white text-amber-500 leading-snug tracking-tight">
           {renderWords()}

@@ -1,8 +1,8 @@
-"use client";
-import { useState } from "react";
-import { DotsHorizontalIcon } from "@radix-ui/react-icons";
-import { Row } from "@tanstack/react-table";
-import { Button } from "@/components/ui/button";
+'use client';
+import { useState } from 'react';
+import { DotsHorizontalIcon } from '@radix-ui/react-icons';
+import { Row } from '@tanstack/react-table';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,9 +12,9 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { supabase } from "@/utils/supabase/client";
-import { FirearmsMaintenanceData } from "./columns";
+} from '@/components/ui/dropdown-menu';
+import { supabase } from '@/utils/supabase/client';
+import { FirearmsMaintenanceData } from './columns';
 import {
   Dialog,
   DialogClose,
@@ -23,10 +23,10 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { VerificationForm } from "./verification-form";
-import EditFirearmForm from "./EditFirearmForm";
-import { Textarea } from "@/components/ui/textarea";
+} from '@/components/ui/dialog';
+import { VerificationForm } from './verification-form';
+import EditFirearmForm from './EditFirearmForm';
+import { Textarea } from '@/components/ui/textarea';
 
 interface DataTableRowActionsProps {
   row: Row<FirearmsMaintenanceData>;
@@ -59,44 +59,44 @@ export function DataTableRowActions({
   const [data, setData] = useState<FirearmsMaintenanceData[]>([]);
   const [openEditFirearm, setOpenEditFirearm] = useState(false);
   const [openInspectionRequest, setOpenInspectionRequest] = useState(false);
-  const [inspectionNotes, setInspectionNotes] = useState("");
+  const [inspectionNotes, setInspectionNotes] = useState('');
 
   const handleRequestInspection = () => {
     onRequestInspection(task.id, inspectionNotes);
     setOpenInspectionRequest(false);
-    setInspectionNotes("");
+    setInspectionNotes('');
   };
 
   const handleSetGunsmithStatus = async (status: string) => {
     try {
-      if (status === "Returned From Gunsmith") {
+      if (status === 'Returned From Gunsmith') {
         const { error } = await supabase
-          .from("firearms_maintenance")
-          .update({ rental_notes: "", verified_status: "" })
-          .eq("id", task.id);
+          .from('firearms_maintenance')
+          .update({ rental_notes: '', verified_status: '' })
+          .eq('id', task.id);
 
         if (error) {
           throw error;
         }
 
-        onNotesChange(task.id, ""); // Clear the note in the state
-      } else if (status === "With Gunsmith") {
+        onNotesChange(task.id, ''); // Clear the note in the state
+      } else if (status === 'With Gunsmith') {
         const { error } = await supabase
-          .from("firearms_maintenance")
-          .update({ rental_notes: "With Gunsmith", verified_status: null })
-          .eq("id", task.id);
+          .from('firearms_maintenance')
+          .update({ rental_notes: 'With Gunsmith', verified_status: null })
+          .eq('id', task.id);
 
         if (error) {
           throw error;
         }
 
-        onNotesChange(task.id, "With Gunsmith"); // Update the local state
+        onNotesChange(task.id, 'With Gunsmith'); // Update the local state
       }
     } catch (error) {
       if (error instanceof Error) {
-        console.error("Error setting gunsmith status:", error.message);
+        console.error('Error setting gunsmith status:', error.message);
       } else {
-        console.error("An unknown error occurred.");
+        console.error('An unknown error occurred.');
       }
     }
   };
@@ -115,17 +115,17 @@ export function DataTableRowActions({
     try {
       // Clear rental_notes and verified_status in the database
       await supabase
-        .from("firearms_maintenance")
-        .update({ rental_notes: "", verified_status: "" })
-        .eq("id", firearmId);
+        .from('firearms_maintenance')
+        .update({ rental_notes: '', verified_status: '' })
+        .eq('id', firearmId);
 
       // Update the local state to reflect the removal of the "Currently Rented Out" note
-      onNotesChange(firearmId, ""); // Update the local state
+      onNotesChange(firearmId, ''); // Update the local state
     } catch (error) {
       if (error instanceof Error) {
-        console.error("Error setting rental returned status:", error.message);
+        console.error('Error setting rental returned status:', error.message);
       } else {
-        console.error("An unknown error occurred.");
+        console.error('An unknown error occurred.');
       }
     }
   };
@@ -134,33 +134,33 @@ export function DataTableRowActions({
     try {
       // Set rental notes to "Currently Rented Out"
       await supabase
-        .from("firearms_maintenance")
+        .from('firearms_maintenance')
         .update({
-          rental_notes: "Currently Rented Out",
-          verified_status: "Currently Rented Out",
+          rental_notes: 'Currently Rented Out',
+          verified_status: 'Currently Rented Out',
         })
-        .eq("id", firearmId);
+        .eq('id', firearmId);
 
-      onNotesChange(firearmId, "Currently Rented Out"); // Update the local state
+      onNotesChange(firearmId, 'Currently Rented Out'); // Update the local state
     } catch (error) {
       if (error instanceof Error) {
-        console.error("Error setting rental on range status:", error.message);
+        console.error('Error setting rental on range status:', error.message);
       } else {
-        console.error("An unknown error occurred.");
+        console.error('An unknown error occurred.');
       }
     }
   };
 
   const handleDeleteFirearm = async () => {
     try {
-      await supabase.from("firearms_maintenance").delete().eq("id", task.id);
+      await supabase.from('firearms_maintenance').delete().eq('id', task.id);
 
       onDeleteFirearm(task.id); // Call the parent handler
     } catch (error) {
       if (error instanceof Error) {
-        console.error("Error deleting firearm:", error.message);
+        console.error('Error deleting firearm:', error.message);
       } else {
-        console.error("An unknown error occurred.");
+        console.error('An unknown error occurred.');
       }
     }
   };
@@ -200,10 +200,7 @@ export function DataTableRowActions({
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            className="flex h-8 w-8 p-0 data-[state=open]:bg-muted"
-          >
+          <Button variant="ghost" className="flex h-8 w-8 p-0 data-[state=open]:bg-muted">
             <DotsHorizontalIcon className="h-4 w-4" />
             <span className="sr-only">Open menu</span>
           </Button>
@@ -212,15 +209,15 @@ export function DataTableRowActions({
           <DropdownMenuItem onSelect={() => setOpenVerification(true)}>
             Verify Firearm
           </DropdownMenuItem>
-          {["admin", "super admin", "dev"].includes(userRole) && (
+          {['admin', 'super admin', 'dev'].includes(userRole) && (
             <>
               <DropdownMenuItem
                 onSelect={async () => {
                   try {
                     const { data: firearm, error: fetchError } = await supabase
-                      .from("firearms_maintenance")
-                      .select("rental_notes")
-                      .eq("id", task.id)
+                      .from('firearms_maintenance')
+                      .select('rental_notes')
+                      .eq('id', task.id)
                       .single();
 
                     if (fetchError) {
@@ -228,20 +225,20 @@ export function DataTableRowActions({
                     }
 
                     // Reset if rental_notes contains anything other than "With Gunsmith"
-                    if (firearm?.rental_notes !== "With Gunsmith") {
+                    if (firearm?.rental_notes !== 'With Gunsmith') {
                       await supabase
-                        .from("firearms_maintenance")
-                        .update({ rental_notes: "", verified_status: "" })
-                        .eq("id", task.id);
+                        .from('firearms_maintenance')
+                        .update({ rental_notes: '', verified_status: '' })
+                        .eq('id', task.id);
 
                       // Update the local state to reflect the reset
-                      onNotesChange(task.id, "");
+                      onNotesChange(task.id, '');
                     }
 
                     // Optionally, close the dialog or refresh data
                     setOpenVerification(false);
                   } catch (error) {
-                    console.error("Error resetting verification:", error);
+                    console.error('Error resetting verification:', error);
                   }
                 }}
               >
@@ -266,16 +263,10 @@ export function DataTableRowActions({
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>Gunsmithing</DropdownMenuSubTrigger>
             <DropdownMenuSubContent>
-              <DropdownMenuItem
-                onSelect={() => handleSetGunsmithStatus("With Gunsmith")}
-              >
+              <DropdownMenuItem onSelect={() => handleSetGunsmithStatus('With Gunsmith')}>
                 With Gunsmith
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onSelect={() =>
-                  handleSetGunsmithStatus("Returned From Gunsmith")
-                }
-              >
+              <DropdownMenuItem onSelect={() => handleSetGunsmithStatus('Returned From Gunsmith')}>
                 Returned From Gunsmith
               </DropdownMenuItem>
               <DropdownMenuSeparator />
@@ -285,15 +276,13 @@ export function DataTableRowActions({
             </DropdownMenuSubContent>
           </DropdownMenuSub>
           <DropdownMenuSeparator />
-          {["admin", "super admin", "dev"].includes(userRole) && (
+          {['admin', 'super admin', 'dev'].includes(userRole) && (
             <>
               <DropdownMenuItem onSelect={() => setOpenEditFirearm(true)}>
                 Edit Firearm
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={handleDeleteFirearm}>
-                Delete Firearm
-              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={handleDeleteFirearm}>Delete Firearm</DropdownMenuItem>
             </>
           )}
         </DropdownMenuContent>
@@ -302,19 +291,15 @@ export function DataTableRowActions({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Verify Firearm</DialogTitle>
-            <DialogDescription>
-              Please verify the firearm details.
-            </DialogDescription>
+            <DialogDescription>Please verify the firearm details.</DialogDescription>
           </DialogHeader>
           <VerificationForm
             firearmId={task.id}
             userUuid={userUuid}
-            verificationDate={new Date().toISOString().split("T")[0]}
-            verificationTime={
-              new Date().getHours() < 14 ? "morning" : "evening"
-            }
+            verificationDate={new Date().toISOString().split('T')[0]}
+            verificationTime={new Date().getHours() < 14 ? 'morning' : 'evening'}
             onVerificationComplete={completeVerification}
-            isWithGunsmith={task.notes === "With Gunsmith"} // Pass this prop to VerificationForm
+            isWithGunsmith={task.notes === 'With Gunsmith'} // Pass this prop to VerificationForm
           />
 
           <DialogFooter>
@@ -328,17 +313,14 @@ export function DataTableRowActions({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Firearm</DialogTitle>
-            <DialogDescription>
-              Please edit the firearm details.
-            </DialogDescription>
+            <DialogDescription>Please edit the firearm details.</DialogDescription>
           </DialogHeader>
           <EditFirearmForm
             firearm={{
               id: row.original.id,
               firearm_type: row.original.firearm_type,
               firearm_name: row.original.firearm_name,
-              maintenance_frequency:
-                row.original.maintenance_frequency ?? undefined,
+              maintenance_frequency: row.original.maintenance_frequency ?? undefined,
             }}
             onEdit={handleEditFirearm}
             onCancel={() => setOpenEditFirearm(false)}
@@ -346,10 +328,7 @@ export function DataTableRowActions({
         </DialogContent>
       </Dialog>
 
-      <Dialog
-        open={openInspectionRequest}
-        onOpenChange={setOpenInspectionRequest}
-      >
+      <Dialog open={openInspectionRequest} onOpenChange={setOpenInspectionRequest}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Request Inspection</DialogTitle>
@@ -360,10 +339,7 @@ export function DataTableRowActions({
             onChange={(e) => setInspectionNotes(e.target.value)}
           />
           <DialogFooter>
-            <Button
-              variant="linkHover2"
-              onClick={() => setOpenInspectionRequest(false)}
-            >
+            <Button variant="linkHover2" onClick={() => setOpenInspectionRequest(false)}>
               Cancel
             </Button>
             <Button variant="outline" onClick={handleRequestInspection}>

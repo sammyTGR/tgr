@@ -1,9 +1,9 @@
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
-import { toZonedTime as zonedTimeToUtc } from "date-fns-tz";
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
+import { NextResponse } from 'next/server';
+import { toZonedTime as zonedTimeToUtc } from 'date-fns-tz';
 
-const TIMEZONE = "America/Los_Angeles";
+const TIMEZONE = 'America/Los_Angeles';
 
 export async function GET() {
   try {
@@ -16,20 +16,20 @@ export async function GET() {
     } = await supabase.auth.getUser();
     if (userError || !user) {
       // console.log("No user found");
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     try {
       // Verify connection with the new table
       const { data: testData, error: testError } = await supabase
-        .from("detailed_sales_data")
-        .select("count")
+        .from('detailed_sales_data')
+        .select('count')
         .single();
 
       if (testError) {
-        console.error("Database connection test error:", testError);
+        console.error('Database connection test error:', testError);
         return NextResponse.json(
-          { error: "Database connection error", details: testError },
+          { error: 'Database connection error', details: testError },
           { status: 500 }
         );
       }
@@ -38,18 +38,12 @@ export async function GET() {
 
       // Fetch metrics with better error handling
       const [metrics2024Result, metrics2025Result] = await Promise.allSettled([
-        fetchYearMetrics(supabase, "2024-01-01", "2024-12-31"),
-        fetchYearMetrics(supabase, "2025-01-01", "2025-12-31"),
+        fetchYearMetrics(supabase, '2024-01-01', '2024-12-31'),
+        fetchYearMetrics(supabase, '2025-01-01', '2025-12-31'),
       ]);
 
-      const metrics2024 =
-        metrics2024Result.status === "fulfilled"
-          ? metrics2024Result.value
-          : null;
-      const metrics2025 =
-        metrics2025Result.status === "fulfilled"
-          ? metrics2025Result.value
-          : null;
+      const metrics2024 = metrics2024Result.status === 'fulfilled' ? metrics2024Result.value : null;
+      const metrics2025 = metrics2025Result.status === 'fulfilled' ? metrics2025Result.value : null;
 
       // console.log("Metrics fetched:", {
       //   metrics2024Status: metrics2024Result.status,
@@ -61,20 +55,20 @@ export async function GET() {
         metrics2025: metrics2025 || getDefaultMetrics(),
       });
     } catch (error) {
-      console.error("Metrics calculation error:", error);
+      console.error('Metrics calculation error:', error);
       return NextResponse.json(
         {
-          error: "Metrics calculation failed",
+          error: 'Metrics calculation failed',
           details: error instanceof Error ? error.message : String(error),
         },
         { status: 500 }
       );
     }
   } catch (error) {
-    console.error("API Error:", error);
+    console.error('API Error:', error);
     return NextResponse.json(
       {
-        error: "API error",
+        error: 'API error',
         details: error instanceof Error ? error.message : String(error),
       },
       { status: 500 }
@@ -90,24 +84,20 @@ function getDefaultMetrics() {
     topPerformingCategories: [],
     peakHours: [],
     customerFrequency: [
-      { visits: "First Time", percentage: 0 },
-      { visits: "Regular (2-5x/month)", percentage: 0 },
-      { visits: "Frequent (6+/month)", percentage: 0 },
+      { visits: 'First Time', percentage: 0 },
+      { visits: 'Regular (2-5x/month)', percentage: 0 },
+      { visits: 'Frequent (6+/month)', percentage: 0 },
     ],
   };
 }
 
 function formatTo12Hour(hour: number): string {
-  const period = hour >= 12 ? "PM" : "AM";
+  const period = hour >= 12 ? 'PM' : 'AM';
   const hour12 = hour % 12 || 12; // Convert 0 to 12 for midnight
   return `${hour12}:00 ${period}`;
 }
 
-async function fetchYearMetrics(
-  supabase: any,
-  startDate: string,
-  endDate: string
-) {
+async function fetchYearMetrics(supabase: any, startDate: string, endDate: string) {
   try {
     // Convert dates to UTC with timezone consideration
     const startDateTemp = new Date(startDate);
@@ -119,10 +109,10 @@ async function fetchYearMetrics(
     const utcEndDate = zonedTimeToUtc(endDateTemp, TIMEZONE);
 
     const { data: salesData, error: salesError } = await supabase
-      .from("detailed_sales_data")
-      .select("*")
-      .gte("SoldDate", utcStartDate.toISOString())
-      .lte("SoldDate", utcEndDate.toISOString());
+      .from('detailed_sales_data')
+      .select('*')
+      .gte('SoldDate', utcStartDate.toISOString())
+      .lte('SoldDate', utcEndDate.toISOString());
 
     if (salesError || !salesData || salesData.length === 0) {
       // console.log(`No sales data found for ${startDate} to ${endDate}`);
@@ -142,7 +132,7 @@ async function fetchYearMetrics(
 
     // Calculate categories performance using CatDesc
     const categoryPerformance = salesData.reduce((acc: any, sale: any) => {
-      const category = sale.CatDesc || "Uncategorized";
+      const category = sale.CatDesc || 'Uncategorized';
       if (!acc[category]) acc[category] = 0;
       acc[category] += Number(sale.total_gross) || 0;
       return acc;
@@ -190,41 +180,35 @@ async function fetchYearMetrics(
     const peakHours = businessHours;
 
     // Customer frequency calculation with timezone consideration
-    const customerTransactions = salesData.reduce(
-      (acc: Record<string, any[]>, sale: any) => {
-        if (sale.Acct) {
-          const customerKey = sale.Acct.toString();
-          if (!acc[customerKey]) {
-            acc[customerKey] = [];
-          }
-          const saleDate = new Date(sale.SoldDate);
-          const localDate = new Date(
-            saleDate.toLocaleString("en-US", { timeZone: TIMEZONE })
-          );
-          acc[customerKey].push({
-            date: localDate,
-            monthKey: localDate.toISOString().slice(0, 7),
-          });
+    const customerTransactions = salesData.reduce((acc: Record<string, any[]>, sale: any) => {
+      if (sale.Acct) {
+        const customerKey = sale.Acct.toString();
+        if (!acc[customerKey]) {
+          acc[customerKey] = [];
         }
-        return acc;
-      },
-      {}
-    );
+        const saleDate = new Date(sale.SoldDate);
+        const localDate = new Date(saleDate.toLocaleString('en-US', { timeZone: TIMEZONE }));
+        acc[customerKey].push({
+          date: localDate,
+          monthKey: localDate.toISOString().slice(0, 7),
+        });
+      }
+      return acc;
+    }, {});
     const customerVisitFrequency = Object.entries(customerTransactions).reduce<
       Record<string, number>
     >((acc, [customerId, transactions]) => {
-      const monthlyVisits = (transactions as any[]).reduce<
-        Record<string, number>
-      >((monthAcc, trans) => {
-        monthAcc[trans.monthKey] = (monthAcc[trans.monthKey] || 0) + 1;
-        return monthAcc;
-      }, {});
+      const monthlyVisits = (transactions as any[]).reduce<Record<string, number>>(
+        (monthAcc, trans) => {
+          monthAcc[trans.monthKey] = (monthAcc[trans.monthKey] || 0) + 1;
+          return monthAcc;
+        },
+        {}
+      );
 
       const avgVisitsPerMonth = Math.round(
-        Object.values(monthlyVisits).reduce(
-          (sum: number, visits: number) => sum + visits,
-          0
-        ) / Object.keys(monthlyVisits).length
+        Object.values(monthlyVisits).reduce((sum: number, visits: number) => sum + visits, 0) /
+          Object.keys(monthlyVisits).length
       );
 
       acc[customerId] = avgVisitsPerMonth;
@@ -270,15 +254,15 @@ async function fetchYearMetrics(
 
     const customerFrequency = [
       {
-        visits: "First Time (1 visit/month)",
+        visits: 'First Time (1 visit/month)',
         percentage: Math.round((firstTimeCount / totalCustomers) * 100),
       },
       {
-        visits: "Regular (2-5 visits/month)",
+        visits: 'Regular (2-5 visits/month)',
         percentage: Math.round((regularCount / totalCustomers) * 100),
       },
       {
-        visits: "Frequent (6+ visits/month)",
+        visits: 'Frequent (6+ visits/month)',
         percentage: Math.round((frequentCount / totalCustomers) * 100),
       },
     ];
@@ -293,10 +277,7 @@ async function fetchYearMetrics(
       customerFrequency,
     };
   } catch (error) {
-    console.error(
-      `Error calculating metrics for ${startDate}-${endDate}:`,
-      error
-    );
+    console.error(`Error calculating metrics for ${startDate}-${endDate}:`, error);
     return getDefaultMetrics();
   }
 }

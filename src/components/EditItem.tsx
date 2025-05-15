@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useEffect } from "react";
-import { Button } from "@/components/ui/button";
+import React, { useState, useCallback, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -8,20 +8,16 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import {
-  Pencil1Icon,
-  TrashIcon,
-  DotsVerticalIcon,
-} from "@radix-ui/react-icons";
+} from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
+import { Pencil1Icon, TrashIcon, DotsVerticalIcon } from '@radix-ui/react-icons';
 
 interface Item {
   id: number;
@@ -49,7 +45,7 @@ export function EditItem({ item, updateItem, deleteItem }: EditItemProps) {
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
-      if (name.trim() === "") {
+      if (name.trim() === '') {
         // console.log("Name is empty, not updating");
         return;
       }
@@ -58,7 +54,7 @@ export function EditItem({ item, updateItem, deleteItem }: EditItemProps) {
         // console.log("Update function called successfully");
         setIsDialogOpen(false);
       } catch (error) {
-        console.error("Error updating item:", error);
+        console.error('Error updating item:', error);
       } finally {
         setIsDialogOpen(false);
       }
@@ -72,7 +68,7 @@ export function EditItem({ item, updateItem, deleteItem }: EditItemProps) {
       // console.log("Delete function called successfully");
       setIsDropdownOpen(false);
     } catch (error) {
-      console.error("Error deleting item:", error);
+      console.error('Error deleting item:', error);
     }
   }, [item.id, deleteItem]);
 

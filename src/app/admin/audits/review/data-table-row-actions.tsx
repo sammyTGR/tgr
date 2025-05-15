@@ -1,16 +1,16 @@
-import { DotsHorizontalIcon } from "@radix-ui/react-icons";
-import { Row } from "@tanstack/react-table";
-import { Button } from "@/components/ui/button";
+import { DotsHorizontalIcon } from '@radix-ui/react-icons';
+import { Row } from '@tanstack/react-table';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { PopoverForm, SubmitFormData } from "../submit/PopoverForm";
-import { supabase } from "@/utils/supabase/client";
-import { toast } from "sonner";
-import { auditData, Task } from "../review/data-schema";
+} from '@/components/ui/dropdown-menu';
+import { PopoverForm, SubmitFormData } from '../submit/PopoverForm';
+import { supabase } from '@/utils/supabase/client';
+import { toast } from 'sonner';
+import { auditData, Task } from '../review/data-schema';
 
 interface DataTableRowActionsProps<TData> {
   row: Row<TData>;
@@ -35,7 +35,7 @@ export function DataTableRowActions<TData>({
 
     if (!auditId) {
       //console.("No valid audit ID found");
-      toast.error("Failed to update audit: Invalid ID");
+      toast.error('Failed to update audit: Invalid ID');
       return;
     }
 
@@ -54,48 +54,45 @@ export function DataTableRowActions<TData>({
       // console.log("Update payload:", updatePayload);
 
       const { data, error } = await supabase
-        .from("Auditsinput")
+        .from('Auditsinput')
         .update(updatePayload)
-        .eq("audits_id", auditId)
+        .eq('audits_id', auditId)
         .select();
 
       // ... rest of the function ...
     } catch (error) {
       //console.("Error updating audit:", error);
-      toast.error("Failed to update audit");
+      toast.error('Failed to update audit');
     }
   };
 
   const handleDelete = async () => {
     if (!audit.audits_id) {
       //console.("No valid audit ID found");
-      toast.error("Failed to delete audit: Invalid ID");
+      toast.error('Failed to delete audit: Invalid ID');
       return;
     }
 
     try {
       const { error } = await supabase
-        .from("Auditsinput")
+        .from('Auditsinput')
         .delete()
-        .eq("audits_id", audit.audits_id);
+        .eq('audits_id', audit.audits_id);
 
       if (error) throw error;
 
-      toast.success("Audit deleted successfully");
+      toast.success('Audit deleted successfully');
       onAuditUpdated();
     } catch (error) {
       //console.("Error deleting audit:", error);
-      toast.error("Failed to delete audit");
+      toast.error('Failed to delete audit');
     }
   };
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          className="flex h-8 w-8 p-0 data-[state=open]:bg-muted"
-        >
+        <Button variant="ghost" className="flex h-8 w-8 p-0 data-[state=open]:bg-muted">
           <DotsHorizontalIcon className="h-4 w-4" />
           <span className="sr-only">Open menu</span>
         </Button>

@@ -1,15 +1,15 @@
-import React from "react";
+import React from 'react';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import DOMPurify from "isomorphic-dompurify";
-import { UseFormSetValue } from "react-hook-form";
-import type { FormData } from "../app/TGR/dros/training/officerppthandgun/page";
+} from '@/components/ui/select';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import DOMPurify from 'isomorphic-dompurify';
+import { UseFormSetValue } from 'react-hook-form';
+import type { FormData } from '../app/TGR/dros/training/officerppthandgun/page';
 
 interface Manufacturer {
   value: string;
@@ -64,8 +64,8 @@ const MakeSelectNonRosterPpt = ({
       value={value}
       onValueChange={(newValue) => {
         // console.log("Selected new value:", newValue);
-        setValue("make", newValue);
-        setValue("model", "");
+        setValue('make', newValue);
+        setValue('model', '');
       }}
     >
       <SelectTrigger className="w-full">

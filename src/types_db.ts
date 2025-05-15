@@ -1,11 +1,5 @@
 // types_db.ts
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[];
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export interface Database {
   public: {
@@ -21,11 +15,11 @@ export interface Database {
           first_name: string | null;
           last_name: string | null;
           is_subscribed: boolean;
-          subscription_tier: "free" | "basic" | "pro" | "enterprise" | null;
+          subscription_tier: 'free' | 'basic' | 'pro' | 'enterprise' | null;
           subscription_start_date: string | null;
           subscription_end_date: string | null;
           last_payment_date: string | null;
-          payment_status: "active" | "past_due" | "canceled" | null;
+          payment_status: 'active' | 'past_due' | 'canceled' | null;
           stripe_customer_id: string | null;
         };
       };
@@ -199,7 +193,7 @@ export interface Database {
           subcategory_label: string | null;
           status: string | null;
           total_net: number | null;
-          "Primary Email": string | null;
+          'Primary Email': string | null;
           total_gross: number | null;
         };
       };
@@ -237,15 +231,15 @@ export interface Database {
   };
 }
 
-export type Tables<T extends keyof Database["public"]["Tables"]> =
-  Database["public"]["Tables"][T]["Row"];
-export type Customers = Tables<"customers">;
-export type ClassEnrollments = Tables<"class_enrollments">;
-export type Products = Tables<"products">;
-export type Price = Database["public"]["Tables"]["prices"]["Row"];
-export type Subscriptions = Tables<"subscriptions">;
-export type Invoices = Tables<"invoices">;
-export type InvoiceItems = Tables<"invoice_items">;
-export type ClassSchedules = Tables<"class_schedules">;
-export type SalesData = Tables<"sales_data">;
-export type Employees = Tables<"employees">;
+export type Tables<T extends keyof Database['public']['Tables']> =
+  Database['public']['Tables'][T]['Row'];
+export type Customers = Tables<'customers'>;
+export type ClassEnrollments = Tables<'class_enrollments'>;
+export type Products = Tables<'products'>;
+export type Price = Database['public']['Tables']['prices']['Row'];
+export type Subscriptions = Tables<'subscriptions'>;
+export type Invoices = Tables<'invoices'>;
+export type InvoiceItems = Tables<'invoice_items'>;
+export type ClassSchedules = Tables<'class_schedules'>;
+export type SalesData = Tables<'sales_data'>;
+export type Employees = Tables<'employees'>;

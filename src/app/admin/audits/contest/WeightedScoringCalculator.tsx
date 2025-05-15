@@ -1,6 +1,6 @@
 // src/app/admin/audits/contest/WeightedScoringCalculator.tsx
-import * as React from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import * as React from 'react';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
 export interface SalesData {
   id: number;
@@ -66,7 +66,7 @@ export class WeightedScoringCalculator {
       }
 
       // Check if sale has required properties and is a DROS Fee
-      return sale.Lanid && sale.SoldDate && sale.Desc === "Dros Fee";
+      return sale.Lanid && sale.SoldDate && sale.Desc === 'Dros Fee';
     });
 
     // console.log("Filtered sales data length:", this.salesData.length);
@@ -87,10 +87,10 @@ export class WeightedScoringCalculator {
   private async filterSalesDataByDepartment(salesData: SalesData[]) {
     // Get eligible employees (Operations or Sales departments)
     const { data: eligibleEmployees } = await this.supabase
-      .from("employees")
-      .select("lanid")
-      .in("department", ["Operations", "Sales"])
-      .eq("status", "active");
+      .from('employees')
+      .select('lanid')
+      .in('department', ['Operations', 'Sales'])
+      .eq('status', 'active');
 
     if (!eligibleEmployees) return [];
 
@@ -111,7 +111,7 @@ export class WeightedScoringCalculator {
 
     // Count cancelled DROS from sales data
     this.salesData.forEach((sale) => {
-      if (sale.dros_cancel === "Yes") {
+      if (sale.dros_cancel === 'Yes') {
         cancelledDros++;
       }
     });
@@ -127,16 +127,13 @@ export class WeightedScoringCalculator {
         // Categorize based on points_deducted in the original system
         if (pointsEntry.points_deducted === 2) {
           minorMistakes++;
-        } else if (
-          pointsEntry.points_deducted >= 1 &&
-          pointsEntry.points_deducted <= 5
-        ) {
+        } else if (pointsEntry.points_deducted >= 1 && pointsEntry.points_deducted <= 5) {
           majorMistakes++;
         }
       }
 
       // Additional check for cancelled DROS in audit data
-      if (audit.dros_cancel === "Yes") {
+      if (audit.dros_cancel === 'Yes') {
         cancelledDros++;
       }
     });
@@ -148,8 +145,7 @@ export class WeightedScoringCalculator {
       cancelledDros * 3; // Cancelled DROS weight: 3
 
     // Calculate error rate as weighted mistakes per DROS
-    const weightedErrorRate =
-      totalDros > 0 ? (totalWeightedMistakes / totalDros) * 100 : 0;
+    const weightedErrorRate = totalDros > 0 ? (totalWeightedMistakes / totalDros) * 100 : 0;
 
     const isQualified = !this.isOperations && totalDros >= this.minimumDros;
 
@@ -166,7 +162,7 @@ export class WeightedScoringCalculator {
 
   get metrics() {
     const scores = this.calculateWeightedScore();
-    const lanid = this.salesData[0]?.Lanid || "";
+    const lanid = this.salesData[0]?.Lanid || '';
 
     return {
       Lanid: lanid,
@@ -179,11 +175,11 @@ export class WeightedScoringCalculator {
       Qualified: scores.isQualified,
       DisqualificationReason: !scores.isQualified
         ? this.isOperations
-          ? "Not Qualified (Ops Department)"
+          ? 'Not Qualified (Ops Department)'
           : scores.totalDros < this.minimumDros
             ? `Not Qualified (< ${this.minimumDros} DROS)`
-            : "Not Qualified"
-        : "Qualified",
+            : 'Not Qualified'
+        : 'Qualified',
     };
   }
 }

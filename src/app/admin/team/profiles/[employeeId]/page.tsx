@@ -1,28 +1,22 @@
 // admin\team\profiles\[employeeId]\page.tsx
-"use client";
+'use client';
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation"; // Correct import
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import DOMPurify from "isomorphic-dompurify";
-import {
-  Pencil1Icon,
-  TrashIcon,
-  PlusIcon,
-  CalendarIcon,
-  PersonIcon,
-} from "@radix-ui/react-icons";
-import { supabase } from "@/utils/supabase/client";
-import Link from "next/link";
-import { CustomCalendar } from "@/components/ui/calendar";
-import { DataTableProfile } from "../../../audits/contest/data-table-profile";
-import { RenderDropdown } from "../../../audits/contest/dropdown";
-import { PostgrestSingleResponse } from "@supabase/supabase-js";
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { useParams } from 'next/navigation'; // Correct import
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import DOMPurify from 'isomorphic-dompurify';
+import { Pencil1Icon, TrashIcon, PlusIcon, CalendarIcon, PersonIcon } from '@radix-ui/react-icons';
+import { supabase } from '@/utils/supabase/client';
+import Link from 'next/link';
+import { CustomCalendar } from '@/components/ui/calendar';
+import { DataTableProfile } from '../../../audits/contest/data-table-profile';
+import { RenderDropdown } from '../../../audits/contest/dropdown';
+import { PostgrestSingleResponse } from '@supabase/supabase-js';
 import {
   Dialog,
   DialogTrigger,
@@ -31,47 +25,39 @@ import {
   DialogDescription,
   DialogOverlay,
   DialogClose,
-} from "@radix-ui/react-dialog";
-import classNames from "classnames";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { CustomDataTable } from "@/app/admin/schedules/CustomDataTable"; // Correct import for the DataTable
-import { columns as scheduleColumns } from "@/app/admin/schedules/columns";
-import {
-  columns as originalColumns,
-  ColumnDef,
-  ScheduleData,
-} from "@/app/admin/schedules/columns";
-import { endOfMonth, format, parseISO, startOfMonth } from "date-fns";
-import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import styles from "./profiles.module.css";
-import SalesDataTableEmployee from "../../../reports/sales/sales-data-table-employee";
-import PerformanceBarChart from "@/components/PerformanceBarChart";
+} from '@radix-ui/react-dialog';
+import classNames from 'classnames';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CustomDataTable } from '@/app/admin/schedules/CustomDataTable'; // Correct import for the DataTable
+import { columns as scheduleColumns } from '@/app/admin/schedules/columns';
+import { columns as originalColumns, ColumnDef, ScheduleData } from '@/app/admin/schedules/columns';
+import { endOfMonth, format, parseISO, startOfMonth } from 'date-fns';
+import { TextGenerateEffect } from '@/components/ui/text-generate-effect';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import styles from './profiles.module.css';
+import SalesDataTableEmployee from '../../../reports/sales/sales-data-table-employee';
+import PerformanceBarChart from '@/components/PerformanceBarChart';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { toZonedTime, format as formatTZ, formatInTimeZone } from "date-fns-tz";
-import { SortingState } from "@tanstack/react-table";
-import { WeightedScoringCalculator } from "../../../audits/contest/WeightedScoringCalculator";
-import { toast } from "sonner";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import AuditChart from "../../../audits/AuditChart";
-import AuditDetailsChart from "../../../audits/AuditDetailsChart";
-import { HistoricalAuditChart } from "../../../audits/HistoricalAuditChart";
-import { Switch } from "@/components/ui/switch";
-import { createColumnHelper } from "@tanstack/react-table";
-import { User } from "@supabase/supabase-js";
-import { useSidebar } from "@/components/ui/sidebar";
-import RoleBasedWrapper from "@/components/RoleBasedWrapper";
-import { EmployeeProfileClient } from "./EmployeeProfileClient";
+} from '@/components/ui/select';
+import { toZonedTime, format as formatTZ, formatInTimeZone } from 'date-fns-tz';
+import { SortingState } from '@tanstack/react-table';
+import { WeightedScoringCalculator } from '../../../audits/contest/WeightedScoringCalculator';
+import { toast } from 'sonner';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import AuditChart from '../../../audits/AuditChart';
+import AuditDetailsChart from '../../../audits/AuditDetailsChart';
+import { HistoricalAuditChart } from '../../../audits/HistoricalAuditChart';
+import { Switch } from '@/components/ui/switch';
+import { createColumnHelper } from '@tanstack/react-table';
+import { User } from '@supabase/supabase-js';
+import { useSidebar } from '@/components/ui/sidebar';
+import RoleBasedWrapper from '@/components/RoleBasedWrapper';
+import { EmployeeProfileClient } from './EmployeeProfileClient';
 
 interface Note {
   id: number;
@@ -197,17 +183,9 @@ interface ExtendedUser extends User {
   name: string;
 }
 
-const daysOfWeek = [
-  "Sunday",
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-];
+const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-const timezone = "America/Los_Angeles";
+const timezone = 'America/Los_Angeles';
 
 const EmployeeProfile = () => {
   const { state } = useSidebar();
@@ -219,58 +197,46 @@ const EmployeeProfile = () => {
     ? parseInt(employeeIdParam[0], 10)
     : parseInt(employeeIdParam, 10);
 
-  const [activeTab, setActiveTab] = useState("daily_briefing");
+  const [activeTab, setActiveTab] = useState('daily_briefing');
   const [notes, setNotes] = useState<Note[]>([]);
   const [absences, setAbsences] = useState<Absence[]>([]);
   const [audits, setAudits] = useState<Audit[]>([]);
-  const [newNote, setNewNote] = useState("");
-  const [newReview, setNewReview] = useState("");
-  const [newAbsence, setNewAbsence] = useState("");
-  const [newGrowth, setNewGrowth] = useState("");
-  const [newDailyBriefing, setNewDailyBriefing] = useState("");
+  const [newNote, setNewNote] = useState('');
+  const [newReview, setNewReview] = useState('');
+  const [newAbsence, setNewAbsence] = useState('');
+  const [newGrowth, setNewGrowth] = useState('');
+  const [newDailyBriefing, setNewDailyBriefing] = useState('');
   const [employee, setEmployee] = useState<any>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedLanid, setSelectedLanid] = useState<string | null>(null);
   const [salesData, setSalesData] = useState<SalesData[]>([]);
   const [auditData, setAuditData] = useState<AuditInput[]>([]);
-  const [pointsCalculation, setPointsCalculation] = useState<
-    PointsCalculation[]
-  >([]);
+  const [pointsCalculation, setPointsCalculation] = useState<PointsCalculation[]>([]);
   const [totalPoints, setTotalPoints] = useState<number>(300);
   const [summaryData, setSummaryData] = useState<any[]>([]);
   const [showAllEmployees, setShowAllEmployees] = useState<boolean>(false);
   const [reviews, setReviews] = useState<any[]>([]);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
-  const [reviewQuarter, setReviewQuarter] = useState("");
+  const [reviewQuarter, setReviewQuarter] = useState('');
   const [reviewYear, setReviewYear] = useState(new Date().getFullYear());
-  const [overviewPerformance, setOverviewPerformance] = useState("");
-  const [achievementsContributions, setAchievementsContributions] = useState([
-    "",
-  ]);
-  const [attendanceReliability, setAttendanceReliability] = useState([""]);
-  const [qualityWork, setQualityWork] = useState([""]);
-  const [communicationCollaboration, setCommunicationCollaboration] = useState([
-    "",
-  ]);
-  const [strengthsAccomplishments, setStrengthsAccomplishments] = useState([
-    "",
-  ]);
-  const [areasGrowth, setAreasGrowth] = useState([""]);
-  const [recognition, setRecognition] = useState([""]);
+  const [overviewPerformance, setOverviewPerformance] = useState('');
+  const [achievementsContributions, setAchievementsContributions] = useState(['']);
+  const [attendanceReliability, setAttendanceReliability] = useState(['']);
+  const [qualityWork, setQualityWork] = useState(['']);
+  const [communicationCollaboration, setCommunicationCollaboration] = useState(['']);
+  const [strengthsAccomplishments, setStrengthsAccomplishments] = useState(['']);
+  const [areasGrowth, setAreasGrowth] = useState(['']);
+  const [recognition, setRecognition] = useState(['']);
   const [viewReviewDialog, setViewReviewDialog] = useState(false);
   const [currentReview, setCurrentReview] = useState<Review | null>(null);
   const [editMode, setEditMode] = useState(false);
-  const [availableSickTime, setAvailableSickTime] = useState<number | null>(
-    null
-  );
+  const [availableSickTime, setAvailableSickTime] = useState<number | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [sickTimeData, setSickTimeData] = useState<SickTimeReport[]>([]);
-  const [selectedAbsenceReason, setSelectedAbsenceReason] = useState<
-    string | null
-  >(null);
-  const [customAbsenceReason, setCustomAbsenceReason] = useState("");
+  const [selectedAbsenceReason, setSelectedAbsenceReason] = useState<string | null>(null);
+  const [customAbsenceReason, setCustomAbsenceReason] = useState('');
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [customStatus, setCustomStatus] = useState("");
+  const [customStatus, setCustomStatus] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [currentEvent, setCurrentEvent] = useState<CalendarEvent | null>(null);
   const [selectedShifts, setSelectedShifts] = useState<string[]>([]);
@@ -278,9 +244,7 @@ const EmployeeProfile = () => {
   const [weekDates, setWeekDates] = useState<{ [key: string]: string }>({});
   const [referenceSchedules, setReferenceSchedules] = useState<any[]>([]);
   const [actualSchedules, setActualSchedules] = useState<any[]>([]);
-  const [sorting, setSorting] = useState<SortingState>([
-    { id: "day_of_week", desc: false },
-  ]);
+  const [sorting, setSorting] = useState<SortingState>([{ id: 'day_of_week', desc: false }]);
   const [data, setData] = useState<{
     calendarData: EmployeeCalendar[];
     employeeNames: string[];
@@ -291,7 +255,7 @@ const EmployeeProfile = () => {
 
   // Add currentUser query
   const { data: currentUser } = useQuery({
-    queryKey: ["currentUser"],
+    queryKey: ['currentUser'],
     queryFn: async () => {
       const {
         data: { user },
@@ -302,7 +266,7 @@ const EmployeeProfile = () => {
   });
 
   const combinedSchedules = useMemo(() => {
-    const timeZone = "America/Los_Angeles"; // Adjust this to your desired time zone
+    const timeZone = 'America/Los_Angeles'; // Adjust this to your desired time zone
     const combined = [...referenceSchedules, ...actualSchedules]
       .filter((schedule) => schedule.employee_id === employeeId)
       .map((schedule) => {
@@ -313,27 +277,21 @@ const EmployeeProfile = () => {
 
         try {
           const scheduleDate = parseISO(schedule.schedule_date);
-          const dayOfWeek = format(scheduleDate, "EEEE");
+          const dayOfWeek = format(scheduleDate, 'EEEE');
 
           // Format start_time and end_time as h:mm a
           const formattedStartTime = schedule.start_time
             ? formatInTimeZone(
-                toZonedTime(
-                  parseISO(`${schedule.schedule_date}T${schedule.start_time}`),
-                  timeZone
-                ),
+                toZonedTime(parseISO(`${schedule.schedule_date}T${schedule.start_time}`), timeZone),
                 timeZone,
-                "h:mm a"
+                'h:mm a'
               )
             : schedule.start_time;
           const formattedEndTime = schedule.end_time
             ? formatInTimeZone(
-                toZonedTime(
-                  parseISO(`${schedule.schedule_date}T${schedule.end_time}`),
-                  timeZone
-                ),
+                toZonedTime(parseISO(`${schedule.schedule_date}T${schedule.end_time}`), timeZone),
                 timeZone,
-                "h:mm a"
+                'h:mm a'
               )
             : schedule.end_time;
 
@@ -348,7 +306,7 @@ const EmployeeProfile = () => {
             end_time: formattedEndTime,
           };
         } catch (error) {
-          console.error("Error processing schedule:", schedule, error);
+          console.error('Error processing schedule:', schedule, error);
           return schedule;
         }
       });
@@ -359,19 +317,17 @@ const EmployeeProfile = () => {
 
   const filteredColumns: ColumnDef<ScheduleData>[] = originalColumns.filter(
     (column) =>
-      !["employee_name", "event_date", "employee_id"].includes(
-        (column as any).accessorKey
-      )
+      !['employee_name', 'event_date', 'employee_id'].includes((column as any).accessorKey)
   );
 
   const fetchReferenceSchedules = useCallback(async () => {
     const { data, error } = await supabase
-      .from("reference_schedules")
-      .select("*")
-      .eq("employee_id", employeeId);
+      .from('reference_schedules')
+      .select('*')
+      .eq('employee_id', employeeId);
 
     if (error) {
-      console.error("Error fetching reference schedules:", error);
+      console.error('Error fetching reference schedules:', error);
     } else {
       setReferenceSchedules(data || []);
     }
@@ -379,13 +335,13 @@ const EmployeeProfile = () => {
 
   const fetchActualSchedules = useCallback(async () => {
     const { data, error } = await supabase
-      .from("schedules")
-      .select("*")
-      .eq("employee_id", employeeId)
-      .or("status.eq.scheduled,status.eq.added_day");
+      .from('schedules')
+      .select('*')
+      .eq('employee_id', employeeId)
+      .or('status.eq.scheduled,status.eq.added_day');
 
     if (error) {
-      console.error("Error fetching actual schedules:", error);
+      console.error('Error fetching actual schedules:', error);
     } else {
       setActualSchedules(data || []);
     }
@@ -396,17 +352,15 @@ const EmployeeProfile = () => {
     fetchActualSchedules();
   }, [fetchReferenceSchedules, fetchActualSchedules]);
 
-  const fetchCalendarData = useCallback(async (): Promise<
-    EmployeeCalendar[]
-  > => {
-    const timeZone = "America/Los_Angeles";
+  const fetchCalendarData = useCallback(async (): Promise<EmployeeCalendar[]> => {
+    const timeZone = 'America/Los_Angeles';
     const startOfWeek = toZonedTime(getStartOfWeek(currentDate), timeZone);
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(endOfWeek.getDate() + 6);
 
     try {
       const { data, error } = await supabase
-        .from("schedules")
+        .from('schedules')
         .select(
           `
           schedule_date,
@@ -418,8 +372,8 @@ const EmployeeProfile = () => {
           employees:employee_id (name)
         `
         )
-        .gte("schedule_date", formatTZ(startOfWeek, "yyyy-MM-dd", { timeZone }))
-        .lte("schedule_date", formatTZ(endOfWeek, "yyyy-MM-dd", { timeZone }));
+        .gte('schedule_date', formatTZ(startOfWeek, 'yyyy-MM-dd', { timeZone }))
+        .lte('schedule_date', formatTZ(endOfWeek, 'yyyy-MM-dd', { timeZone }));
 
       if (error) {
         throw error;
@@ -436,7 +390,7 @@ const EmployeeProfile = () => {
           };
         }
 
-        const timeZone = "America/Los_Angeles";
+        const timeZone = 'America/Los_Angeles';
         groupedData[item.employee_id].events.push({
           day_of_week: item.day_of_week,
           start_time: item.start_time ? item.start_time : null,
@@ -478,11 +432,11 @@ const EmployeeProfile = () => {
     status: string
   ) => {
     try {
-      const formattedDate = new Date(schedule_date).toISOString().split("T")[0];
-      const response = await fetch("/api/update_schedule_status", {
-        method: "POST",
+      const formattedDate = new Date(schedule_date).toISOString().split('T')[0];
+      const response = await fetch('/api/update_schedule_status', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           employee_id,
@@ -497,10 +451,7 @@ const EmployeeProfile = () => {
 
       await fetchCalendarData();
     } catch (error) {
-      console.error(
-        "Failed to update schedule status:",
-        (error as Error).message
-      );
+      console.error('Failed to update schedule status:', (error as Error).message);
     }
   };
 
@@ -512,41 +463,33 @@ const EmployeeProfile = () => {
         `Custom:${customStatus}`
       );
       setDialogOpen(false);
-      setCustomStatus("");
+      setCustomStatus('');
     }
   };
 
   const handleAddAbsence = async () => {
-    if (
-      !absenceDateSelection ||
-      (!selectedAbsenceReason && !customAbsenceReason)
-    )
-      return;
+    if (!absenceDateSelection || (!selectedAbsenceReason && !customAbsenceReason)) return;
 
     const status =
-      selectedAbsenceReason === "custom"
-        ? `Custom:${customAbsenceReason}`
-        : selectedAbsenceReason;
+      selectedAbsenceReason === 'custom' ? `Custom:${customAbsenceReason}` : selectedAbsenceReason;
 
     try {
-      const formattedDate = format(absenceDateSelection, "yyyy-MM-dd");
+      const formattedDate = format(absenceDateSelection, 'yyyy-MM-dd');
       await updateScheduleStatus(employeeId, formattedDate, status as string);
       await fetchAbsences();
 
       // Reset form
       absenceDateMutation.mutate(undefined);
       setSelectedAbsenceReason(null);
-      setCustomAbsenceReason("");
+      setCustomAbsenceReason('');
     } catch (error) {
-      console.error("Failed to add absence:", error);
+      console.error('Failed to add absence:', error);
     }
   };
 
   useEffect(() => {
     const fetchSickTimeData = async () => {
-      const { data, error } = await supabase.rpc(
-        "get_all_employee_sick_time_usage"
-      );
+      const { data, error } = await supabase.rpc('get_all_employee_sick_time_usage');
       if (error) {
         //console.("Error fetching sick time data:", error.message);
       } else {
@@ -560,19 +503,15 @@ const EmployeeProfile = () => {
 
   const fetchAvailableSickTime = async (employeeId: number) => {
     try {
-      const { data, error } = await supabase.rpc(
-        "calculate_available_sick_time",
-        { p_emp_id: employeeId }
-      );
+      const { data, error } = await supabase.rpc('calculate_available_sick_time', {
+        p_emp_id: employeeId,
+      });
 
       if (error) throw error;
 
       return data;
     } catch (error) {
-      console.error(
-        "Error fetching available sick time:",
-        (error as Error).message
-      );
+      console.error('Error fetching available sick time:', (error as Error).message);
       return null;
     }
   };
@@ -594,9 +533,9 @@ const EmployeeProfile = () => {
 
   const handleEditReview = async (id: number) => {
     const { data, error } = await supabase
-      .from("employee_quarterly_reviews")
-      .select("*")
-      .eq("id", id)
+      .from('employee_quarterly_reviews')
+      .select('*')
+      .eq('id', id)
       .single();
 
     if (error) {
@@ -608,13 +547,13 @@ const EmployeeProfile = () => {
       setReviewQuarter(data.review_quarter);
       setReviewYear(data.review_year);
       setOverviewPerformance(data.overview_performance);
-      setAchievementsContributions(data.achievements_contributions || [""]);
-      setAttendanceReliability(data.attendance_reliability || [""]);
-      setQualityWork(data.quality_work || [""]);
-      setCommunicationCollaboration(data.communication_collaboration || [""]);
-      setStrengthsAccomplishments(data.strengths_accomplishments || [""]);
-      setAreasGrowth(data.areas_growth || [""]);
-      setRecognition(data.recognition || [""]);
+      setAchievementsContributions(data.achievements_contributions || ['']);
+      setAttendanceReliability(data.attendance_reliability || ['']);
+      setQualityWork(data.quality_work || ['']);
+      setCommunicationCollaboration(data.communication_collaboration || ['']);
+      setStrengthsAccomplishments(data.strengths_accomplishments || ['']);
+      setAreasGrowth(data.areas_growth || ['']);
+      setRecognition(data.recognition || ['']);
       setCurrentReview(data); // <-- Add this line
       setEditMode(true);
       setShowReviewDialog(true);
@@ -622,17 +561,12 @@ const EmployeeProfile = () => {
   };
 
   const handleDeleteReview = async (id: number) => {
-    const { error } = await supabase
-      .from("employee_quarterly_reviews")
-      .delete()
-      .eq("id", id);
+    const { error } = await supabase.from('employee_quarterly_reviews').delete().eq('id', id);
 
     if (error) {
       //console.("Error deleting review:", error);
     } else {
-      setReviews((prevReviews) =>
-        prevReviews.filter((review) => review.id !== id)
-      );
+      setReviews((prevReviews) => prevReviews.filter((review) => review.id !== id));
     }
   };
 
@@ -644,55 +578,48 @@ const EmployeeProfile = () => {
   const fetchAndCalculateSummary = async (date: Date | null) => {
     if (!date || !employee) return;
 
-    const startDate = new Date(date.getFullYear(), date.getMonth(), 1)
-      .toISOString()
-      .split("T")[0];
+    const startDate = new Date(date.getFullYear(), date.getMonth(), 1).toISOString().split('T')[0];
 
-    const endDate = new Date(
-      date.getFullYear(),
-      date.getMonth(),
-      date.getDate()
-    )
+    const endDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
       .toISOString()
-      .split("T")[0];
+      .split('T')[0];
 
     try {
       // Get employee department
       const { data: employeeData, error: employeeError } = await supabase
-        .from("employees")
-        .select("lanid, department, name")
-        .eq("employee_id", employeeId)
+        .from('employees')
+        .select('lanid, department, name')
+        .eq('employee_id', employeeId)
         .single();
 
       if (employeeError) throw employeeError;
 
       // Fetch sales data with subcategory label filter
       const { data: salesData, error: salesError } = await supabase
-        .from("sales_data")
-        .select("*")
-        .eq("Lanid", employeeData.lanid)
-        .gte("Date", startDate)
-        .lte("Date", endDate)
-        .not("subcategory_label", "is", null)
-        .not("subcategory_label", "eq", "");
+        .from('sales_data')
+        .select('*')
+        .eq('Lanid', employeeData.lanid)
+        .gte('Date', startDate)
+        .lte('Date', endDate)
+        .not('subcategory_label', 'is', null)
+        .not('subcategory_label', 'eq', '');
 
       // Fetch audit data
       const { data: auditData, error: auditError } = await supabase
-        .from("Auditsinput")
-        .select("*")
-        .eq("salesreps", employeeData.lanid)
-        .gte("audit_date", startDate)
-        .lte("audit_date", endDate);
+        .from('Auditsinput')
+        .select('*')
+        .eq('salesreps', employeeData.lanid)
+        .gte('audit_date', startDate)
+        .lte('audit_date', endDate);
 
       // Fetch points calculation
       const { data: pointsCalculation, error: pointsError } = await supabase
-        .from("points_calculation")
-        .select("*");
+        .from('points_calculation')
+        .select('*');
 
-      if (salesError || auditError || pointsError)
-        throw new Error("Data fetch error");
+      if (salesError || auditError || pointsError) throw new Error('Data fetch error');
 
-      const isOperations = employeeData.department?.toString() === "Operations";
+      const isOperations = employeeData.department?.toString() === 'Operations';
 
       // Filter sales data to only include records up to selected date
       const validSalesData = (salesData || []).filter((sale) => {
@@ -713,11 +640,11 @@ const EmployeeProfile = () => {
           id: sale.id,
           Lanid: sale.Lanid,
           SoldDate: sale.Date, // Map the Date field to SoldDate
-          Desc: "Dros Fee", // Add the required Desc field
+          Desc: 'Dros Fee', // Add the required Desc field
           dros_cancel:
             sale.dros_cancel !== undefined && sale.dros_cancel !== null
               ? sale.dros_cancel.toString()
-              : "0",
+              : '0',
         })),
         auditData: validAuditData.map((audit) => ({
           ...audit,
@@ -733,7 +660,7 @@ const EmployeeProfile = () => {
       setSummaryData([
         {
           Lanid: employeeData.lanid,
-          Department: employeeData.department || "Unknown",
+          Department: employeeData.department || 'Unknown',
           TotalDros: validSalesData.length, // Using the filtered sales data length for total DROs
           MinorMistakes: metrics.MinorMistakes,
           MajorMistakes: metrics.MajorMistakes,
@@ -745,18 +672,16 @@ const EmployeeProfile = () => {
         },
       ]);
     } catch (error) {
-      console.error("Error calculating summary:", error);
-      toast.error("Failed to calculate performance metrics");
+      console.error('Error calculating summary:', error);
+      toast.error('Failed to calculate performance metrics');
     }
   };
 
-  const fetchEmployeeNameByUserUUID = async (
-    userUUID: string
-  ): Promise<string | null> => {
+  const fetchEmployeeNameByUserUUID = async (userUUID: string): Promise<string | null> => {
     const { data, error } = await supabase
-      .from("employees")
-      .select("name")
-      .eq("user_uuid", userUUID)
+      .from('employees')
+      .select('name')
+      .eq('user_uuid', userUUID)
       .single();
 
     if (error) {
@@ -777,55 +702,46 @@ const EmployeeProfile = () => {
           subscribeToNoteChanges();
 
           const scheduleSubscription = supabase
-            .channel("schedules-changes")
+            .channel('schedules-changes')
             .on(
-              "postgres_changes",
-              { event: "*", schema: "public", table: "schedules" },
+              'postgres_changes',
+              { event: '*', schema: 'public', table: 'schedules' },
               async (payload: { new: any; old: any; eventType: string }) => {
                 try {
                   const newRecord = payload.new;
 
                   if (
                     newRecord.employee_id === employeeId &&
-                    (["called_out", "left_early"].includes(newRecord.status) ||
-                      newRecord.status.toLowerCase().includes("late"))
+                    (['called_out', 'left_early'].includes(newRecord.status) ||
+                      newRecord.status.toLowerCase().includes('late'))
                   ) {
                     const status =
-                      newRecord.status === "called_out"
-                        ? "Called Out"
-                        : newRecord.status === "left_early"
-                          ? "Left Early"
-                          : newRecord.status.replace(/^Custom:\s*/i, "").trim();
+                      newRecord.status === 'called_out'
+                        ? 'Called Out'
+                        : newRecord.status === 'left_early'
+                          ? 'Left Early'
+                          : newRecord.status.replace(/^Custom:\s*/i, '').trim();
 
-                    const createdByName = await fetchEmployeeNameByUserUUID(
-                      currentUser.id
-                    );
+                    const createdByName = await fetchEmployeeNameByUserUUID(currentUser.id);
                     if (!createdByName) return;
 
-                    const { error } = await supabase
-                      .from("employee_absences")
-                      .insert([
-                        {
-                          employee_id: newRecord.employee_id,
-                          schedule_date: newRecord.schedule_date,
-                          status: status,
-                          created_by: createdByName,
-                        },
-                      ]);
+                    const { error } = await supabase.from('employee_absences').insert([
+                      {
+                        employee_id: newRecord.employee_id,
+                        schedule_date: newRecord.schedule_date,
+                        status: status,
+                        created_by: createdByName,
+                      },
+                    ]);
 
                     if (error) {
-                      throw new Error(
-                        `Error inserting absence: ${error.message}`
-                      );
+                      throw new Error(`Error inserting absence: ${error.message}`);
                     } else {
                       await fetchAbsences();
                     }
                   }
                 } catch (error) {
-                  console.error(
-                    "Error in schedule subscription handler:",
-                    error
-                  );
+                  console.error('Error in schedule subscription handler:', error);
                 }
               }
             )
@@ -835,7 +751,7 @@ const EmployeeProfile = () => {
             supabase.removeChannel(scheduleSubscription);
           };
         } catch (error) {
-          console.error("Error in useEffect:", error);
+          console.error('Error in useEffect:', error);
         }
       };
 
@@ -850,13 +766,11 @@ const EmployeeProfile = () => {
   }, [employee]);
 
   useEffect(() => {
-    const fetchEmployeeName = async (
-      user_uuid: string
-    ): Promise<string | null> => {
+    const fetchEmployeeName = async (user_uuid: string): Promise<string | null> => {
       const { data, error } = await supabase
-        .from("employees")
-        .select("name")
-        .eq("user_uuid", user_uuid)
+        .from('employees')
+        .select('name')
+        .eq('user_uuid', user_uuid)
         .single();
 
       if (error) {
@@ -867,9 +781,7 @@ const EmployeeProfile = () => {
     };
 
     const fetchPointsCalculation = async () => {
-      const { data, error } = await supabase
-        .from("points_calculation")
-        .select("*");
+      const { data, error } = await supabase.from('points_calculation').select('*');
       if (error) {
         //console.(error);
       } else {
@@ -883,45 +795,35 @@ const EmployeeProfile = () => {
   useEffect(() => {
     const fetchData = async () => {
       if (selectedDate && employee) {
-        const startDate = new Date(
-          selectedDate.getFullYear(),
-          selectedDate.getMonth(),
-          1
-        )
+        const startDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1)
           .toISOString()
-          .split("T")[0];
-        const endDate = new Date(
-          selectedDate.getFullYear(),
-          selectedDate.getMonth() + 1,
-          0
-        )
+          .split('T')[0];
+        const endDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0)
           .toISOString()
-          .split("T")[0];
+          .split('T')[0];
 
         const { data: salesData, error: salesError } = await supabase
-          .from("sales_data")
-          .select("*")
-          .eq("Lanid", employee.lanid)
-          .gte("Date", startDate)
-          .lte("Date", endDate)
-          .not("subcategory_label", "is", null)
-          .not("subcategory_label", "eq", "");
+          .from('sales_data')
+          .select('*')
+          .eq('Lanid', employee.lanid)
+          .gte('Date', startDate)
+          .lte('Date', endDate)
+          .not('subcategory_label', 'is', null)
+          .not('subcategory_label', 'eq', '');
 
         const { data: auditData, error: auditError } = await supabase
-          .from("Auditsinput")
-          .select("*")
-          .eq("salesreps", employee.lanid)
-          .gte("audit_date", startDate)
-          .lte("audit_date", endDate);
+          .from('Auditsinput')
+          .select('*')
+          .eq('salesreps', employee.lanid)
+          .gte('audit_date', startDate)
+          .lte('audit_date', endDate);
 
         if (salesError || auditError) {
           //console.(salesError || auditError);
         } else {
           setSalesData(salesData);
           setAuditData(auditData);
-          calculateSummary(salesData, auditData, selectedDate, [
-            employee.lanid,
-          ]);
+          calculateSummary(salesData, auditData, selectedDate, [employee.lanid]);
         }
       }
     };
@@ -929,25 +831,17 @@ const EmployeeProfile = () => {
     fetchData();
 
     const salesSubscription = supabase
-      .channel("custom-all-channel")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "sales_data" },
-        (payload) => {
-          fetchData();
-        }
-      )
+      .channel('custom-all-channel')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'sales_data' }, (payload) => {
+        fetchData();
+      })
       .subscribe();
 
     const auditsSubscription = supabase
-      .channel("custom-all-channel")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "Auditsinput" },
-        (payload) => {
-          fetchData();
-        }
-      )
+      .channel('custom-all-channel')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'Auditsinput' }, (payload) => {
+        fetchData();
+      })
       .subscribe();
 
     return () => {
@@ -960,9 +854,9 @@ const EmployeeProfile = () => {
     if (!employeeId) return;
 
     const { data, error } = await supabase
-      .from("employees")
-      .select("*")
-      .eq("employee_id", employeeId)
+      .from('employees')
+      .select('*')
+      .eq('employee_id', employeeId)
       .single();
 
     if (error) {
@@ -972,13 +866,11 @@ const EmployeeProfile = () => {
     }
   };
 
-  const fetchEmployeeName = async (
-    user_uuid: string
-  ): Promise<string | null> => {
+  const fetchEmployeeName = async (user_uuid: string): Promise<string | null> => {
     const { data, error } = await supabase
-      .from("employees")
-      .select("name")
-      .eq("user_uuid", user_uuid)
+      .from('employees')
+      .select('name')
+      .eq('user_uuid', user_uuid)
       .single();
 
     if (error) {
@@ -992,9 +884,9 @@ const EmployeeProfile = () => {
     if (!employeeId) return;
 
     const { data, error } = await supabase
-      .from("employee_profile_notes")
-      .select("*")
-      .eq("profile_employee_id", employeeId);
+      .from('employee_profile_notes')
+      .select('*')
+      .eq('profile_employee_id', employeeId);
 
     if (error) {
       //console.("Error fetching notes:", error);
@@ -1007,9 +899,9 @@ const EmployeeProfile = () => {
     if (!employeeId) return;
 
     const { data, error } = await supabase
-      .from("employee_quarterly_reviews")
-      .select("*")
-      .eq("employee_id", employeeId);
+      .from('employee_quarterly_reviews')
+      .select('*')
+      .eq('employee_id', employeeId);
 
     if (error) {
       //console.("Error fetching reviews:", error);
@@ -1023,25 +915,23 @@ const EmployeeProfile = () => {
 
     // Fetch absences from employee_absences table
     const { data: absencesData, error: absencesError } = await supabase
-      .from("employee_absences")
-      .select("id, employee_id, schedule_date, status, created_by, created_at")
-      .eq("employee_id", employeeId);
+      .from('employee_absences')
+      .select('id, employee_id, schedule_date, status, created_by, created_at')
+      .eq('employee_id', employeeId);
 
     if (absencesError) {
-      console.error("Error fetching absences:", absencesError);
+      console.error('Error fetching absences:', absencesError);
     }
 
     // Fetch custom statuses from schedules table
     const { data: schedulesData, error: schedulesError } = await supabase
-      .from("schedules")
-      .select("schedule_id, schedule_date, status") // Changed id to schedule_id
-      .eq("employee_id", employeeId)
-      .or(
-        "status.ilike.%Late Start%,status.ilike.%Left Early%,status.eq.called_out"
-      );
+      .from('schedules')
+      .select('schedule_id, schedule_date, status') // Changed id to schedule_id
+      .eq('employee_id', employeeId)
+      .or('status.ilike.%Late Start%,status.ilike.%Left Early%,status.eq.called_out');
 
     if (schedulesError) {
-      console.error("Error fetching schedules:", schedulesError);
+      console.error('Error fetching schedules:', schedulesError);
     } else {
       const formattedAbsences = schedulesData.map(
         (
@@ -1055,12 +945,12 @@ const EmployeeProfile = () => {
           let status = absence.status;
 
           if (
-            status.toLowerCase().includes("late start") ||
-            status.toLowerCase().includes("left early")
+            status.toLowerCase().includes('late start') ||
+            status.toLowerCase().includes('left early')
           ) {
-            status = status.replace(/^Custom:\s*/i, "");
-          } else if (status === "called_out") {
-            status = "Called Out";
+            status = status.replace(/^Custom:\s*/i, '');
+          } else if (status === 'called_out') {
+            status = 'Called Out';
           }
 
           return {
@@ -1068,7 +958,7 @@ const EmployeeProfile = () => {
             employee_id: employeeId,
             schedule_date: absence.schedule_date,
             status: status,
-            created_by: "System",
+            created_by: 'System',
             created_at: new Date().toISOString(),
           };
         }
@@ -1077,9 +967,7 @@ const EmployeeProfile = () => {
       // Combine both regular absences and schedule-based absences
       setAbsences((prevAbsences) => {
         const combinedAbsences = [...(absencesData || [])];
-        const existingDates = new Set(
-          combinedAbsences.map((absence) => absence.schedule_date)
-        );
+        const existingDates = new Set(combinedAbsences.map((absence) => absence.schedule_date));
 
         formattedAbsences.forEach((absence) => {
           if (!existingDates.has(absence.schedule_date)) {
@@ -1094,10 +982,10 @@ const EmployeeProfile = () => {
 
   const fetchAudits = async (lanid: string) => {
     const { data, error } = await supabase
-      .from("Auditsinput")
-      .select("*")
-      .eq("salesreps", lanid)
-      .order("audit_date", { ascending: false });
+      .from('Auditsinput')
+      .select('*')
+      .eq('salesreps', lanid)
+      .order('audit_date', { ascending: false });
 
     if (error) {
       //console.("Error fetching audits:", error);
@@ -1110,24 +998,20 @@ const EmployeeProfile = () => {
     if (!employeeId) return;
 
     const channel = supabase
-      .channel("custom-all-channel")
+      .channel('custom-all-channel')
       .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "employee_profile_notes" },
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'employee_profile_notes' },
         (payload) => {
           // Modify this section to handle updates more carefully
-          if (payload.eventType === "INSERT") {
+          if (payload.eventType === 'INSERT') {
             // Only add if not already present
             setNotes((prevNotes) => {
-              const exists = prevNotes.some(
-                (note) => note.id === payload.new.id
-              );
+              const exists = prevNotes.some((note) => note.id === payload.new.id);
               return exists ? prevNotes : [payload.new as Note, ...prevNotes];
             });
-          } else if (payload.eventType === "DELETE") {
-            setNotes((prevNotes) =>
-              prevNotes.filter((note) => note.id !== payload.old.id)
-            );
+          } else if (payload.eventType === 'DELETE') {
+            setNotes((prevNotes) => prevNotes.filter((note) => note.id !== payload.old.id));
           }
         }
       )
@@ -1139,30 +1023,24 @@ const EmployeeProfile = () => {
   };
 
   const addNoteMutation = useMutation({
-    mutationFn: async ({
-      type,
-      noteContent,
-    }: {
-      type: string;
-      noteContent: string;
-    }) => {
-      if (!currentUser?.id || !employeeId || noteContent.trim() === "") {
-        throw new Error("Missing required data");
+    mutationFn: async ({ type, noteContent }: { type: string; noteContent: string }) => {
+      if (!currentUser?.id || !employeeId || noteContent.trim() === '') {
+        throw new Error('Missing required data');
       }
 
       // Get the employee name from the employees table
       const { data: employeeData, error: employeeError } = await supabase
-        .from("employees")
-        .select("name")
-        .eq("user_uuid", currentUser.id)
+        .from('employees')
+        .select('name')
+        .eq('user_uuid', currentUser.id)
         .single();
 
       if (employeeError || !employeeData?.name) {
-        throw new Error("Could not fetch employee name");
+        throw new Error('Could not fetch employee name');
       }
 
       const { data, error } = await supabase
-        .from("employee_profile_notes")
+        .from('employee_profile_notes')
         .insert([
           {
             profile_employee_id: employeeId,
@@ -1180,50 +1058,48 @@ const EmployeeProfile = () => {
     onSuccess: (_, variables) => {
       // Clear the form and refetch notes
       switch (variables.type) {
-        case "notes":
-          setNewNote("");
+        case 'notes':
+          setNewNote('');
           break;
-        case "reviews":
-          setNewReview("");
+        case 'reviews':
+          setNewReview('');
           break;
-        case "growth":
-          setNewGrowth("");
+        case 'growth':
+          setNewGrowth('');
           break;
-        case "absence":
-          setNewAbsence("");
+        case 'absence':
+          setNewAbsence('');
           break;
-        case "daily_briefing":
-          setNewDailyBriefing("");
+        case 'daily_briefing':
+          setNewDailyBriefing('');
           break;
       }
       queryClient.invalidateQueries({
-        queryKey: ["employee-notes", employeeId],
+        queryKey: ['employee-notes', employeeId],
       });
-      toast.success("Note added successfully");
+      toast.success('Note added successfully');
     },
     onError: (error) => {
-      toast.error(
-        error instanceof Error ? error.message : "Failed to add note"
-      );
+      toast.error(error instanceof Error ? error.message : 'Failed to add note');
     },
   });
 
   const handleAddNote = async (type: string) => {
-    let noteContent = "";
+    let noteContent = '';
     switch (type) {
-      case "notes":
+      case 'notes':
         noteContent = newNote;
         break;
-      case "reviews":
+      case 'reviews':
         noteContent = newReview;
         break;
-      case "growth":
+      case 'growth':
         noteContent = newGrowth;
         break;
-      case "absence":
+      case 'absence':
         noteContent = newAbsence;
         break;
-      case "daily_briefing":
+      case 'daily_briefing':
         noteContent = newDailyBriefing;
         break;
       default:
@@ -1234,10 +1110,7 @@ const EmployeeProfile = () => {
   };
 
   const handleDeleteNote = async (id: number) => {
-    const { error } = await supabase
-      .from("employee_profile_notes")
-      .delete()
-      .eq("id", id);
+    const { error } = await supabase.from('employee_profile_notes').delete().eq('id', id);
 
     if (error) {
       //console.("Error deleting note:", error);
@@ -1245,10 +1118,7 @@ const EmployeeProfile = () => {
       setNotes(notes.filter((note) => note.id !== id));
     }
 
-    const { error: absenceError } = await supabase
-      .from("employee_absences")
-      .delete()
-      .eq("id", id);
+    const { error: absenceError } = await supabase.from('employee_absences').delete().eq('id', id);
 
     if (absenceError) {
       //console.("Error deleting absence:", absenceError);
@@ -1258,45 +1128,36 @@ const EmployeeProfile = () => {
   };
 
   const handleEditNote = async (id: number, updatedNote: string | null) => {
-    if (updatedNote === null || updatedNote.trim() === "") return;
+    if (updatedNote === null || updatedNote.trim() === '') return;
 
     const sanitizedNote = DOMPurify.sanitize(updatedNote);
 
     const { error } = await supabase
-      .from("employee_profile_notes")
+      .from('employee_profile_notes')
       .update({ note: updatedNote })
-      .eq("id", id);
+      .eq('id', id);
 
     if (error) {
       //console.("Error updating note:", error);
     } else {
-      setNotes(
-        notes.map((note) =>
-          note.id === id ? { ...note, note: updatedNote } : note
-        )
-      );
+      setNotes(notes.map((note) => (note.id === id ? { ...note, note: updatedNote } : note)));
     }
   };
 
-  const handleReviewNote = async (
-    id: number,
-    currentReviewedStatus: boolean
-  ) => {
+  const handleReviewNote = async (id: number, currentReviewedStatus: boolean) => {
     const newReviewedStatus = !currentReviewedStatus;
 
     const { error } = await supabase
-      .from("employee_profile_notes")
+      .from('employee_profile_notes')
       .update({
         reviewed: newReviewedStatus,
-        reviewed_by: newReviewedStatus
-          ? currentUser?.user_metadata?.full_name
-          : null,
+        reviewed_by: newReviewedStatus ? currentUser?.user_metadata?.full_name : null,
         reviewed_at: newReviewedStatus ? new Date().toISOString() : null,
       })
-      .eq("id", id);
+      .eq('id', id);
 
     if (error) {
-      console.error("Error reviewing note:", error);
+      console.error('Error reviewing note:', error);
     } else {
       setNotes(
         notes.map((note) =>
@@ -1304,12 +1165,8 @@ const EmployeeProfile = () => {
             ? {
                 ...note,
                 reviewed: newReviewedStatus,
-                reviewed_by: newReviewedStatus
-                  ? currentUser?.user_metadata?.full_name
-                  : undefined,
-                reviewed_at: newReviewedStatus
-                  ? new Date().toISOString()
-                  : undefined,
+                reviewed_by: newReviewedStatus ? currentUser?.user_metadata?.full_name : undefined,
+                reviewed_at: newReviewedStatus ? new Date().toISOString() : undefined,
               }
             : note
         )
@@ -1327,9 +1184,7 @@ const EmployeeProfile = () => {
   const handleAddReview = async () => {
     if (!employeeId) return;
 
-    const employeeName = await fetchEmployeeNameByUserUUID(
-      currentUser?.id || ""
-    );
+    const employeeName = await fetchEmployeeNameByUserUUID(currentUser?.id || '');
     if (!employeeName) return;
 
     const reviewData = {
@@ -1351,18 +1206,16 @@ const EmployeeProfile = () => {
     if (editMode && currentReview) {
       // Update existing review
       const { data, error } = await supabase
-        .from("employee_quarterly_reviews")
+        .from('employee_quarterly_reviews')
         .update(reviewData)
-        .eq("id", currentReview.id)
+        .eq('id', currentReview.id)
         .select();
 
       if (error) {
         //console.("Error updating review:", error);
       } else if (data) {
         setReviews((prevReviews) =>
-          prevReviews.map((review) =>
-            review.id === currentReview.id ? data[0] : review
-          )
+          prevReviews.map((review) => (review.id === currentReview.id ? data[0] : review))
         );
         setShowReviewDialog(false); // Close the dialog after update
         resetReviewForm();
@@ -1370,7 +1223,7 @@ const EmployeeProfile = () => {
     } else {
       // Add new review
       const { data, error } = await supabase
-        .from("employee_quarterly_reviews")
+        .from('employee_quarterly_reviews')
         .insert([reviewData])
         .select();
 
@@ -1387,40 +1240,38 @@ const EmployeeProfile = () => {
   // Add a function to handle publishing the review
   const handlePublishReview = async (id: number) => {
     const { data, error } = await supabase
-      .from("employee_quarterly_reviews")
+      .from('employee_quarterly_reviews')
       .update({ published: true })
-      .eq("id", id)
+      .eq('id', id)
       .select();
 
     if (error) {
       //console.("Error publishing review:", error);
     } else if (data) {
       setReviews((prevReviews) =>
-        prevReviews.map((review) =>
-          review.id === id ? { ...review, published: true } : review
-        )
+        prevReviews.map((review) => (review.id === id ? { ...review, published: true } : review))
       );
     }
   };
 
   const resetReviewForm = () => {
-    setReviewQuarter("");
+    setReviewQuarter('');
     setReviewYear(new Date().getFullYear());
-    setOverviewPerformance("");
-    setAchievementsContributions([""]);
-    setAttendanceReliability([""]);
-    setQualityWork([""]);
-    setCommunicationCollaboration([""]);
-    setStrengthsAccomplishments([""]);
-    setAreasGrowth([""]);
-    setRecognition([""]);
+    setOverviewPerformance('');
+    setAchievementsContributions(['']);
+    setAttendanceReliability(['']);
+    setQualityWork(['']);
+    setCommunicationCollaboration(['']);
+    setStrengthsAccomplishments(['']);
+    setAreasGrowth(['']);
+    setRecognition(['']);
   };
 
   const sanitizeHtml = (html: string | null | undefined): string => {
-    if (!html) return "";
+    if (!html) return '';
     return DOMPurify.sanitize(html, {
-      ALLOWED_TAGS: ["p", "b", "i", "em", "strong", "span", "div", "br"],
-      ALLOWED_ATTR: ["class", "style"],
+      ALLOWED_TAGS: ['p', 'b', 'i', 'em', 'strong', 'span', 'div', 'br'],
+      ALLOWED_ATTR: ['class', 'style'],
       ADD_TAGS: [], // Required to avoid type error
       ADD_ATTR: [], // Required to avoid type error
       USE_PROFILES: { html: true }, // Required to enable HTML sanitization
@@ -1433,20 +1284,14 @@ const EmployeeProfile = () => {
     lanids: string[]
   ) => {
     let summary = lanids.map((lanid) => {
-      const employeeSalesData = salesData.filter(
-        (sale) => sale.Lanid === lanid
-      );
-      const employeeAuditData = auditData.filter(
-        (audit) => audit.salesreps === lanid
-      );
+      const employeeSalesData = salesData.filter((sale) => sale.Lanid === lanid);
+      const employeeAuditData = auditData.filter((audit) => audit.salesreps === lanid);
 
-      const totalDros = employeeSalesData.filter(
-        (sale) => sale.subcategory_label
-      ).length;
+      const totalDros = employeeSalesData.filter((sale) => sale.subcategory_label).length;
       let pointsDeducted = 0;
 
       employeeSalesData.forEach((sale: SalesData) => {
-        if (sale.dros_cancel === "Yes") {
+        if (sale.dros_cancel === 'Yes') {
           pointsDeducted += 5;
         }
       });
@@ -1458,8 +1303,8 @@ const EmployeeProfile = () => {
             if (audit.error_location === point.error_location) {
               pointsDeducted += point.points_deducted;
             } else if (
-              point.error_location === "dros_cancel_field" &&
-              audit.dros_cancel === "Yes"
+              point.error_location === 'dros_cancel_field' &&
+              audit.dros_cancel === 'Yes'
             ) {
               pointsDeducted += point.points_deducted;
             }
@@ -1499,81 +1344,69 @@ const EmployeeProfile = () => {
     //   ),
     // },
     {
-      Header: "Name",
-      accessor: "Name",
+      Header: 'Name',
+      accessor: 'Name',
       Cell: ({ row: { original } }: { row: { original: SummaryRowData } }) => (
         <div
-          className={`text-left align-left ${
-            !original.Qualified ? "text-gray-400 italic" : ""
-          }`}
+          className={`text-left align-left ${!original.Qualified ? 'text-gray-400 italic' : ''}`}
         >
           {sanitizeHtml(original.name)}
         </div>
       ),
     },
     {
-      Header: "Total DROS",
-      accessor: "TotalDros",
+      Header: 'Total DROS',
+      accessor: 'TotalDros',
       Cell: ({ row: { original } }: { row: { original: SummaryRowData } }) => (
         <div
-          className={`text-left align-left ${
-            !original.Qualified ? "text-gray-400 italic" : ""
-          }`}
+          className={`text-left align-left ${!original.Qualified ? 'text-gray-400 italic' : ''}`}
         >
-          {original.TotalDros === null ? "" : original.TotalDros}
+          {original.TotalDros === null ? '' : original.TotalDros}
         </div>
       ),
     },
     {
-      Header: "Minor Mistakes",
-      accessor: "MinorMistakes",
+      Header: 'Minor Mistakes',
+      accessor: 'MinorMistakes',
       Cell: ({ row: { original } }: { row: { original: SummaryRowData } }) => (
         <div
-          className={`text-left align-left ${
-            !original.Qualified ? "text-gray-400 italic" : ""
-          }`}
+          className={`text-left align-left ${!original.Qualified ? 'text-gray-400 italic' : ''}`}
         >
-          {original.MinorMistakes === null ? "" : original.MinorMistakes}
+          {original.MinorMistakes === null ? '' : original.MinorMistakes}
         </div>
       ),
     },
     {
-      Header: "Major Mistakes",
-      accessor: "MajorMistakes",
+      Header: 'Major Mistakes',
+      accessor: 'MajorMistakes',
       Cell: ({ row: { original } }: { row: { original: SummaryRowData } }) => (
         <div
-          className={`text-left align-left ${
-            !original.Qualified ? "text-gray-400 italic" : ""
-          }`}
+          className={`text-left align-left ${!original.Qualified ? 'text-gray-400 italic' : ''}`}
         >
-          {original.MajorMistakes === null ? "" : original.MajorMistakes}
+          {original.MajorMistakes === null ? '' : original.MajorMistakes}
         </div>
       ),
     },
     {
-      Header: "Cancelled DROS",
-      accessor: "CancelledDros",
+      Header: 'Cancelled DROS',
+      accessor: 'CancelledDros',
       Cell: ({ row: { original } }: { row: { original: SummaryRowData } }) => (
         <div
-          className={`text-left align-left ${
-            !original.Qualified ? "text-gray-400 italic" : ""
-          }`}
+          className={`text-left align-left ${!original.Qualified ? 'text-gray-400 italic' : ''}`}
         >
-          {original.CancelledDros === null ? "" : original.CancelledDros}
+          {original.CancelledDros === null ? '' : original.CancelledDros}
         </div>
       ),
     },
     {
-      Header: "Error Rate",
-      accessor: "WeightedErrorRate",
+      Header: 'Error Rate',
+      accessor: 'WeightedErrorRate',
       Cell: ({ row: { original } }: { row: { original: SummaryRowData } }) => (
         <div
-          className={`text-left align-left ${
-            !original.Qualified ? "text-gray-400 italic" : ""
-          }`}
+          className={`text-left align-left ${!original.Qualified ? 'text-gray-400 italic' : ''}`}
         >
           {original.WeightedErrorRate === null
-            ? "0.00%"
+            ? '0.00%'
             : `${original.WeightedErrorRate.toFixed(2)}%`}
         </div>
       ),
@@ -1583,7 +1416,7 @@ const EmployeeProfile = () => {
   const auditDateMutation = useMutation({
     mutationFn: (date: Date | undefined) => Promise.resolve(date),
     onSuccess: (date) => {
-      queryClient.setQueryData(["auditDateSelection"], date);
+      queryClient.setQueryData(['auditDateSelection'], date);
       if (date) {
         fetchAndCalculateSummary(date);
       }
@@ -1593,7 +1426,7 @@ const EmployeeProfile = () => {
   const performanceDateMutation = useMutation({
     mutationFn: (date: Date | undefined) => Promise.resolve(date),
     onSuccess: (date) => {
-      queryClient.setQueryData(["performanceDateSelection"], date);
+      queryClient.setQueryData(['performanceDateSelection'], date);
       setSelectedDate(date || null);
       if (date) {
         fetchAndCalculateSummary(date);
@@ -1604,50 +1437,46 @@ const EmployeeProfile = () => {
   const absenceDateMutation = useMutation({
     mutationFn: (date: Date | undefined) => Promise.resolve(date),
     onSuccess: (date) => {
-      queryClient.setQueryData(["absenceDateSelection"], date);
+      queryClient.setQueryData(['absenceDateSelection'], date);
     },
   });
 
   const { data: auditDateSelection } = useQuery({
-    queryKey: ["auditDateSelection"],
+    queryKey: ['auditDateSelection'],
     queryFn: () => null as Date | null,
     initialData: null,
   });
 
   const { data: performanceDateSelection } = useQuery({
-    queryKey: ["performanceDateSelection"],
+    queryKey: ['performanceDateSelection'],
     queryFn: () => null as Date | null,
     initialData: null,
   });
 
   const { data: absenceDateSelection } = useQuery({
-    queryKey: ["absenceDateSelection"],
+    queryKey: ['absenceDateSelection'],
     queryFn: () => null as Date | null,
     initialData: null,
   });
 
   const salesDataQuery = useQuery({
-    queryKey: ["salesData", employeeId, selectedDate],
+    queryKey: ['salesData', employeeId, selectedDate],
     queryFn: async () => {
       if (!selectedDate || !employee?.lanid) return [];
 
-      const startDate = new Date(
-        selectedDate.getFullYear(),
-        selectedDate.getMonth(),
-        1
-      )
+      const startDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1)
         .toISOString()
-        .split("T")[0];
-      const endDate = selectedDate.toISOString().split("T")[0];
+        .split('T')[0];
+      const endDate = selectedDate.toISOString().split('T')[0];
 
       const { data, error } = await supabase
-        .from("sales_data")
-        .select("*")
-        .eq("Lanid", employee.lanid)
-        .gte("Date", startDate)
-        .lte("Date", endDate)
-        .not("subcategory_label", "is", null)
-        .not("subcategory_label", "eq", "");
+        .from('sales_data')
+        .select('*')
+        .eq('Lanid', employee.lanid)
+        .gte('Date', startDate)
+        .lte('Date', endDate)
+        .not('subcategory_label', 'is', null)
+        .not('subcategory_label', 'eq', '');
 
       if (error) throw error;
       return data || [];
@@ -1656,25 +1485,21 @@ const EmployeeProfile = () => {
   });
 
   const contestAuditsQuery = useQuery({
-    queryKey: ["contestAudits", employeeId, selectedDate],
+    queryKey: ['contestAudits', employeeId, selectedDate],
     queryFn: async () => {
       if (!selectedDate || !employee?.lanid) return [];
 
-      const startDate = new Date(
-        selectedDate.getFullYear(),
-        selectedDate.getMonth(),
-        1
-      )
+      const startDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1)
         .toISOString()
-        .split("T")[0];
-      const endDate = selectedDate.toISOString().split("T")[0];
+        .split('T')[0];
+      const endDate = selectedDate.toISOString().split('T')[0];
 
       const { data, error } = await supabase
-        .from("Auditsinput")
-        .select("*")
-        .eq("salesreps", employee.lanid)
-        .gte("audit_date", startDate)
-        .lte("audit_date", endDate);
+        .from('Auditsinput')
+        .select('*')
+        .eq('salesreps', employee.lanid)
+        .gte('audit_date', startDate)
+        .lte('audit_date', endDate);
 
       if (error) throw error;
       return data || [];
@@ -1683,18 +1508,18 @@ const EmployeeProfile = () => {
   });
 
   const historicalAuditsQuery = useQuery({
-    queryKey: ["historicalAudits", employeeId, employee?.lanid],
+    queryKey: ['historicalAudits', employeeId, employee?.lanid],
     queryFn: async () => {
       if (!employee?.lanid) return [];
 
       const { data, error } = await supabase
-        .from("Auditsinput")
-        .select("*")
-        .eq("salesreps", employee.lanid)
-        .order("audit_date", { ascending: true });
+        .from('Auditsinput')
+        .select('*')
+        .eq('salesreps', employee.lanid)
+        .order('audit_date', { ascending: true });
 
       if (error) {
-        console.error("Error fetching historical audits:", error);
+        console.error('Error fetching historical audits:', error);
         throw error;
       }
 
@@ -1702,15 +1527,15 @@ const EmployeeProfile = () => {
       return (data || []).map((audit) => ({
         ...audit,
         audit_date: audit.audit_date,
-        error_location: audit.error_location || "",
-        dros_cancel: audit.dros_cancel || "No",
+        error_location: audit.error_location || '',
+        dros_cancel: audit.dros_cancel || 'No',
       }));
     },
     enabled: !!employee?.lanid, // Only run query when we have the lanid
   });
 
   const auditDetailsQuery = useQuery({
-    queryKey: ["auditDetails", employeeId, auditDateSelection],
+    queryKey: ['auditDetails', employeeId, auditDateSelection],
     queryFn: async () => {
       if (!employee?.lanid || !auditDateSelection) return [];
 
@@ -1718,7 +1543,7 @@ const EmployeeProfile = () => {
       const endDate = endOfMonth(auditDateSelection);
 
       const { data, error } = await supabase
-        .from("Auditsinput")
+        .from('Auditsinput')
         .select(
           `
           dros_number,
@@ -1730,10 +1555,10 @@ const EmployeeProfile = () => {
           dros_cancel
         `
         )
-        .eq("salesreps", employee.lanid)
-        .gte("trans_date", startDate.toISOString())
-        .lte("trans_date", endDate.toISOString())
-        .order("trans_date", { ascending: true });
+        .eq('salesreps', employee.lanid)
+        .gte('trans_date', startDate.toISOString())
+        .lte('trans_date', endDate.toISOString())
+        .order('trans_date', { ascending: true });
 
       if (error) throw error;
       return data;
@@ -1742,11 +1567,9 @@ const EmployeeProfile = () => {
   });
 
   const pointsCalculationQuery = useQuery({
-    queryKey: ["pointsCalculation"],
+    queryKey: ['pointsCalculation'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("points_calculation")
-        .select("*");
+      const { data, error } = await supabase.from('points_calculation').select('*');
       if (error) throw error;
       return data || [];
     },
@@ -1783,21 +1606,20 @@ const EmployeeProfile = () => {
     pointsCalculation: PointsCalculation[],
     employee: any
   ): SummaryRowData[] => {
-    if (!employee?.lanid || !employee?.name || !salesData || !auditData)
-      return [];
+    if (!employee?.lanid || !employee?.name || !salesData || !auditData) return [];
 
     try {
-      const isOperations = employee.department?.toString() === "Operations";
+      const isOperations = employee.department?.toString() === 'Operations';
 
       const calculator = new WeightedScoringCalculator({
         salesData: salesData.map((sale) => ({
           ...sale,
           SoldDate: sale.SoldDate,
-          Desc: "Dros Fee",
+          Desc: 'Dros Fee',
           dros_cancel:
             sale.dros_cancel !== undefined && sale.dros_cancel !== null
               ? sale.dros_cancel.toString()
-              : "0",
+              : '0',
         })),
         auditData: auditData.map((audit) => ({
           ...audit,
@@ -1810,7 +1632,7 @@ const EmployeeProfile = () => {
 
       const summaryData: SummaryRowData = {
         ...calculator.metrics,
-        Department: employee.department || "Unknown",
+        Department: employee.department || 'Unknown',
         Lanid: employee.lanid,
         name: employee.name,
         TotalWeightedMistakes: calculator.metrics.TotalWeightedMistakes || null,
@@ -1818,17 +1640,17 @@ const EmployeeProfile = () => {
 
       // Verify all required properties exist
       if (
-        "Lanid" in summaryData &&
-        "name" in summaryData &&
-        "Department" in summaryData &&
-        "TotalDros" in summaryData &&
-        "MinorMistakes" in summaryData &&
-        "MajorMistakes" in summaryData &&
-        "CancelledDros" in summaryData &&
-        "WeightedErrorRate" in summaryData &&
-        "Qualified" in summaryData &&
-        "DisqualificationReason" in summaryData &&
-        "TotalWeightedMistakes" in summaryData
+        'Lanid' in summaryData &&
+        'name' in summaryData &&
+        'Department' in summaryData &&
+        'TotalDros' in summaryData &&
+        'MinorMistakes' in summaryData &&
+        'MajorMistakes' in summaryData &&
+        'CancelledDros' in summaryData &&
+        'WeightedErrorRate' in summaryData &&
+        'Qualified' in summaryData &&
+        'DisqualificationReason' in summaryData &&
+        'TotalWeightedMistakes' in summaryData
       ) {
         return [summaryData];
       }
@@ -1846,40 +1668,31 @@ const EmployeeProfile = () => {
       pointsCalculationQuery.data || [],
       employee
     );
-  }, [
-    salesDataQuery.data,
-    contestAuditsQuery.data,
-    pointsCalculationQuery.data,
-    employee,
-  ]);
+  }, [salesDataQuery.data, contestAuditsQuery.data, pointsCalculationQuery.data, employee]);
 
   return (
     <EmployeeProfileClient employeeId={employeeId}>
       {(user) => (
-        <RoleBasedWrapper allowedRoles={["admin", "ceo", "super admin", "dev"]}>
+        <RoleBasedWrapper allowedRoles={['admin', 'ceo', 'super admin', 'dev']}>
           <div
             className={`relative w-full mx-auto ml-6 md:ml-6 lg:ml-6 md:w-[calc(100vw-10rem)] lg:w-[calc(100vw-30rem)] h-full overflow-hidden flex-1 transition-all duration-300`}
           >
             <Card className="min-h-[calc(100vh-100px)] max-w-6xl mx-auto my-12">
               <header className="bg-gray-100 dark:bg-muted rounded-t-lg px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex items-center gap-4">
-                  <Avatar
-                    className={employee?.avatar_url ? "w-32 h-32" : "w-24 h-24"}
-                  >
+                  <Avatar className={employee?.avatar_url ? 'w-32 h-32' : 'w-24 h-24'}>
                     <AvatarImage
-                      src={employee?.avatar_url || ""}
-                      alt={employee?.name || "Employee"}
+                      src={employee?.avatar_url || ''}
+                      alt={employee?.name || 'Employee'}
                     />
                     <AvatarFallback>
                       <PersonIcon className="w-6 h-6" />
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <h1 className="text-xl font-bold">
-                      {employee?.name || "Employee"}
-                    </h1>
+                    <h1 className="text-xl font-bold">{employee?.name || 'Employee'}</h1>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {employee?.position || "Position not set"}
+                      {employee?.position || 'Position not set'}
                     </p>
                   </div>
                   <div className="flex ml-auto">
@@ -1897,13 +1710,9 @@ const EmployeeProfile = () => {
                   onValueChange={setActiveTab}
                 >
                   <TabsList className="border-b border-gray-200 dark:border-gray-700">
-                    <TabsTrigger value="daily_briefing">
-                      Daily Briefing
-                    </TabsTrigger>
+                    <TabsTrigger value="daily_briefing">Daily Briefing</TabsTrigger>
                     <TabsTrigger value="notes">Notes</TabsTrigger>
-                    <TabsTrigger value="absences">
-                      Attendance & Schedules
-                    </TabsTrigger>
+                    <TabsTrigger value="absences">Attendance & Schedules</TabsTrigger>
                     <TabsTrigger value="reviews">Reviews</TabsTrigger>
                     <TabsTrigger value="growth">Growth Tracking</TabsTrigger>
                     <TabsTrigger value="sales">Sales</TabsTrigger>
@@ -1913,7 +1722,7 @@ const EmployeeProfile = () => {
                   <ScrollArea className="h-[calc(100vh-300px)] relative">
                     <main
                       className={classNames(
-                        "grid flex-1 items-start mx-auto my-4 mb-4 max-w-8xl gap-4 p-4 sm:px-6 sm:py-0 md:gap-8 body",
+                        'grid flex-1 items-start mx-auto my-4 mb-4 max-w-8xl gap-4 p-4 sm:px-6 sm:py-0 md:gap-8 body',
                         styles.noScroll
                       )}
                     >
@@ -1921,72 +1730,50 @@ const EmployeeProfile = () => {
                         <TabsContent value="daily_briefing">
                           <div className="p-6 space-y-4">
                             <div className="grid gap-1.5">
-                              <Label htmlFor="new-daily-briefing">
-                                Add a new daily briefing
-                              </Label>
+                              <Label htmlFor="new-daily-briefing">Add a new daily briefing</Label>
                               <Textarea
                                 id="new-daily-briefing"
                                 value={newDailyBriefing}
-                                onChange={(e) =>
-                                  setNewDailyBriefing(e.target.value)
-                                }
+                                onChange={(e) => setNewDailyBriefing(e.target.value)}
                                 placeholder="Type your daily briefing here..."
                                 className="min-h-[100px]"
                               />
-                              <Button
-                                onClick={() => handleAddNote("daily_briefing")}
-                              >
+                              <Button onClick={() => handleAddNote('daily_briefing')}>
                                 Add Daily Briefing
                               </Button>
                             </div>
                             <div className="grid gap-4">
                               {notes
-                                .filter(
-                                  (note) =>
-                                    note.type === "daily_briefing" &&
-                                    !note.reviewed
-                                )
+                                .filter((note) => note.type === 'daily_briefing' && !note.reviewed)
                                 .map((note) => (
-                                  <div
-                                    key={note.id}
-                                    className="flex justify-between items-start"
-                                  >
+                                  <div key={note.id} className="flex justify-between items-start">
                                     <div className="flex items-center gap-2">
                                       <input
                                         type="checkbox"
                                         checked={note.reviewed || false}
                                         onChange={() =>
-                                          handleReviewNote(
-                                            note.id,
-                                            note.reviewed || false
-                                          )
+                                          handleReviewNote(note.id, note.reviewed || false)
                                         }
                                       />
                                       <div>
                                         <div
                                           className="text-sm font-medium"
                                           style={{
-                                            textDecoration: note.reviewed
-                                              ? "line-through"
-                                              : "none",
+                                            textDecoration: note.reviewed ? 'line-through' : 'none',
                                           }}
                                         >
                                           {note.note}
                                         </div>
                                         <div className="text-xs text-gray-500 dark:text-gray-400">
-                                          - {note.created_by} on{" "}
-                                          {new Date(
-                                            note.created_at
-                                          ).toLocaleDateString()}
+                                          - {note.created_by} on{' '}
+                                          {new Date(note.created_at).toLocaleDateString()}
                                         </div>
                                         {note.reviewed && note.reviewed_by && (
                                           <div className="text-xs text-gray-500 dark:text-gray-400">
-                                            Reviewed by {note.reviewed_by} on{" "}
+                                            Reviewed by {note.reviewed_by} on{' '}
                                             {note.reviewed_at
-                                              ? new Date(
-                                                  note.reviewed_at
-                                                ).toLocaleDateString()
-                                              : ""}
+                                              ? new Date(note.reviewed_at).toLocaleDateString()
+                                              : ''}
                                           </div>
                                         )}
                                       </div>
@@ -1998,10 +1785,7 @@ const EmployeeProfile = () => {
                                         onClick={() =>
                                           handleEditNote(
                                             note.id,
-                                            prompt(
-                                              "Edit daily briefing:",
-                                              note.note
-                                            ) ?? note.note
+                                            prompt('Edit daily briefing:', note.note) ?? note.note
                                           )
                                         }
                                       >
@@ -2010,9 +1794,7 @@ const EmployeeProfile = () => {
                                       <Button
                                         variant="outline"
                                         size="icon"
-                                        onClick={() =>
-                                          handleDeleteNote(note.id)
-                                        }
+                                        onClick={() => handleDeleteNote(note.id)}
                                       >
                                         <TrashIcon />
                                       </Button>
@@ -2020,52 +1802,36 @@ const EmployeeProfile = () => {
                                   </div>
                                 ))}
                               {notes
-                                .filter(
-                                  (note) =>
-                                    note.type === "daily_briefing" &&
-                                    note.reviewed
-                                )
+                                .filter((note) => note.type === 'daily_briefing' && note.reviewed)
                                 .map((note) => (
-                                  <div
-                                    key={note.id}
-                                    className="flex justify-between items-start"
-                                  >
+                                  <div key={note.id} className="flex justify-between items-start">
                                     <div className="flex items-center gap-2">
                                       <input
                                         type="checkbox"
                                         checked={note.reviewed || false}
                                         onChange={() =>
-                                          handleReviewNote(
-                                            note.id,
-                                            note.reviewed || false
-                                          )
+                                          handleReviewNote(note.id, note.reviewed || false)
                                         }
                                       />
                                       <div>
                                         <div
                                           className="text-sm font-medium"
                                           style={{
-                                            textDecoration: note.reviewed
-                                              ? "line-through"
-                                              : "none",
+                                            textDecoration: note.reviewed ? 'line-through' : 'none',
                                           }}
                                         >
                                           {note.note}
                                         </div>
                                         <div className="text-xs text-gray-500 dark:text-gray-400">
-                                          - {note.created_by} on{" "}
-                                          {new Date(
-                                            note.created_at
-                                          ).toLocaleDateString()}
+                                          - {note.created_by} on{' '}
+                                          {new Date(note.created_at).toLocaleDateString()}
                                         </div>
                                         {note.reviewed && note.reviewed_by && (
                                           <div className="text-xs text-gray-500 dark:text-gray-400">
-                                            Reviewed by {note.reviewed_by} on{" "}
+                                            Reviewed by {note.reviewed_by} on{' '}
                                             {note.reviewed_at
-                                              ? new Date(
-                                                  note.reviewed_at
-                                                ).toLocaleDateString()
-                                              : ""}
+                                              ? new Date(note.reviewed_at).toLocaleDateString()
+                                              : ''}
                                           </div>
                                         )}
                                       </div>
@@ -2077,10 +1843,7 @@ const EmployeeProfile = () => {
                                         onClick={() =>
                                           handleEditNote(
                                             note.id,
-                                            prompt(
-                                              "Edit daily briefing:",
-                                              note.note
-                                            ) ?? note.note
+                                            prompt('Edit daily briefing:', note.note) ?? note.note
                                           )
                                         }
                                       >
@@ -2089,9 +1852,7 @@ const EmployeeProfile = () => {
                                       <Button
                                         variant="ghost"
                                         size="icon"
-                                        onClick={() =>
-                                          handleDeleteNote(note.id)
-                                        }
+                                        onClick={() => handleDeleteNote(note.id)}
                                       >
                                         <TrashIcon />
                                       </Button>
@@ -2113,54 +1874,40 @@ const EmployeeProfile = () => {
                                 placeholder="Type your note here..."
                                 className="min-h-[100px]"
                               />
-                              <Button onClick={() => handleAddNote("notes")}>
-                                Add Note
-                              </Button>
+                              <Button onClick={() => handleAddNote('notes')}>Add Note</Button>
                             </div>
                             <div className="grid gap-4">
                               {notes
-                                .filter((note) => note.type === "notes")
+                                .filter((note) => note.type === 'notes')
                                 .map((note) => (
-                                  <div
-                                    key={note.id}
-                                    className="flex justify-between items-start"
-                                  >
+                                  <div key={note.id} className="flex justify-between items-start">
                                     <div className="flex items-center gap-2">
                                       <input
                                         type="checkbox"
                                         checked={note.reviewed || false}
                                         onChange={() =>
-                                          handleReviewNote(
-                                            note.id,
-                                            note.reviewed || false
-                                          )
+                                          handleReviewNote(note.id, note.reviewed || false)
                                         }
                                       />
                                       <div>
                                         <div
                                           className="text-sm font-medium"
                                           style={{
-                                            textDecoration: note.reviewed
-                                              ? "line-through"
-                                              : "none",
+                                            textDecoration: note.reviewed ? 'line-through' : 'none',
                                           }}
                                         >
                                           {note.note}
                                         </div>
                                         <div className="text-xs text-gray-500 dark:text-gray-400">
-                                          - {note.created_by} on{" "}
-                                          {new Date(
-                                            note.created_at
-                                          ).toLocaleDateString()}
+                                          - {note.created_by} on{' '}
+                                          {new Date(note.created_at).toLocaleDateString()}
                                         </div>
                                         {note.reviewed && note.reviewed_by && (
                                           <div className="text-xs text-gray-500 dark:text-gray-400">
-                                            Reviewed by {note.reviewed_by} on{" "}
+                                            Reviewed by {note.reviewed_by} on{' '}
                                             {note.reviewed_at
-                                              ? new Date(
-                                                  note.reviewed_at
-                                                ).toLocaleDateString()
-                                              : ""}
+                                              ? new Date(note.reviewed_at).toLocaleDateString()
+                                              : ''}
                                           </div>
                                         )}
                                       </div>
@@ -2172,8 +1919,7 @@ const EmployeeProfile = () => {
                                         onClick={() =>
                                           handleEditNote(
                                             note.id,
-                                            prompt("Edit note:", note.note) ??
-                                              note.note
+                                            prompt('Edit note:', note.note) ?? note.note
                                           )
                                         }
                                       >
@@ -2182,9 +1928,7 @@ const EmployeeProfile = () => {
                                       <Button
                                         variant="ghost"
                                         size="icon"
-                                        onClick={() =>
-                                          handleDeleteNote(note.id)
-                                        }
+                                        onClick={() => handleDeleteNote(note.id)}
                                       >
                                         <TrashIcon />
                                       </Button>
@@ -2212,21 +1956,16 @@ const EmployeeProfile = () => {
                                       className="w-full pl-3 text-left font-normal"
                                     >
                                       {absenceDateSelection ? (
-                                        format(absenceDateSelection, "PPP")
+                                        format(absenceDateSelection, 'PPP')
                                       ) : (
                                         <span>Pick a date</span>
                                       )}
                                       <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                     </Button>
                                   </PopoverTrigger>
-                                  <PopoverContent
-                                    className="w-auto p-0"
-                                    align="start"
-                                  >
+                                  <PopoverContent className="w-auto p-0" align="start">
                                     <CustomCalendar
-                                      selectedDate={
-                                        absenceDateSelection ?? new Date()
-                                      }
+                                      selectedDate={absenceDateSelection ?? new Date()}
                                       onDateChange={handleAbsenceDateChange}
                                       disabledDays={() => false}
                                     />
@@ -2244,34 +1983,22 @@ const EmployeeProfile = () => {
                                 {/* Add any icons or elements you want here */}
                               </CardHeader>
                               <CardContent>
-                                <Select
-                                  onValueChange={(value) =>
-                                    setSelectedAbsenceReason(value)
-                                  }
-                                >
+                                <Select onValueChange={(value) => setSelectedAbsenceReason(value)}>
                                   <SelectTrigger>
                                     <SelectValue placeholder="Select a reason" />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    <SelectItem value="called_out">
-                                      Called Out
-                                    </SelectItem>
-                                    <SelectItem value="left_early">
-                                      Left Early
-                                    </SelectItem>
+                                    <SelectItem value="called_out">Called Out</SelectItem>
+                                    <SelectItem value="left_early">Left Early</SelectItem>
                                     <SelectItem value="off">Off</SelectItem>
-                                    <SelectItem value="custom">
-                                      Custom Status
-                                    </SelectItem>
+                                    <SelectItem value="custom">Custom Status</SelectItem>
                                   </SelectContent>
                                 </Select>
-                                {selectedAbsenceReason === "custom" && (
+                                {selectedAbsenceReason === 'custom' && (
                                   <Textarea
                                     id="custom-absence-reason"
                                     value={customAbsenceReason}
-                                    onChange={(e) =>
-                                      setCustomAbsenceReason(e.target.value)
-                                    }
+                                    onChange={(e) => setCustomAbsenceReason(e.target.value)}
                                     placeholder="Enter custom absence reason"
                                     className="min-h-[100px] mt-2"
                                   />
@@ -2282,8 +2009,7 @@ const EmployeeProfile = () => {
                                   onClick={handleAddAbsence}
                                   disabled={
                                     !absenceDateSelection ||
-                                    (!selectedAbsenceReason &&
-                                      !customAbsenceReason)
+                                    (!selectedAbsenceReason && !customAbsenceReason)
                                   }
                                 >
                                   Add Absence
@@ -2302,9 +2028,7 @@ const EmployeeProfile = () => {
                                 {/* Display available sick time */}
 
                                 <p className="text-2xl font-medium">
-                                  {availableSickTime !== null
-                                    ? `${availableSickTime} hours`
-                                    : ""}
+                                  {availableSickTime !== null ? `${availableSickTime} hours` : ''}
                                 </p>
                               </CardContent>
                             </Card>
@@ -2321,9 +2045,7 @@ const EmployeeProfile = () => {
                                 <CustomDataTable
                                   columns={filteredColumns}
                                   data={combinedSchedules}
-                                  fetchReferenceSchedules={
-                                    fetchReferenceSchedules
-                                  }
+                                  fetchReferenceSchedules={fetchReferenceSchedules}
                                   fetchActualSchedules={fetchActualSchedules}
                                   sorting={sorting}
                                   onSortingChange={setSorting}
@@ -2346,7 +2068,7 @@ const EmployeeProfile = () => {
                                 <ScrollArea className="h-[calc(75vh-500px)] relative">
                                   <div
                                     className={classNames(
-                                      "grid gap-4 max-h-[300px] max-w-full overflow-hidden overflow-y-auto mt-2 p-6",
+                                      'grid gap-4 max-h-[300px] max-w-full overflow-hidden overflow-y-auto mt-2 p-6',
                                       styles.noScroll
                                     )}
                                   >
@@ -2373,10 +2095,8 @@ const EmployeeProfile = () => {
 
                                           {/* Right column: Created by and date */}
                                           <div className="text-xs text-right text-gray-500 dark:text-gray-400">
-                                            {absence.created_by} on{" "}
-                                            {new Date(
-                                              absence.created_at
-                                            ).toLocaleDateString()}
+                                            {absence.created_by} on{' '}
+                                            {new Date(absence.created_at).toLocaleDateString()}
                                           </div>
                                         </div>
                                       ))}
@@ -2395,47 +2115,34 @@ const EmployeeProfile = () => {
                         <TabsContent value="reviews">
                           <div className="p-6 space-y-4">
                             <div className="grid gap-1.5">
-                              <Button
-                                variant="outline"
-                                onClick={handleAddReviewClick}
-                              >
+                              <Button variant="outline" onClick={handleAddReviewClick}>
                                 Add Review
                                 <PlusIcon className="ml-2 size-icon" />
                               </Button>
                             </div>
                             <div className="flex flex-col gap-4">
                               {reviews.map((review) => (
-                                <div
-                                  key={review.id}
-                                  className="flex justify-between items-start"
-                                >
+                                <div key={review.id} className="flex justify-between items-start">
                                   <div>
                                     <div className="text-sm font-large">
-                                      {review.review_quarter}{" "}
-                                      {review.review_year}
+                                      {review.review_quarter} {review.review_year}
                                     </div>
                                     <div className="text-xs text-gray-500 dark:text-gray-400">
-                                      - {review.created_by} on{" "}
-                                      {new Date(
-                                        review.created_at
-                                      ).toLocaleDateString()}
+                                      - {review.created_by} on{' '}
+                                      {new Date(review.created_at).toLocaleDateString()}
                                     </div>
                                   </div>
                                   <div className="flex space-x-2">
                                     <Button
                                       variant="ghost"
-                                      onClick={() =>
-                                        handleEditReview(review.id)
-                                      }
+                                      onClick={() => handleEditReview(review.id)}
                                     >
                                       <Pencil1Icon />
                                     </Button>
                                     <Button
                                       variant="ghost"
                                       size="icon"
-                                      onClick={() =>
-                                        handleDeleteReview(review.id)
-                                      }
+                                      onClick={() => handleDeleteReview(review.id)}
                                     >
                                       <TrashIcon />
                                     </Button>
@@ -2449,9 +2156,7 @@ const EmployeeProfile = () => {
                                     {!review.published && (
                                       <Button
                                         variant="outline"
-                                        onClick={() =>
-                                          handlePublishReview(review.id)
-                                        }
+                                        onClick={() => handlePublishReview(review.id)}
                                       >
                                         Publish
                                       </Button>
@@ -2463,28 +2168,19 @@ const EmployeeProfile = () => {
                           </div>
                         </TabsContent>
 
-                        <Dialog
-                          open={showReviewDialog}
-                          onOpenChange={setShowReviewDialog}
-                        >
+                        <Dialog open={showReviewDialog} onOpenChange={setShowReviewDialog}>
                           <DialogOverlay className="fixed inset-0 z-50" />
                           <DialogContent className="fixed inset-0 flex items-center justify-center bg-white dark:bg-black z-50 view-review-dialog">
                             <div className="bg-white dark:bg-black p-6 rounded-lg shadow-lg max-w-3xl w-full space-y-4 overflow-y-auto max-h-screen">
-                              <DialogTitle>
-                                {editMode ? "Edit Review" : "Add Review"}
-                              </DialogTitle>
+                              <DialogTitle>{editMode ? 'Edit Review' : 'Add Review'}</DialogTitle>
                               <DialogDescription>
                                 <div className="grid gap-1.5 my-4">
-                                  <Label htmlFor="review-quarter">
-                                    Review Title
-                                  </Label>
+                                  <Label htmlFor="review-quarter">Review Title</Label>
                                   <input
                                     type="text"
                                     id="review-quarter"
                                     value={reviewQuarter}
-                                    onChange={(e) =>
-                                      setReviewQuarter(e.target.value)
-                                    }
+                                    onChange={(e) => setReviewQuarter(e.target.value)}
                                     className="input"
                                   />
                                 </div>
@@ -2494,9 +2190,7 @@ const EmployeeProfile = () => {
                                     type="number"
                                     id="review-year"
                                     value={reviewYear}
-                                    onChange={(e) =>
-                                      setReviewYear(Number(e.target.value))
-                                    }
+                                    onChange={(e) => setReviewYear(Number(e.target.value))}
                                     className="input"
                                   />
                                 </div>
@@ -2507,9 +2201,7 @@ const EmployeeProfile = () => {
                                   <Textarea
                                     id="overview-performance"
                                     value={overviewPerformance}
-                                    onChange={(e) =>
-                                      setOverviewPerformance(e.target.value)
-                                    }
+                                    onChange={(e) => setOverviewPerformance(e.target.value)}
                                     className="min-h-[100px]"
                                   />
                                 </div>
@@ -2517,128 +2209,15 @@ const EmployeeProfile = () => {
                                   <Label htmlFor="achievements-contributions">
                                     Achievements and Contributions
                                   </Label>
-                                  {achievementsContributions.map(
-                                    (achievement, index) => (
-                                      <div
-                                        key={index}
-                                        className="flex items-center "
-                                      >
-                                        <Textarea
-                                          id={`achievement-${index}`}
-                                          value={achievement}
-                                          onChange={(e) =>
-                                            setAchievementsContributions(
-                                              achievementsContributions.map(
-                                                (ach, i) =>
-                                                  i === index
-                                                    ? e.target.value
-                                                    : ach
-                                              )
-                                            )
-                                          }
-                                          className="min-h-[50px] flex-1"
-                                        />
-                                        <Button
-                                          variant="linkHover2"
-                                          size="icon"
-                                          onClick={() =>
-                                            setAchievementsContributions([
-                                              ...achievementsContributions,
-                                              "",
-                                            ])
-                                          }
-                                        >
-                                          <PlusIcon />
-                                        </Button>
-                                        <Button
-                                          variant="linkHover2"
-                                          size="icon"
-                                          onClick={() =>
-                                            setAchievementsContributions(
-                                              achievementsContributions.filter(
-                                                (_, i) => i !== index
-                                              )
-                                            )
-                                          }
-                                        >
-                                          <TrashIcon />
-                                        </Button>
-                                      </div>
-                                    )
-                                  )}
-                                </div>
-                                <div className="grid gap-1.5 my-4">
-                                  <Label htmlFor="attendance-reliability">
-                                    Attendance and Reliability
-                                  </Label>
-                                  {attendanceReliability.map(
-                                    (attendance, index) => (
-                                      <div
-                                        key={index}
-                                        className="flex items-center "
-                                      >
-                                        <Textarea
-                                          id={`attendance-${index}`}
-                                          value={attendance}
-                                          onChange={(e) =>
-                                            setAttendanceReliability(
-                                              attendanceReliability.map(
-                                                (att, i) =>
-                                                  i === index
-                                                    ? e.target.value
-                                                    : att
-                                              )
-                                            )
-                                          }
-                                          className="min-h-[50px] flex-1"
-                                        />
-                                        <Button
-                                          variant="linkHover2"
-                                          size="icon"
-                                          onClick={() =>
-                                            setAttendanceReliability([
-                                              ...attendanceReliability,
-                                              "",
-                                            ])
-                                          }
-                                        >
-                                          <PlusIcon />
-                                        </Button>
-                                        <Button
-                                          variant="linkHover2"
-                                          size="icon"
-                                          onClick={() =>
-                                            setAttendanceReliability(
-                                              attendanceReliability.filter(
-                                                (_, i) => i !== index
-                                              )
-                                            )
-                                          }
-                                        >
-                                          <TrashIcon />
-                                        </Button>
-                                      </div>
-                                    )
-                                  )}
-                                </div>
-                                <div className="grid gap-1.5 my-4">
-                                  <Label htmlFor="quality-work">
-                                    Quality of Work
-                                  </Label>
-                                  {qualityWork.map((quality, index) => (
-                                    <div
-                                      key={index}
-                                      className="flex items-center "
-                                    >
+                                  {achievementsContributions.map((achievement, index) => (
+                                    <div key={index} className="flex items-center ">
                                       <Textarea
-                                        id={`quality-${index}`}
-                                        value={quality}
+                                        id={`achievement-${index}`}
+                                        value={achievement}
                                         onChange={(e) =>
-                                          setQualityWork(
-                                            qualityWork.map((qual, i) =>
-                                              i === index
-                                                ? e.target.value
-                                                : qual
+                                          setAchievementsContributions(
+                                            achievementsContributions.map((ach, i) =>
+                                              i === index ? e.target.value : ach
                                             )
                                           )
                                         }
@@ -2648,7 +2227,10 @@ const EmployeeProfile = () => {
                                         variant="linkHover2"
                                         size="icon"
                                         onClick={() =>
-                                          setQualityWork([...qualityWork, ""])
+                                          setAchievementsContributions([
+                                            ...achievementsContributions,
+                                            '',
+                                          ])
                                         }
                                       >
                                         <PlusIcon />
@@ -2657,11 +2239,85 @@ const EmployeeProfile = () => {
                                         variant="linkHover2"
                                         size="icon"
                                         onClick={() =>
-                                          setQualityWork(
-                                            qualityWork.filter(
-                                              (_, i) => i !== index
+                                          setAchievementsContributions(
+                                            achievementsContributions.filter((_, i) => i !== index)
+                                          )
+                                        }
+                                      >
+                                        <TrashIcon />
+                                      </Button>
+                                    </div>
+                                  ))}
+                                </div>
+                                <div className="grid gap-1.5 my-4">
+                                  <Label htmlFor="attendance-reliability">
+                                    Attendance and Reliability
+                                  </Label>
+                                  {attendanceReliability.map((attendance, index) => (
+                                    <div key={index} className="flex items-center ">
+                                      <Textarea
+                                        id={`attendance-${index}`}
+                                        value={attendance}
+                                        onChange={(e) =>
+                                          setAttendanceReliability(
+                                            attendanceReliability.map((att, i) =>
+                                              i === index ? e.target.value : att
                                             )
                                           )
+                                        }
+                                        className="min-h-[50px] flex-1"
+                                      />
+                                      <Button
+                                        variant="linkHover2"
+                                        size="icon"
+                                        onClick={() =>
+                                          setAttendanceReliability([...attendanceReliability, ''])
+                                        }
+                                      >
+                                        <PlusIcon />
+                                      </Button>
+                                      <Button
+                                        variant="linkHover2"
+                                        size="icon"
+                                        onClick={() =>
+                                          setAttendanceReliability(
+                                            attendanceReliability.filter((_, i) => i !== index)
+                                          )
+                                        }
+                                      >
+                                        <TrashIcon />
+                                      </Button>
+                                    </div>
+                                  ))}
+                                </div>
+                                <div className="grid gap-1.5 my-4">
+                                  <Label htmlFor="quality-work">Quality of Work</Label>
+                                  {qualityWork.map((quality, index) => (
+                                    <div key={index} className="flex items-center ">
+                                      <Textarea
+                                        id={`quality-${index}`}
+                                        value={quality}
+                                        onChange={(e) =>
+                                          setQualityWork(
+                                            qualityWork.map((qual, i) =>
+                                              i === index ? e.target.value : qual
+                                            )
+                                          )
+                                        }
+                                        className="min-h-[50px] flex-1"
+                                      />
+                                      <Button
+                                        variant="linkHover2"
+                                        size="icon"
+                                        onClick={() => setQualityWork([...qualityWork, ''])}
+                                      >
+                                        <PlusIcon />
+                                      </Button>
+                                      <Button
+                                        variant="linkHover2"
+                                        size="icon"
+                                        onClick={() =>
+                                          setQualityWork(qualityWork.filter((_, i) => i !== index))
                                         }
                                       >
                                         <TrashIcon />
@@ -2673,119 +2329,96 @@ const EmployeeProfile = () => {
                                   <Label htmlFor="communication-collaboration">
                                     Communication & Collaboration
                                   </Label>
-                                  {communicationCollaboration.map(
-                                    (communication, index) => (
-                                      <div
-                                        key={index}
-                                        className="flex items-center "
+                                  {communicationCollaboration.map((communication, index) => (
+                                    <div key={index} className="flex items-center ">
+                                      <Textarea
+                                        id={`communication-${index}`}
+                                        value={communication}
+                                        onChange={(e) =>
+                                          setCommunicationCollaboration(
+                                            communicationCollaboration.map((comm, i) =>
+                                              i === index ? e.target.value : comm
+                                            )
+                                          )
+                                        }
+                                        className="min-h-[50px] flex-1"
+                                      />
+                                      <Button
+                                        variant="linkHover2"
+                                        size="icon"
+                                        onClick={() =>
+                                          setCommunicationCollaboration([
+                                            ...communicationCollaboration,
+                                            '',
+                                          ])
+                                        }
                                       >
-                                        <Textarea
-                                          id={`communication-${index}`}
-                                          value={communication}
-                                          onChange={(e) =>
-                                            setCommunicationCollaboration(
-                                              communicationCollaboration.map(
-                                                (comm, i) =>
-                                                  i === index
-                                                    ? e.target.value
-                                                    : comm
-                                              )
-                                            )
-                                          }
-                                          className="min-h-[50px] flex-1"
-                                        />
-                                        <Button
-                                          variant="linkHover2"
-                                          size="icon"
-                                          onClick={() =>
-                                            setCommunicationCollaboration([
-                                              ...communicationCollaboration,
-                                              "",
-                                            ])
-                                          }
-                                        >
-                                          <PlusIcon />
-                                        </Button>
-                                        <Button
-                                          variant="linkHover2"
-                                          size="icon"
-                                          onClick={() =>
-                                            setCommunicationCollaboration(
-                                              communicationCollaboration.filter(
-                                                (_, i) => i !== index
-                                              )
-                                            )
-                                          }
-                                        >
-                                          <TrashIcon />
-                                        </Button>
-                                      </div>
-                                    )
-                                  )}
+                                        <PlusIcon />
+                                      </Button>
+                                      <Button
+                                        variant="linkHover2"
+                                        size="icon"
+                                        onClick={() =>
+                                          setCommunicationCollaboration(
+                                            communicationCollaboration.filter((_, i) => i !== index)
+                                          )
+                                        }
+                                      >
+                                        <TrashIcon />
+                                      </Button>
+                                    </div>
+                                  ))}
                                 </div>
                                 <div className="grid gap-1.5 my-4">
                                   <Label htmlFor="strengths-accomplishments">
                                     Strengths & Accomplishments
                                   </Label>
-                                  {strengthsAccomplishments.map(
-                                    (strength, index) => (
-                                      <div
-                                        key={index}
-                                        className="flex items-center "
+                                  {strengthsAccomplishments.map((strength, index) => (
+                                    <div key={index} className="flex items-center ">
+                                      <Textarea
+                                        id={`strength-${index}`}
+                                        value={strength}
+                                        onChange={(e) =>
+                                          setStrengthsAccomplishments(
+                                            strengthsAccomplishments.map((str, i) =>
+                                              i === index ? e.target.value : str
+                                            )
+                                          )
+                                        }
+                                        className="min-h-[50px] flex-1"
+                                      />
+                                      <Button
+                                        variant="linkHover2"
+                                        size="icon"
+                                        onClick={() =>
+                                          setStrengthsAccomplishments([
+                                            ...strengthsAccomplishments,
+                                            '',
+                                          ])
+                                        }
                                       >
-                                        <Textarea
-                                          id={`strength-${index}`}
-                                          value={strength}
-                                          onChange={(e) =>
-                                            setStrengthsAccomplishments(
-                                              strengthsAccomplishments.map(
-                                                (str, i) =>
-                                                  i === index
-                                                    ? e.target.value
-                                                    : str
-                                              )
-                                            )
-                                          }
-                                          className="min-h-[50px] flex-1"
-                                        />
-                                        <Button
-                                          variant="linkHover2"
-                                          size="icon"
-                                          onClick={() =>
-                                            setStrengthsAccomplishments([
-                                              ...strengthsAccomplishments,
-                                              "",
-                                            ])
-                                          }
-                                        >
-                                          <PlusIcon />
-                                        </Button>
-                                        <Button
-                                          variant="linkHover2"
-                                          size="icon"
-                                          onClick={() =>
-                                            setStrengthsAccomplishments(
-                                              strengthsAccomplishments.filter(
-                                                (_, i) => i !== index
-                                              )
-                                            )
-                                          }
-                                        >
-                                          <TrashIcon />
-                                        </Button>
-                                      </div>
-                                    )
-                                  )}
+                                        <PlusIcon />
+                                      </Button>
+                                      <Button
+                                        variant="linkHover2"
+                                        size="icon"
+                                        onClick={() =>
+                                          setStrengthsAccomplishments(
+                                            strengthsAccomplishments.filter((_, i) => i !== index)
+                                          )
+                                        }
+                                      >
+                                        <TrashIcon />
+                                      </Button>
+                                    </div>
+                                  ))}
                                 </div>
                                 <div className="grid gap-1.5 my-4">
                                   <Label htmlFor="areas-growth">
                                     Areas for Growth and Development
                                   </Label>
                                   {areasGrowth.map((area, index) => (
-                                    <div
-                                      key={index}
-                                      className="flex items-center "
-                                    >
+                                    <div key={index} className="flex items-center ">
                                       <Textarea
                                         id={`area-${index}`}
                                         value={area}
@@ -2801,9 +2434,7 @@ const EmployeeProfile = () => {
                                       <Button
                                         variant="linkHover2"
                                         size="icon"
-                                        onClick={() =>
-                                          setAreasGrowth([...areasGrowth, ""])
-                                        }
+                                        onClick={() => setAreasGrowth([...areasGrowth, ''])}
                                       >
                                         <PlusIcon />
                                       </Button>
@@ -2811,11 +2442,7 @@ const EmployeeProfile = () => {
                                         variant="linkHover2"
                                         size="icon"
                                         onClick={() =>
-                                          setAreasGrowth(
-                                            areasGrowth.filter(
-                                              (_, i) => i !== index
-                                            )
-                                          )
+                                          setAreasGrowth(areasGrowth.filter((_, i) => i !== index))
                                         }
                                       >
                                         <TrashIcon />
@@ -2824,14 +2451,9 @@ const EmployeeProfile = () => {
                                   ))}
                                 </div>
                                 <div className="grid gap-1.5 my-4">
-                                  <Label htmlFor="recognition">
-                                    Recognition
-                                  </Label>
+                                  <Label htmlFor="recognition">Recognition</Label>
                                   {recognition.map((rec, index) => (
-                                    <div
-                                      key={index}
-                                      className="flex items-center "
-                                    >
+                                    <div key={index} className="flex items-center ">
                                       <Textarea
                                         id={`recognition-${index}`}
                                         value={rec}
@@ -2847,9 +2469,7 @@ const EmployeeProfile = () => {
                                       <Button
                                         variant="linkHover2"
                                         size="icon"
-                                        onClick={() =>
-                                          setRecognition([...recognition, ""])
-                                        }
+                                        onClick={() => setRecognition([...recognition, ''])}
                                       >
                                         <PlusIcon />
                                       </Button>
@@ -2857,11 +2477,7 @@ const EmployeeProfile = () => {
                                         variant="linkHover2"
                                         size="icon"
                                         onClick={() =>
-                                          setRecognition(
-                                            recognition.filter(
-                                              (_, i) => i !== index
-                                            )
-                                          )
+                                          setRecognition(recognition.filter((_, i) => i !== index))
                                         }
                                       >
                                         <TrashIcon />
@@ -2877,9 +2493,7 @@ const EmployeeProfile = () => {
                                     Close
                                   </Button>
                                   <Button onClick={handleAddReview}>
-                                    {editMode
-                                      ? "Update Review"
-                                      : "Submit Review"}
+                                    {editMode ? 'Update Review' : 'Submit Review'}
                                   </Button>
                                 </div>
                               </DialogDescription>
@@ -2887,10 +2501,7 @@ const EmployeeProfile = () => {
                           </DialogContent>
                         </Dialog>
 
-                        <Dialog
-                          open={viewReviewDialog}
-                          onOpenChange={setViewReviewDialog}
-                        >
+                        <Dialog open={viewReviewDialog} onOpenChange={setViewReviewDialog}>
                           <DialogOverlay className="fixed inset-0 z-50" />
                           <DialogContent className="fixed inset-0 flex items-center justify-center mb-4 bg-white dark:bg-black z-50 view-review-dialog">
                             <div className="bg-white dark:bg-black p-6 rounded-lg shadow-lg max-w-3xl w-full space-y-4 overflow-y-auto max-h-screen">
@@ -2903,9 +2514,7 @@ const EmployeeProfile = () => {
                                   <p>{currentReview?.review_quarter}</p>
                                 </div>
                                 <div className="grid gap-1.5 mb-2">
-                                  <Label className="text-md font-bold">
-                                    Year
-                                  </Label>
+                                  <Label className="text-md font-bold">Year</Label>
                                   <p>{currentReview?.review_year}</p>
                                 </div>
                                 <div className="grid gap-1.5 mb-2">
@@ -2920,9 +2529,7 @@ const EmployeeProfile = () => {
                                   </Label>
                                   <ul className="list-disc pl-5">
                                     {currentReview?.achievements_contributions.map(
-                                      (achievement, index) => (
-                                        <li key={index}>{achievement}</li>
-                                      )
+                                      (achievement, index) => <li key={index}>{achievement}</li>
                                     )}
                                   </ul>
                                 </div>
@@ -2932,22 +2539,16 @@ const EmployeeProfile = () => {
                                   </Label>
                                   <ul className="list-disc pl-5">
                                     {currentReview?.attendance_reliability.map(
-                                      (attendance, index) => (
-                                        <li key={index}>{attendance}</li>
-                                      )
+                                      (attendance, index) => <li key={index}>{attendance}</li>
                                     )}
                                   </ul>
                                 </div>
                                 <div className="grid gap-1.5 mb-2">
-                                  <Label className="text-md font-bold">
-                                    Quality of Work
-                                  </Label>
+                                  <Label className="text-md font-bold">Quality of Work</Label>
                                   <ul className="list-disc pl-5">
-                                    {currentReview?.quality_work.map(
-                                      (quality, index) => (
-                                        <li key={index}>{quality}</li>
-                                      )
-                                    )}
+                                    {currentReview?.quality_work.map((quality, index) => (
+                                      <li key={index}>{quality}</li>
+                                    ))}
                                   </ul>
                                 </div>
                                 <div className="grid gap-1.5 mb-2">
@@ -2956,9 +2557,7 @@ const EmployeeProfile = () => {
                                   </Label>
                                   <ul className="list-disc pl-5">
                                     {currentReview?.communication_collaboration.map(
-                                      (communication, index) => (
-                                        <li key={index}>{communication}</li>
-                                      )
+                                      (communication, index) => <li key={index}>{communication}</li>
                                     )}
                                   </ul>
                                 </div>
@@ -2968,9 +2567,7 @@ const EmployeeProfile = () => {
                                   </Label>
                                   <ul className="list-disc pl-5">
                                     {currentReview?.strengths_accomplishments.map(
-                                      (strength, index) => (
-                                        <li key={index}>{strength}</li>
-                                      )
+                                      (strength, index) => <li key={index}>{strength}</li>
                                     )}
                                   </ul>
                                 </div>
@@ -2979,21 +2576,17 @@ const EmployeeProfile = () => {
                                     Areas for Growth and Development
                                   </Label>
                                   <ul className="list-disc pl-5">
-                                    {currentReview?.areas_growth.map(
-                                      (area, index) => (
-                                        <li key={index}>{area}</li>
-                                      )
-                                    )}
+                                    {currentReview?.areas_growth.map((area, index) => (
+                                      <li key={index}>{area}</li>
+                                    ))}
                                   </ul>
                                 </div>
                                 <div className="grid gap-1.5 mb-2">
-                                  <Label className="text-md font-bold">
-                                    Recognition
-                                  </Label>
+                                  <Label className="text-md font-bold">Recognition</Label>
                                   <ul className="list-disc pl-5">
-                                    {currentReview?.recognition.map(
-                                      (rec, index) => <li key={index}>{rec}</li>
-                                    )}
+                                    {currentReview?.recognition.map((rec, index) => (
+                                      <li key={index}>{rec}</li>
+                                    ))}
                                   </ul>
                                 </div>
                                 <div className="flex justify-end mt-2 space-x-2">
@@ -3012,9 +2605,7 @@ const EmployeeProfile = () => {
                         <TabsContent value="growth">
                           <div className="p-6 space-y-4">
                             <div className="grid gap-1.5">
-                              <Label htmlFor="new-growth">
-                                Add a new growth tracking entry
-                              </Label>
+                              <Label htmlFor="new-growth">Add a new growth tracking entry</Label>
                               <Textarea
                                 id="new-growth"
                                 value={newGrowth}
@@ -3022,22 +2613,15 @@ const EmployeeProfile = () => {
                                 placeholder="Type your growth tracking entry here..."
                                 className="min-h-[100px]"
                               />
-                              <Button onClick={() => handleAddNote("growth")}>
-                                Add Entry
-                              </Button>
+                              <Button onClick={() => handleAddNote('growth')}>Add Entry</Button>
                             </div>
                             <div className="grid gap-4">
                               {notes
-                                .filter((note) => note.type === "growth")
+                                .filter((note) => note.type === 'growth')
                                 .map((note) => (
-                                  <div
-                                    key={note.id}
-                                    className="flex justify-between items-start"
-                                  >
+                                  <div key={note.id} className="flex justify-between items-start">
                                     <div>
-                                      <div className="text-sm font-medium">
-                                        {note.note}
-                                      </div>
+                                      <div className="text-sm font-medium">{note.note}</div>
                                     </div>
                                     <div className="flex gap-2">
                                       <Button
@@ -3046,8 +2630,7 @@ const EmployeeProfile = () => {
                                         onClick={() =>
                                           handleEditNote(
                                             note.id,
-                                            prompt("Edit note:", note.note) ??
-                                              note.note
+                                            prompt('Edit note:', note.note) ?? note.note
                                           )
                                         }
                                       >
@@ -3056,9 +2639,7 @@ const EmployeeProfile = () => {
                                       <Button
                                         variant="outline"
                                         size="icon"
-                                        onClick={() =>
-                                          handleDeleteNote(note.id)
-                                        }
+                                        onClick={() => handleDeleteNote(note.id)}
                                       >
                                         <TrashIcon />
                                       </Button>
@@ -3072,7 +2653,7 @@ const EmployeeProfile = () => {
                           <h1 className="text-xl font-bold mb-2 ml-2">
                             <TextGenerateEffect words="Sales Data" />
                           </h1>
-                          <SalesDataTableEmployee employeeId={employeeId} />{" "}
+                          <SalesDataTableEmployee employeeId={employeeId} />{' '}
                           {/* Include SalesDataTable */}
                         </TabsContent>
 
@@ -3206,53 +2787,29 @@ const EmployeeProfile = () => {
                               <table className="w-full">
                                 <thead>
                                   <tr>
-                                    <th className="py-2 w-36 text-left">
-                                      DROS #
-                                    </th>
+                                    <th className="py-2 w-36 text-left">DROS #</th>
                                     {/* <th className="py-2 w-24 text-left">Sales Rep</th> */}
                                     {/* <th className="py-2 w-24 text-left">Audit Type</th> */}
-                                    <th className="py-2 w-32 text-left">
-                                      Trans Date
-                                    </th>
+                                    <th className="py-2 w-32 text-left">Trans Date</th>
                                     {/* <th className="py-2 w-32 text-left">Audit Date</th> */}
-                                    <th className="py-2 w-32 text-left">
-                                      Location
-                                    </th>
-                                    <th className="py-2 w-48 text-left">
-                                      Details
-                                    </th>
-                                    <th className="py-2 w-64 text-left">
-                                      Notes
-                                    </th>
-                                    <th className="py-2 w-12 text-left">
-                                      Cancelled?
-                                    </th>
+                                    <th className="py-2 w-32 text-left">Location</th>
+                                    <th className="py-2 w-48 text-left">Details</th>
+                                    <th className="py-2 w-64 text-left">Notes</th>
+                                    <th className="py-2 w-12 text-left">Cancelled?</th>
                                   </tr>
                                 </thead>
                                 <tbody>
                                   {audits.map((audit, index) => (
                                     <tr key={index} className="border-t">
-                                      <td className="py-2 w-36">
-                                        {audit.dros_number}
-                                      </td>
+                                      <td className="py-2 w-36">{audit.dros_number}</td>
                                       {/* <td className="py-2 w-24">{audit.salesreps}</td> */}
                                       {/* <td className="py-2 w-24">{audit.audit_type}</td> */}
-                                      <td className="py-2 w-30">
-                                        {audit.trans_date}
-                                      </td>
+                                      <td className="py-2 w-30">{audit.trans_date}</td>
                                       {/* <td className="py-2 w-30">{audit.audit_date}</td> */}
-                                      <td className="py-2 w-32">
-                                        {audit.error_location}
-                                      </td>
-                                      <td className="py-2 w-48">
-                                        {audit.error_details}
-                                      </td>
-                                      <td className="py-2 w-64">
-                                        {audit.error_notes}
-                                      </td>
-                                      <td className="py-2 w-12">
-                                        {audit.dros_cancel}
-                                      </td>
+                                      <td className="py-2 w-32">{audit.error_location}</td>
+                                      <td className="py-2 w-48">{audit.error_details}</td>
+                                      <td className="py-2 w-64">{audit.error_notes}</td>
+                                      <td className="py-2 w-12">{audit.dros_cancel}</td>
                                     </tr>
                                   ))}
                                 </tbody>
@@ -3281,28 +2838,18 @@ const EmployeeProfile = () => {
                                       className="w-full pl-3 text-left font-normal"
                                     >
                                       {performanceDateSelection ? (
-                                        format(
-                                          performanceDateSelection,
-                                          "MMMM yyyy"
-                                        )
+                                        format(performanceDateSelection, 'MMMM yyyy')
                                       ) : (
                                         <span>Pick a date</span>
                                       )}
                                       <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                     </Button>
                                   </PopoverTrigger>
-                                  <PopoverContent
-                                    className="w-auto p-0"
-                                    align="start"
-                                  >
+                                  <PopoverContent className="w-auto p-0" align="start">
                                     <CustomCalendar
-                                      selectedDate={
-                                        performanceDateSelection || new Date()
-                                      }
+                                      selectedDate={performanceDateSelection || new Date()}
                                       onDateChange={(date: Date | undefined) =>
-                                        handlePerformanceDateChange(
-                                          date || new Date()
-                                        )
+                                        handlePerformanceDateChange(date || new Date())
                                       }
                                       disabledDays={() => false}
                                     />
@@ -3350,10 +2897,7 @@ const EmployeeProfile = () => {
                             <>
                               <AuditChart
                                 data={contestAuditsQuery.data || []}
-                                isLoading={
-                                  contestAuditsQuery.isLoading ||
-                                  salesDataQuery.isLoading
-                                }
+                                isLoading={contestAuditsQuery.isLoading || salesDataQuery.isLoading}
                                 showTimeRangeSelector={false}
                               />
                               <HistoricalAuditChart

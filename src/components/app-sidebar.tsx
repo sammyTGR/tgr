@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import * as React from "react";
+import * as React from 'react';
 import {
   BookOpen,
   Bot,
@@ -14,12 +14,12 @@ import {
   SquareTerminal,
   FileTextIcon,
   CalendarIcon,
-} from "lucide-react";
+} from 'lucide-react';
 
-import { NavMain } from "@/components/nav-main";
+import { NavMain } from '@/components/nav-main';
 // import { NavProjects } from "@/components/nav-projects"
 // import { NavSecondary } from "@/components/nav-secondary"
-import { NavUser } from "@/components/nav-user";
+import { NavUser } from '@/components/nav-user';
 import {
   Sidebar,
   SidebarContent,
@@ -29,137 +29,132 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuBadge,
-} from "@/components/ui/sidebar";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/utils/supabase/client";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useRouter } from "next/navigation";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+} from '@/components/ui/sidebar';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/utils/supabase/client';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useRouter } from 'next/navigation';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const data = {
   user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
+    name: 'shadcn',
+    email: 'm@example.com',
+    avatar: '/avatars/shadcn.jpg',
   },
   navMain: [
     {
-      title: "Playground",
-      url: "#",
+      title: 'Playground',
+      url: '#',
       icon: SquareTerminal,
       isActive: true,
       items: [
         {
-          title: "History",
-          url: "#",
+          title: 'History',
+          url: '#',
         },
         {
-          title: "Starred",
-          url: "#",
+          title: 'Starred',
+          url: '#',
         },
         {
-          title: "Settings",
-          url: "#",
+          title: 'Settings',
+          url: '#',
         },
       ],
     },
     {
-      title: "Models",
-      url: "#",
+      title: 'Models',
+      url: '#',
       icon: Bot,
       items: [
         {
-          title: "Genesis",
-          url: "#",
+          title: 'Genesis',
+          url: '#',
         },
         {
-          title: "Explorer",
-          url: "#",
+          title: 'Explorer',
+          url: '#',
         },
         {
-          title: "Quantum",
-          url: "#",
+          title: 'Quantum',
+          url: '#',
         },
       ],
     },
     {
-      title: "Documentation",
-      url: "#",
+      title: 'Documentation',
+      url: '#',
       icon: BookOpen,
       items: [
         {
-          title: "Introduction",
-          url: "#",
+          title: 'Introduction',
+          url: '#',
         },
         {
-          title: "Get Started",
-          url: "#",
+          title: 'Get Started',
+          url: '#',
         },
         {
-          title: "Tutorials",
-          url: "#",
+          title: 'Tutorials',
+          url: '#',
         },
         {
-          title: "Changelog",
-          url: "#",
+          title: 'Changelog',
+          url: '#',
         },
       ],
     },
     {
-      title: "Settings",
-      url: "#",
+      title: 'Settings',
+      url: '#',
       icon: Settings2,
       items: [
         {
-          title: "General",
-          url: "#",
+          title: 'General',
+          url: '#',
         },
         {
-          title: "Team",
-          url: "#",
+          title: 'Team',
+          url: '#',
         },
         {
-          title: "Billing",
-          url: "#",
+          title: 'Billing',
+          url: '#',
         },
         {
-          title: "Limits",
-          url: "#",
+          title: 'Limits',
+          url: '#',
         },
       ],
     },
   ],
   navSecondary: [
     {
-      title: "Support",
-      url: "#",
+      title: 'Support',
+      url: '#',
       icon: LifeBuoy,
     },
     {
-      title: "Feedback",
-      url: "#",
+      title: 'Feedback',
+      url: '#',
       icon: Send,
     },
   ],
   projects: [
     {
-      name: "Design Engineering",
-      url: "#",
+      name: 'Design Engineering',
+      url: '#',
       icon: Frame,
     },
     {
-      name: "Sales & Marketing",
-      url: "#",
+      name: 'Sales & Marketing',
+      url: '#',
       icon: PieChart,
     },
     {
-      name: "Travel",
-      url: "#",
+      name: 'Travel',
+      url: '#',
       icon: Map,
     },
   ],
@@ -169,7 +164,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const queryClient = useQueryClient();
   const router = useRouter();
   const { data: currentUser } = useQuery({
-    queryKey: ["currentUser"],
+    queryKey: ['currentUser'],
     queryFn: async () => {
       const {
         data: { user },
@@ -180,11 +175,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   });
 
   const { data: userData } = useQuery({
-    queryKey: ["userRole"],
+    queryKey: ['userRole'],
     queryFn: async () => {
-      const response = await fetch("/api/getUserRole");
+      const response = await fetch('/api/getUserRole');
       if (!response.ok) {
-        throw new Error("Failed to fetch user role");
+        throw new Error('Failed to fetch user role');
       }
       const data = await response.json();
       return data;
@@ -194,13 +189,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   });
 
   const { data: employeeData } = useQuery({
-    queryKey: ["employee", currentUser?.id],
+    queryKey: ['employee', currentUser?.id],
     queryFn: async () => {
       if (!currentUser?.id) return null;
       const { data, error } = await supabase
-        .from("employees")
-        .select("*")
-        .eq("user_uuid", currentUser.id)
+        .from('employees')
+        .select('*')
+        .eq('user_uuid', currentUser.id)
         .single();
 
       if (error) throw error;
@@ -211,10 +206,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   // Unread counts queries
   const { data: unreadOrdersData = { unreadOrderCount: 0 } } = useQuery({
-    queryKey: ["unreadOrders"],
+    queryKey: ['unreadOrders'],
     queryFn: async () => {
-      const response = await fetch("/api/useUnreadOrders");
-      if (!response.ok) throw new Error("Failed to fetch unread orders");
+      const response = await fetch('/api/useUnreadOrders');
+      if (!response.ok) throw new Error('Failed to fetch unread orders');
       return response.json();
     },
     enabled: !!currentUser,
@@ -222,11 +217,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   });
 
   const { data: unreadTimeOffData = { unreadTimeOffCount: 0 } } = useQuery({
-    queryKey: ["unreadTimeOff"],
+    queryKey: ['unreadTimeOff'],
     queryFn: async () => {
-      const response = await fetch("/api/useUnreadTimeOffRequests");
-      if (!response.ok)
-        throw new Error("Failed to fetch unread time-off requests");
+      const response = await fetch('/api/useUnreadTimeOffRequests');
+      if (!response.ok) throw new Error('Failed to fetch unread time-off requests');
       return response.json();
     },
     enabled: !!currentUser,
@@ -235,17 +229,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   // Add subscription queries
   useQuery({
-    queryKey: ["ordersSubscription"],
+    queryKey: ['ordersSubscription'],
     queryFn: async () => {
       const channel = supabase
-        .channel("orders")
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "orders" },
-          () => {
-            queryClient.invalidateQueries({ queryKey: ["unreadOrders"] });
-          }
-        )
+        .channel('orders')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+          queryClient.invalidateQueries({ queryKey: ['unreadOrders'] });
+        })
         .subscribe();
 
       return () => {
@@ -258,15 +248,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   });
 
   useQuery({
-    queryKey: ["timeOffSubscription"],
+    queryKey: ['timeOffSubscription'],
     queryFn: async () => {
       const channel = supabase
-        .channel("time_off_requests")
+        .channel('time_off_requests')
         .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "time_off_requests" },
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'time_off_requests' },
           () => {
-            queryClient.invalidateQueries({ queryKey: ["unreadTimeOff"] });
+            queryClient.invalidateQueries({ queryKey: ['unreadTimeOff'] });
           }
         )
         .subscribe();
@@ -280,9 +270,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     staleTime: Infinity,
   });
 
-  const isAdmin = ["super admin", "ceo", "dev", "admin"].includes(
-    userData?.role
-  );
+  const isAdmin = ['super admin', 'ceo', 'dev', 'admin'].includes(userData?.role);
 
   return (
     <Sidebar variant="inset" {...props}>
@@ -296,20 +284,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     <AvatarImage
                       src={
                         currentUser?.user_metadata?.avatar_url ||
-                        "https://utfs.io/f/9jzftpblGSv7nvddLr3ZYIXtyiAHqxfuS6V9231FedsGbMWh"
+                        'https://utfs.io/f/9jzftpblGSv7nvddLr3ZYIXtyiAHqxfuS6V9231FedsGbMWh'
                       }
-                      alt={currentUser?.email || ""}
+                      alt={currentUser?.email || ''}
                     />
                     <AvatarFallback className="rounded-lg">
-                      {currentUser?.email?.charAt(0).toUpperCase() || "U"}
+                      {currentUser?.email?.charAt(0).toUpperCase() || 'U'}
                     </AvatarFallback>
                   </Avatar>
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">TGR</span>
-                  <span className="truncate text-xs">
-                    {userData?.role || "Loading..."}
-                  </span>
+                  <span className="truncate text-xs">{userData?.role || 'Loading...'}</span>
                 </div>
               </a>
             </SidebarMenuButton>
@@ -320,7 +306,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <SidebarMenuButton
                   size="lg"
                   asChild
-                  onClick={() => router.push("/sales/orderreview")}
+                  onClick={() => router.push('/sales/orderreview')}
                 >
                   <a href="/sales/orderreview">
                     <FileTextIcon className="h-4 w-4" />
@@ -328,16 +314,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   </a>
                 </SidebarMenuButton>
                 {unreadOrdersData.unreadOrderCount > 0 && (
-                  <SidebarMenuBadge>
-                    {unreadOrdersData.unreadOrderCount}
-                  </SidebarMenuBadge>
+                  <SidebarMenuBadge>{unreadOrdersData.unreadOrderCount}</SidebarMenuBadge>
                 )}
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton
                   size="lg"
                   asChild
-                  onClick={() => router.push("/admin/timeoffreview")}
+                  onClick={() => router.push('/admin/timeoffreview')}
                 >
                   <a href="/admin/timeoffreview">
                     <CalendarIcon className="h-4 w-4" />
@@ -345,9 +329,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   </a>
                 </SidebarMenuButton>
                 {unreadTimeOffData.unreadTimeOffCount > 0 && (
-                  <SidebarMenuBadge>
-                    {unreadTimeOffData.unreadTimeOffCount}
-                  </SidebarMenuBadge>
+                  <SidebarMenuBadge>{unreadTimeOffData.unreadTimeOffCount}</SidebarMenuBadge>
                 )}
               </SidebarMenuItem>
             </>

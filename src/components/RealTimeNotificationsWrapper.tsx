@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useRealTimeNotifications } from "@/hooks/useRealTimeNotifications";
+import { useRealTimeNotifications } from '@/hooks/useRealTimeNotifications';
 
 export default function RealTimeNotificationsWrapper() {
   useRealTimeNotifications();

@@ -1,13 +1,9 @@
-"use client";
+'use client';
 
-import {
-  QueryClient,
-  QueryClientProvider,
-  useQuery,
-} from "@tanstack/react-query";
-import Todos from "./todos";
-import ClearActions from "./clear-actions";
-import { CheckCircledIcon } from "@radix-ui/react-icons";
+import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
+import Todos from './todos';
+import ClearActions from './clear-actions';
+import { CheckCircledIcon } from '@radix-ui/react-icons';
 
 const queryClient = new QueryClient();
 

@@ -1,9 +1,9 @@
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
-import { toZonedTime, format as formatTZ } from "date-fns-tz";
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
+import { NextResponse } from 'next/server';
+import { toZonedTime, format as formatTZ } from 'date-fns-tz';
 
-const TIMEZONE = "America/Los_Angeles";
+const TIMEZONE = 'America/Los_Angeles';
 
 export async function GET() {
   const supabase = createRouteHandlerClient({ cookies });
@@ -13,21 +13,21 @@ export async function GET() {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     try {
       // Create dates in LA timezone
-      const startDate = new Date("2025-01-01T00:00:00-08:00");
-      const endDate = new Date("2025-12-31T23:59:59-08:00");
+      const startDate = new Date('2025-01-01T00:00:00-08:00');
+      const endDate = new Date('2025-12-31T23:59:59-08:00');
 
-      const { data, error } = await supabase.rpc("calculate_monthly_revenue", {
+      const { data, error } = await supabase.rpc('calculate_monthly_revenue', {
         start_date: startDate.toISOString(),
         end_date: endDate.toISOString(),
       });
 
       if (error) {
-        console.error("RPC Error:", error);
+        console.error('RPC Error:', error);
         throw error;
       }
 
@@ -39,18 +39,18 @@ export async function GET() {
 
       // Initialize all months with 0
       const months = [
-        "Jan 2025",
-        "Feb 2025",
-        "Mar 2025",
-        "Apr 2025",
-        "May 2025",
-        "Jun 2025",
-        "Jul 2025",
-        "Aug 2025",
-        "Sep 2025",
-        "Oct 2025",
-        "Nov 2025",
-        "Dec 2025",
+        'Jan 2025',
+        'Feb 2025',
+        'Mar 2025',
+        'Apr 2025',
+        'May 2025',
+        'Jun 2025',
+        'Jul 2025',
+        'Aug 2025',
+        'Sep 2025',
+        'Oct 2025',
+        'Nov 2025',
+        'Dec 2025',
       ];
 
       const monthlyRevenue = months.reduce(
@@ -65,7 +65,7 @@ export async function GET() {
       data?.forEach((row: any) => {
         const date = toZonedTime(new Date(row.month), TIMEZONE);
         date.setDate(date.getDate() + 1);
-        const monthKey = formatTZ(date, "MMM yyyy", { timeZone: TIMEZONE });
+        const monthKey = formatTZ(date, 'MMM yyyy', { timeZone: TIMEZONE });
         monthlyRevenue[monthKey] = {
           grossRevenue: Number(row.gross_revenue || 0),
           netRevenue: Number(row.net_revenue || 0),
@@ -80,17 +80,17 @@ export async function GET() {
 
       return NextResponse.json(formattedData);
     } catch (dateError) {
-      console.error("Date processing error:", dateError);
+      console.error('Date processing error:', dateError);
       throw dateError;
     }
   } catch (error) {
-    console.error("API Error:", {
-      message: error instanceof Error ? error.message : "Unknown error",
+    console.error('API Error:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
       error,
     });
     return NextResponse.json(
       {
-        error: "Failed to fetch future revenue data",
+        error: 'Failed to fetch future revenue data',
         details: error instanceof Error ? error.message : String(error),
       },
       { status: 500 }

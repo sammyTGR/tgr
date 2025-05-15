@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { useState, useEffect, KeyboardEvent } from "react";
-import { editTodo } from "./actions";
-import { Input } from "@/components/ui/input";
-import type { Todo } from "@/lib/interface";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect, KeyboardEvent } from 'react';
+import { editTodo } from './actions';
+import { Input } from '@/components/ui/input';
+import type { Todo } from '@/lib/interface';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 export default function TodoData({ todo }: { todo: Todo }) {
   const [description, setDescription] = useState(todo.task);
@@ -18,7 +18,7 @@ export default function TodoData({ todo }: { todo: Todo }) {
   const mutation = useMutation({
     mutationFn: () => editTodo({ ...todo, task: description }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["todos"] });
+      queryClient.invalidateQueries({ queryKey: ['todos'] });
       setIsEditing(false);
     },
   });
@@ -28,7 +28,7 @@ export default function TodoData({ todo }: { todo: Todo }) {
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
+    if (e.key === 'Enter') {
       e.preventDefault();
       mutation.mutate();
     }
@@ -55,10 +55,7 @@ export default function TodoData({ todo }: { todo: Todo }) {
   }
 
   return (
-    <span
-      className="flex-grow cursor-pointer"
-      onClick={() => setIsEditing(true)}
-    >
+    <span className="flex-grow cursor-pointer" onClick={() => setIsEditing(true)}>
       {todo.task}
     </span>
   );

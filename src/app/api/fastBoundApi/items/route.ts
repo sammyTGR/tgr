@@ -1,16 +1,14 @@
 //returns results but not the correct ones
-"use server";
+'use server';
 
-import { headers } from "next/headers";
-import { NextResponse, NextRequest } from "next/server";
-import { createFastBoundHeaders, FASTBOUND_CONFIG } from "@/utils/fastbound";
+import { headers } from 'next/headers';
+import { NextResponse, NextRequest } from 'next/server';
+import { createFastBoundHeaders, FASTBOUND_CONFIG } from '@/utils/fastbound';
 
-const BASE_URL = "https://cloud.fastbound.com"; // This is the correct base URL for FastBound
+const BASE_URL = 'https://cloud.fastbound.com'; // This is the correct base URL for FastBound
 const ACCOUNT_NUMBER = process.env.FASTBOUND_ACCOUNT_NUMBER;
 if (!ACCOUNT_NUMBER) {
-  throw new Error(
-    "FASTBOUND_ACCOUNT_NUMBER is not set in environment variables"
-  );
+  throw new Error('FASTBOUND_ACCOUNT_NUMBER is not set in environment variables');
 }
 const API_KEY = process.env.FASTBOUND_API_KEY;
 const AUDIT_USER = process.env.FASTBOUND_AUDIT_USER;
@@ -50,20 +48,18 @@ async function fetchItems(url: string, options: RequestInit): Promise<any> {
     // console.log("FastBound API response:", responseText);
 
     if (!response.ok) {
-      console.error("FastBound API error response:", {
+      console.error('FastBound API error response:', {
         status: response.status,
         statusText: response.statusText,
         headers: Object.fromEntries(response.headers),
         body: responseText,
       });
-      throw new Error(
-        `FastBound API error: ${response.status} ${responseText}`
-      );
+      throw new Error(`FastBound API error: ${response.status} ${responseText}`);
     }
 
     return JSON.parse(responseText);
   } catch (error) {
-    console.error("Error fetching items from FastBound API:", error);
+    console.error('Error fetching items from FastBound API:', error);
     throw error;
   }
 }
@@ -73,9 +69,9 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     // console.log("Received search params:", Object.fromEntries(searchParams));
 
-    const skip = parseInt(searchParams.get("skip") || "0", 10);
-    const take = parseInt(searchParams.get("take") || "10", 10);
-    const search = searchParams.get("search");
+    const skip = parseInt(searchParams.get('skip') || '0', 10);
+    const take = parseInt(searchParams.get('take') || '10', 10);
+    const search = searchParams.get('search');
 
     // Build the search URL
     const apiUrl = new URL(
@@ -83,33 +79,33 @@ export async function GET(request: NextRequest) {
     );
 
     const searchFormData = new URLSearchParams();
-    searchFormData.append("$top", take.toString());
-    searchFormData.append("$skip", skip.toString());
+    searchFormData.append('$top', take.toString());
+    searchFormData.append('$skip', skip.toString());
 
     // Parse search parameters
     if (search) {
-      const searchTerms = search.split(" AND ");
+      const searchTerms = search.split(' AND ');
       const filters: string[] = [];
 
       searchTerms.forEach((term) => {
-        const [key, value] = term.split(":");
+        const [key, value] = term.split(':');
         if (key && value) {
-          const cleanValue = value.replace(/['"]/g, "").trim();
+          const cleanValue = value.replace(/['"]/g, '').trim();
 
           switch (key) {
-            case "Model":
+            case 'Model':
               filters.push(`model eq '${cleanValue}'`);
               break;
-            case "Manufacturer":
+            case 'Manufacturer':
               filters.push(`manufacturer eq '${cleanValue}'`);
               break;
-            case "Serial":
+            case 'Serial':
               filters.push(`serial eq '${cleanValue}'`);
               break;
-            case "Deleted":
+            case 'Deleted':
               filters.push(`deleted eq ${cleanValue.toLowerCase()}`);
               break;
-            case "DoNotDispose":
+            case 'DoNotDispose':
               filters.push(`doNotDispose eq ${cleanValue.toLowerCase()}`);
               break;
           }
@@ -117,7 +113,7 @@ export async function GET(request: NextRequest) {
       });
 
       if (filters.length > 0) {
-        searchFormData.append("$filter", filters.join(" and "));
+        searchFormData.append('$filter', filters.join(' and '));
       }
     }
 
@@ -125,7 +121,7 @@ export async function GET(request: NextRequest) {
     apiUrl.search = searchFormData.toString();
 
     const headers = createFastBoundHeaders({
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     });
 
     // Filter out undefined values and ensure all values are strings
@@ -140,7 +136,7 @@ export async function GET(request: NextRequest) {
       );
 
     const fetchOptions: RequestInit = {
-      method: "GET",
+      method: 'GET',
       headers: new Headers(validHeaders),
     };
 
@@ -157,9 +153,9 @@ export async function GET(request: NextRequest) {
       skip,
     });
   } catch (error: any) {
-    console.error("Error in API route:", error);
+    console.error('Error in API route:', error);
     return NextResponse.json(
-      { error: "Internal Server Error", details: error.message },
+      { error: 'Internal Server Error', details: error.message },
       { status: 500 }
     );
   }

@@ -1,13 +1,13 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import Link from "next/link";
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import Link from 'next/link';
 
 export default function GettingStartedPage() {
   const sections = [
     {
-      id: "dashboard-overview",
-      title: "Dashboards Overview",
+      id: 'dashboard-overview',
+      title: 'Dashboards Overview',
       content: `The dashboard provides a comprehensive view of each user role's activities. You'll find:
         • All admin roles or higher will see the admin dashboard
         • All user roles for employees will see their user profiles
@@ -17,8 +17,8 @@ export default function GettingStartedPage() {
         • Navigation menu for accessing different pages and features`,
     },
     {
-      id: "navbar-overview",
-      title: "Navigation Sidebar Overview",
+      id: 'navbar-overview',
+      title: 'Navigation Sidebar Overview',
       content: `The navigation sidebar provides access to all pages and features allowed for each role:
         • All admin roles or higher will see Auditing, Scheduling, Forms, and Reporting
         • All user roles for employees will see DROS Support, Forms and Schedules
@@ -42,8 +42,8 @@ export default function GettingStartedPage() {
     //     4. Save or submit the audit for review`,
     // },
     {
-      id: "navigation",
-      title: "Navigating the TGR Application",
+      id: 'navigation',
+      title: 'Navigating the TGR Application',
       content: `The TGR Application features an intuitive navigation system:
         • Use the navigation sidebar to access different sections
         • The user profile dropdown menu located at the bottom of the sidebar contains quick actions and user settings and access to the profile page
@@ -85,17 +85,12 @@ export default function GettingStartedPage() {
           <div className="space-y-8">
             <h1 className="text-4xl font-bold mb-4">Getting Started Guide</h1>
             <p className="text-muted-foreground">
-              Welcome to the TGR staff management application! This guide will
-              help you understand the basics and get you started with the TGR
-              application.
+              Welcome to the TGR staff management application! This guide will help you understand
+              the basics and get you started with the TGR application.
             </p>
 
             {sections.map((section) => (
-              <section
-                key={section.id}
-                id={section.id}
-                className="scroll-mt-16"
-              >
+              <section key={section.id} id={section.id} className="scroll-mt-16">
                 <Card>
                   <CardHeader>
                     <CardTitle>{section.title}</CardTitle>

@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
+import { NextResponse } from 'next/server';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
 
 export interface Todo {
   id: number;
@@ -19,15 +19,15 @@ export async function GET() {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Fetch todos for the current user
     const { data, error } = await supabase
-      .from("todos")
-      .select("id, user_id, task, is_complete, inserted_at")
-      .eq("user_id", user.id)
-      .order("inserted_at", { ascending: false });
+      .from('todos')
+      .select('id, user_id, task, is_complete, inserted_at')
+      .eq('user_id', user.id)
+      .order('inserted_at', { ascending: false });
 
     if (error) {
       // console.error("Error fetching todos:", error);
@@ -38,7 +38,7 @@ export async function GET() {
   } catch (error: any) {
     // console.error("Error in fetch-todos API route:", error);
     return NextResponse.json(
-      { error: "Failed to fetch todos", details: error.message },
+      { error: 'Failed to fetch todos', details: error.message },
       { status: 500 }
     );
   }

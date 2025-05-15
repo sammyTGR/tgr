@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { useState, useEffect } from "react";
-import { ModeToggle } from "@/components/mode-toggle";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import { HomeIcon, ChatBubbleIcon, DotFilledIcon } from "@radix-ui/react-icons";
+import * as React from 'react';
+import { useState, useEffect } from 'react';
+import { ModeToggle } from '@/components/mode-toggle';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { HomeIcon, ChatBubbleIcon, DotFilledIcon } from '@radix-ui/react-icons';
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -13,11 +13,11 @@ import {
   NavigationMenuLink,
   NavigationMenuList,
   NavigationMenuTrigger,
-} from "@/components/ui/navigation-menu";
-import { cn } from "@/lib/utils";
-import { supabase } from "@/utils/supabase/client";
-import RoleBasedWrapper from "@/components/RoleBasedWrapper";
-import { useTheme } from "next-themes";
+} from '@/components/ui/navigation-menu';
+import { cn } from '@/lib/utils';
+import { supabase } from '@/utils/supabase/client';
+import RoleBasedWrapper from '@/components/RoleBasedWrapper';
+import { useTheme } from 'next-themes';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -29,23 +29,18 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuPortal,
   DropdownMenuSubContent,
-} from "@/components/ui/dropdown-menu";
-import {
-  PersonIcon,
-  ShadowIcon,
-  SunIcon,
-  MoonIcon,
-} from "@radix-ui/react-icons";
-import LoadingIndicator from "@/components/LoadingIndicator";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import dynamic from "next/dynamic";
+} from '@/components/ui/dropdown-menu';
+import { PersonIcon, ShadowIcon, SunIcon, MoonIcon } from '@radix-ui/react-icons';
+import LoadingIndicator from '@/components/LoadingIndicator';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import dynamic from 'next/dynamic';
 
 const schedComponents = [
   {
-    title: "Team Calendar",
-    href: "/TGR/crew/calendar",
-    description: "Calendar & Time Off Requests",
+    title: 'Team Calendar',
+    href: '/TGR/crew/calendar',
+    description: 'Calendar & Time Off Requests',
   },
   // {
   //   title: "Time Off Request",
@@ -56,43 +51,43 @@ const schedComponents = [
 
 const serviceComponents = [
   {
-    title: "Special Order Form",
-    href: "/sales/orders",
-    description: "Submit Requests For Customers",
+    title: 'Special Order Form',
+    href: '/sales/orders',
+    description: 'Submit Requests For Customers',
   },
   {
-    title: "Check On Orders",
-    href: "/sales/orderreview/crew",
-    description: "Check On Submitted Order Status",
+    title: 'Check On Orders',
+    href: '/sales/orderreview/crew',
+    description: 'Check On Submitted Order Status',
   },
 ];
 
 const formComps = [
   {
-    title: "Gunsmithing",
-    href: "/TGR/gunsmithing",
-    description: "Weekly Firearms Maintenance",
+    title: 'Gunsmithing',
+    href: '/TGR/gunsmithing',
+    description: 'Weekly Firearms Maintenance',
   },
   {
-    title: "Certifications",
-    href: "/TGR/certifications",
-    description: "View All Certifications",
+    title: 'Certifications',
+    href: '/TGR/certifications',
+    description: 'View All Certifications',
   },
   {
-    title: "Bulletin Board",
-    href: "/TGR/crew/bulletin",
-    description: "Bulletin Board",
+    title: 'Bulletin Board',
+    href: '/TGR/crew/bulletin',
+    description: 'Bulletin Board',
   },
   {
-    title: "Patch Notes",
-    href: "/patch-notes",
-    description: "Site Updates",
+    title: 'Patch Notes',
+    href: '/patch-notes',
+    description: 'Site Updates',
   },
 ];
 
 const LazyNavigationMenu = dynamic(
   () =>
-    import("@/components/ui/navigation-menu").then((module) => ({
+    import('@/components/ui/navigation-menu').then((module) => ({
       default: module.NavigationMenu,
     })),
   {
@@ -102,7 +97,7 @@ const LazyNavigationMenu = dynamic(
 
 const LazyNavigationMenuList = dynamic(
   () =>
-    import("@/components/ui/navigation-menu").then((module) => ({
+    import('@/components/ui/navigation-menu').then((module) => ({
       default: module.NavigationMenuList,
     })),
   {
@@ -112,7 +107,7 @@ const LazyNavigationMenuList = dynamic(
 
 const LazyDropdownMenu = dynamic(
   () =>
-    import("@/components/ui/dropdown-menu").then((module) => ({
+    import('@/components/ui/dropdown-menu').then((module) => ({
       default: module.DropdownMenu,
     })),
   {
@@ -126,7 +121,7 @@ const HeaderGunsmith = React.memo(() => {
   const pathname = usePathname();
 
   const { data: user, isLoading: userLoading } = useQuery({
-    queryKey: ["user"],
+    queryKey: ['user'],
     queryFn: async () => {
       const {
         data: { user },
@@ -138,13 +133,13 @@ const HeaderGunsmith = React.memo(() => {
   });
 
   const { data: employeeData, isLoading: employeeLoading } = useQuery({
-    queryKey: ["employee", user?.id],
+    queryKey: ['employee', user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("employees")
-        .select("role, employee_id")
-        .eq("user_uuid", user?.id)
+        .from('employees')
+        .select('role, employee_id')
+        .eq('user_uuid', user?.id)
         .single();
       if (error) throw error;
       return data;
@@ -152,20 +147,17 @@ const HeaderGunsmith = React.memo(() => {
   });
 
   const { data: unreadMessages, isLoading: messagesLoading } = useQuery({
-    queryKey: ["unread-messages", user?.id],
+    queryKey: ['unread-messages', user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("direct_messages")
-        .select("id, read_by")
+        .from('direct_messages')
+        .select('id, read_by')
         .or(`receiver_id.eq.${user?.id},sender_id.eq.${user?.id}`);
 
       if (error) throw error;
 
-      return (
-        data?.filter((msg) => msg.read_by && !msg.read_by.includes(user?.id)) ||
-        []
-      );
+      return data?.filter((msg) => msg.read_by && !msg.read_by.includes(user?.id)) || [];
     },
     refetchInterval: 30000, // Refetch every 30 seconds
   });
@@ -175,13 +167,13 @@ const HeaderGunsmith = React.memo(() => {
     if (employeeData?.employee_id) {
       router.push(`/TGR/crew/profile/${employeeData.employee_id}`);
     } else {
-      router.push("/");
+      router.push('/');
     }
   };
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    router.push("/");
+    router.push('/');
   };
 
   const handleChatClick = async () => {
@@ -192,26 +184,25 @@ const HeaderGunsmith = React.memo(() => {
     if (messageIds.length > 0) {
       for (const messageId of messageIds) {
         await supabase
-          .from("direct_messages")
+          .from('direct_messages')
           .update({
             read_by: [
-              ...(unreadMessages?.find((msg) => msg.id === messageId)
-                ?.read_by || []),
+              ...(unreadMessages?.find((msg) => msg.id === messageId)?.read_by || []),
               user.id,
             ],
           })
-          .eq("id", messageId);
+          .eq('id', messageId);
       }
     }
 
-    router.push("/TGR/crew/chat");
+    router.push('/TGR/crew/chat');
   };
 
   const isLoading = userLoading || employeeLoading || messagesLoading;
   const totalUnreadCount = unreadMessages?.length || 0;
 
   return (
-    <RoleBasedWrapper allowedRoles={["gunsmith"]}>
+    <RoleBasedWrapper allowedRoles={['gunsmith']}>
       {isLoading && <LoadingIndicator />}
       <header className="flex justify-between items-center p-2">
         <LazyNavigationMenu>
@@ -226,11 +217,7 @@ const HeaderGunsmith = React.memo(() => {
               <NavigationMenuContent>
                 <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
                   {schedComponents.map((component) => (
-                    <ListItem
-                      key={component.title}
-                      title={component.title}
-                      href={component.href}
-                    >
+                    <ListItem key={component.title} title={component.title} href={component.href}>
                       {component.description}
                     </ListItem>
                   ))}
@@ -242,11 +229,7 @@ const HeaderGunsmith = React.memo(() => {
               <NavigationMenuContent>
                 <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
                   {formComps.map((component) => (
-                    <ListItem
-                      key={component.title}
-                      title={component.title}
-                      href={component.href}
-                    >
+                    <ListItem key={component.title} title={component.title} href={component.href}>
                       {component.description}
                     </ListItem>
                   ))}
@@ -258,11 +241,7 @@ const HeaderGunsmith = React.memo(() => {
               <NavigationMenuContent>
                 <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
                   {serviceComponents.map((sched) => (
-                    <ListItem
-                      key={sched.title}
-                      title={sched.title}
-                      href={sched.href}
-                    >
+                    <ListItem key={sched.title} title={sched.title} href={sched.href}>
                       {sched.description}
                     </ListItem>
                   ))}
@@ -312,9 +291,7 @@ const HeaderGunsmith = React.memo(() => {
                     <ChatBubbleIcon className="mr-2 h-4 w-4" />
                     <span>Messages</span>
                     {totalUnreadCount > 0 && (
-                      <span className="ml-auto text-red-500 font-bold">
-                        {totalUnreadCount}
-                      </span>
+                      <span className="ml-auto text-red-500 font-bold">{totalUnreadCount}</span>
                     )}
                   </DropdownMenuItem>
 
@@ -327,11 +304,11 @@ const HeaderGunsmith = React.memo(() => {
                     </DropdownMenuSubTrigger>
                     <DropdownMenuPortal>
                       <DropdownMenuSubContent>
-                        <DropdownMenuItem onClick={() => setTheme("light")}>
+                        <DropdownMenuItem onClick={() => setTheme('light')}>
                           <SunIcon className="mr-2 h-4 w-4" />
                           <span>Light</span>
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setTheme("dark")}>
+                        <DropdownMenuItem onClick={() => setTheme('dark')}>
                           <MoonIcon className="mr-2 h-4 w-4" />
                           <span>Dark</span>
                         </DropdownMenuItem>
@@ -340,9 +317,7 @@ const HeaderGunsmith = React.memo(() => {
                   </DropdownMenuSub>
                   <DropdownMenuSeparator />
 
-                  <DropdownMenuItem onClick={handleSignOut}>
-                    Sign Out
-                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleSignOut}>Sign Out</DropdownMenuItem>
                 </DropdownMenuContent>
               </LazyDropdownMenu>
             </>
@@ -357,44 +332,41 @@ const HeaderGunsmith = React.memo(() => {
   );
 });
 
-HeaderGunsmith.displayName = "HeaderGunsmith";
+HeaderGunsmith.displayName = 'HeaderGunsmith';
 
-const ListItem = React.forwardRef<
-  React.ElementRef<"a">,
-  React.ComponentPropsWithoutRef<"a">
->(({ className, title, children, href, ...props }, ref) => {
-  const queryClient = useQueryClient();
-  const router = useRouter();
+const ListItem = React.forwardRef<React.ElementRef<'a'>, React.ComponentPropsWithoutRef<'a'>>(
+  ({ className, title, children, href, ...props }, ref) => {
+    const queryClient = useQueryClient();
+    const router = useRouter();
 
-  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault();
-    queryClient.invalidateQueries({ queryKey: ["navigation"] });
-    router.push(href || "");
-  };
+    const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+      e.preventDefault();
+      queryClient.invalidateQueries({ queryKey: ['navigation'] });
+      router.push(href || '');
+    };
 
-  return (
-    <li>
-      <NavigationMenuLink asChild>
-        <a
-          ref={ref}
-          href={href}
-          onClick={handleClick}
-          className={cn(
-            "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
-            className
-          )}
-          {...props}
-        >
-          <div className="text-sm font-medium leading-none">{title}</div>
-          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-            {children}
-          </p>
-        </a>
-      </NavigationMenuLink>
-    </li>
-  );
-});
+    return (
+      <li>
+        <NavigationMenuLink asChild>
+          <a
+            ref={ref}
+            href={href}
+            onClick={handleClick}
+            className={cn(
+              'block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground',
+              className
+            )}
+            {...props}
+          >
+            <div className="text-sm font-medium leading-none">{title}</div>
+            <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">{children}</p>
+          </a>
+        </NavigationMenuLink>
+      </li>
+    );
+  }
+);
 
-ListItem.displayName = "ListItem";
+ListItem.displayName = 'ListItem';
 
 export default HeaderGunsmith;

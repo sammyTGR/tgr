@@ -1,27 +1,23 @@
-"use client";
-import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
-import { supabase } from "@/utils/supabase/client";
-import { useRouter } from "next/navigation";
-import RoleBasedWrapper from "@/components/RoleBasedWrapper";
-import { toZonedTime, format as formatTZ } from "date-fns-tz";
-import { format, parseISO, addDays } from "date-fns";
-import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+'use client';
+import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { TextGenerateEffect } from '@/components/ui/text-generate-effect';
+import { supabase } from '@/utils/supabase/client';
+import { useRouter } from 'next/navigation';
+import RoleBasedWrapper from '@/components/RoleBasedWrapper';
+import { toZonedTime, format as formatTZ } from 'date-fns-tz';
+import { format, parseISO, addDays } from 'date-fns';
+import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Textarea } from "@/components/ui/textarea";
+} from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Card,
   CardContent,
@@ -29,23 +25,23 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import DOMPurify from "dompurify";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from '@/components/ui/card';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import DOMPurify from 'dompurify';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { toast, Toaster } from "sonner";
-import { useSidebar } from "@/components/ui/sidebar";
+} from '@/components/ui/select';
+import { toast, Toaster } from 'sonner';
+import { useSidebar } from '@/components/ui/sidebar';
 
-const title = "Review Time Off Requests";
-const timeZone = "America/Los_Angeles"; // Set your desired timezone
+const title = 'Review Time Off Requests';
+const timeZone = 'America/Los_Angeles'; // Set your desired timezone
 interface TimeOffRequest {
   request_id: number;
   employee_id: number;
@@ -59,7 +55,7 @@ interface TimeOffRequest {
   use_sick_time: boolean; // New field
   available_sick_time: number; // New field
   created_at: string; // Add this line
-  pay_type: "hourly" | "salary";
+  pay_type: 'hourly' | 'salary';
   vacation_time: number;
   use_vacation_time: boolean;
   hire_date: string;
@@ -73,11 +69,11 @@ interface TimeOffRequest {
 }
 
 type RequestAction =
-  | "time_off"
-  | "deny"
-  | "called_out"
-  | "left_early"
-  | "pending"
+  | 'time_off'
+  | 'deny'
+  | 'called_out'
+  | 'left_early'
+  | 'pending'
   | `Custom: ${string}`;
 
 export default function ApproveRequestsPage() {
@@ -87,80 +83,65 @@ export default function ApproveRequestsPage() {
 
   // Query for fetching time off requests
   const { data: requests = [], isLoading } = useQuery({
-    queryKey: ["timeOffRequests"],
+    queryKey: ['timeOffRequests'],
     queryFn: () => {
       return Promise.resolve(
-        fetch("/api/time_off_requests?sort=created_at&order=asc").then(
-          (response) => {
-            if (!response.ok) {
-              throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.json();
+        fetch('/api/time_off_requests?sort=created_at&order=asc').then((response) => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
           }
-        )
+          return response.json();
+        })
       );
     },
   });
 
   const dialogQuery = useQuery({
-    queryKey: ["customApprovalDialog"],
+    queryKey: ['customApprovalDialog'],
     queryFn: () => ({
       isOpen: false,
-      text: "",
+      text: '',
       currentRequestId: null as number | null,
     }),
     staleTime: Infinity,
   });
 
   const leftEarlyDialogQuery = useQuery({
-    queryKey: ["leftEarlyDialog"],
+    queryKey: ['leftEarlyDialog'],
     queryFn: () => ({
       isOpen: false,
-      time: "",
+      time: '',
       currentRequestId: null as number | null,
     }),
     staleTime: Infinity,
   });
 
   const leftEarlyDataQuery = useQuery({
-    queryKey: ["leftEarlyData"],
+    queryKey: ['leftEarlyData'],
     queryFn: () => ({
-      hour: "",
-      minute: "",
-      period: "PM",
+      hour: '',
+      minute: '',
+      period: 'PM',
       currentRequestId: null as number | null,
     }),
     staleTime: Infinity,
   });
 
-  const { data: dialogState = { isOpen: false, requestId: null, text: "" } } =
-    useQuery({
-      queryKey: ["customApprovalDialog"],
-      queryFn: () => ({ isOpen: false, requestId: null, text: "" }),
-      staleTime: Infinity,
-    });
+  const { data: dialogState = { isOpen: false, requestId: null, text: '' } } = useQuery({
+    queryKey: ['customApprovalDialog'],
+    queryFn: () => ({ isOpen: false, requestId: null, text: '' }),
+    staleTime: Infinity,
+  });
 
   const dialogMutation = useMutation({
-    mutationFn: (newState: {
-      isOpen: boolean;
-      text: string;
-      currentRequestId: number | null;
-    }) => {
-      return Promise.resolve(
-        queryClient.setQueryData(["customApprovalDialog"], newState)
-      );
+    mutationFn: (newState: { isOpen: boolean; text: string; currentRequestId: number | null }) => {
+      return Promise.resolve(queryClient.setQueryData(['customApprovalDialog'], newState));
     },
   });
 
   const leftEarlyDialogMutation = useMutation({
-    mutationFn: (newState: {
-      isOpen: boolean;
-      time: string;
-      currentRequestId: number | null;
-    }) => {
-      return Promise.resolve(
-        queryClient.setQueryData(["leftEarlyDialog"], newState)
-      );
+    mutationFn: (newState: { isOpen: boolean; time: string; currentRequestId: number | null }) => {
+      return Promise.resolve(queryClient.setQueryData(['leftEarlyDialog'], newState));
     },
   });
 
@@ -178,9 +159,9 @@ export default function ApproveRequestsPage() {
       use_vacation_time?: boolean;
     }) => {
       return Promise.resolve(
-        fetch("/api/approve_request", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+        fetch('/api/approve_request', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             request_id,
             action,
@@ -189,14 +170,14 @@ export default function ApproveRequestsPage() {
           }),
         }).then((response) => {
           if (!response.ok) {
-            throw new Error("Failed to update request");
+            throw new Error('Failed to update request');
           }
           return response.json();
         })
       );
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["timeOffRequests"] });
+      queryClient.invalidateQueries({ queryKey: ['timeOffRequests'] });
     },
   });
 
@@ -204,20 +185,20 @@ export default function ApproveRequestsPage() {
   const markDuplicateMutation = useMutation({
     mutationFn: (request_id: number) => {
       return Promise.resolve(
-        fetch("/api/mark_duplicate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+        fetch('/api/mark_duplicate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ request_id }),
         }).then((response) => {
           if (!response.ok) {
-            throw new Error("Failed to mark as duplicate");
+            throw new Error('Failed to mark as duplicate');
           }
           return response.json();
         })
       );
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["timeOffRequests"] });
+      queryClient.invalidateQueries({ queryKey: ['timeOffRequests'] });
     },
   });
 
@@ -235,9 +216,9 @@ export default function ApproveRequestsPage() {
       templateData: any;
     }) => {
       return Promise.resolve(
-        fetch("/api/send_email", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+        fetch('/api/send_email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             email,
             subject,
@@ -246,7 +227,7 @@ export default function ApproveRequestsPage() {
           }),
         }).then((response) => {
           if (!response.ok) {
-            throw new Error("Failed to send email");
+            throw new Error('Failed to send email');
           }
           return response.json();
         })
@@ -265,12 +246,12 @@ export default function ApproveRequestsPage() {
       useSickTime: boolean;
       useVacationTime: boolean;
     }) => {
-      const response = await fetch("/api/approve_request", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/approve_request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           request_id: requestId,
-          action: "pending",
+          action: 'pending',
           use_sick_time: useSickTime,
           use_vacation_time: useVacationTime,
         }),
@@ -278,19 +259,19 @@ export default function ApproveRequestsPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to update time usage");
+        throw new Error(errorData.error || 'Failed to update time usage');
       }
 
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["timeOffRequests"] });
-      toast.success("Time usage updated successfully");
+      queryClient.invalidateQueries({ queryKey: ['timeOffRequests'] });
+      toast.success('Time usage updated successfully');
     },
     onError: (error) => {
-      console.error("Time usage mutation failed:", error);
+      console.error('Time usage mutation failed:', error);
       toast.error(
-        `Failed to update time usage: ${error instanceof Error ? error.message : "Unknown error"}`
+        `Failed to update time usage: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
     },
   });
@@ -299,7 +280,7 @@ export default function ApproveRequestsPage() {
   const handleOpenCustomApproval = (requestId: number) => {
     dialogMutation.mutate({
       isOpen: true,
-      text: "",
+      text: '',
       currentRequestId: requestId,
     });
   };
@@ -307,15 +288,13 @@ export default function ApproveRequestsPage() {
   const handleCloseCustomApproval = () => {
     dialogMutation.mutate({
       isOpen: false,
-      text: "",
+      text: '',
       currentRequestId: null,
     });
   };
 
   const handleCustomApprovalTextChange = (text: string) => {
-    const currentState = queryClient.getQueryData([
-      "customApprovalDialog",
-    ]) as any;
+    const currentState = queryClient.getQueryData(['customApprovalDialog']) as any;
     dialogMutation.mutate({
       ...currentState,
       text: DOMPurify.sanitize(text),
@@ -323,9 +302,7 @@ export default function ApproveRequestsPage() {
   };
 
   const handleSubmitCustomApproval = () => {
-    const dialogState = queryClient.getQueryData([
-      "customApprovalDialog",
-    ]) as any;
+    const dialogState = queryClient.getQueryData(['customApprovalDialog']) as any;
     if (dialogState?.currentRequestId && dialogState?.text) {
       handleCustomApproval(dialogState.currentRequestId, dialogState.text);
       handleCloseCustomApproval();
@@ -335,14 +312,12 @@ export default function ApproveRequestsPage() {
   // Handler for time usage switches
   const handleTimeUsageChange = (
     requestId: number,
-    type: "sick" | "vacation",
+    type: 'sick' | 'vacation',
     checked: boolean
   ) => {
-    const request = requests.find(
-      (req: TimeOffRequest) => req.request_id === requestId
-    );
+    const request = requests.find((req: TimeOffRequest) => req.request_id === requestId);
     if (!request) {
-      console.error("Request not found:", requestId);
+      console.error('Request not found:', requestId);
       return;
     }
 
@@ -358,8 +333,8 @@ export default function ApproveRequestsPage() {
 
     timeUsageMutation.mutate({
       requestId,
-      useSickTime: type === "sick" ? checked : false,
-      useVacationTime: type === "vacation" ? checked : false,
+      useSickTime: type === 'sick' ? checked : false,
+      useVacationTime: type === 'vacation' ? checked : false,
     });
   };
 
@@ -375,19 +350,19 @@ export default function ApproveRequestsPage() {
     return (
       <div className="grid grid-cols-2 gap-4">
         <div>
-          {request.pay_type?.toLowerCase() === "salary" ? (
+          {request.pay_type?.toLowerCase() === 'salary' ? (
             <p className="text-sm mt-2">Not applicable for salary employees</p>
           ) : (
             <>
               <div className="space-y-1">
                 <p>
-                  <strong>Available Sick Time:</strong>{" "}
+                  <strong>Available Sick Time:</strong>{' '}
                   {Number(request.available_sick_time).toFixed(2)} Hours
                 </p>
                 {request.use_sick_time && request.hours_deducted && (
                   <p className="text-sm text-muted-foreground">
-                    Potential usage with this request:{" "}
-                    {Number(request.hours_deducted).toFixed(2)} hours
+                    Potential usage with this request: {Number(request.hours_deducted).toFixed(2)}{' '}
+                    hours
                   </p>
                 )}
               </div>
@@ -407,19 +382,16 @@ export default function ApproveRequestsPage() {
                     (request.available_sick_time <= 0 && !request.use_sick_time)
                   }
                 />
-                <Label htmlFor={`sick-time-${request.request_id}`}>
-                  Use Sick Time
-                </Label>
+                <Label htmlFor={`sick-time-${request.request_id}`}>Use Sick Time</Label>
               </div>
             </>
           )}
         </div>
         <div>
-          {request.pay_type?.toLowerCase() === "salary" ? (
+          {request.pay_type?.toLowerCase() === 'salary' ? (
             <>
               <p>
-                <strong>Available Vacation Time:</strong>{" "}
-                {request.vacation_time} Hours
+                <strong>Available Vacation Time:</strong> {request.vacation_time} Hours
               </p>
               <div className="flex items-center space-x-2 mt-2">
                 <Switch
@@ -436,9 +408,7 @@ export default function ApproveRequestsPage() {
               </div>
             </>
           ) : (
-            <p className="text-sm mt-2">
-              Not applicable for non-salaried employees
-            </p>
+            <p className="text-sm mt-2">Not applicable for non-salaried employees</p>
           )}
         </div>
       </div>
@@ -483,11 +453,7 @@ export default function ApproveRequestsPage() {
       >
         Approve
       </Button>
-      <Button
-        className="w-full"
-        variant="outline"
-        onClick={() => handleDeny(request.request_id)}
-      >
+      <Button className="w-full" variant="outline" onClick={() => handleDeny(request.request_id)}>
         Deny
       </Button>
       <Button
@@ -523,7 +489,7 @@ export default function ApproveRequestsPage() {
 
   const formatDateWithDay = (dateString: string) => {
     const date = parseISO(dateString);
-    return format(date, "EEEE, MMMM d, yyyy");
+    return format(date, 'EEEE, MMMM d, yyyy');
   };
 
   const handleRequest = async (
@@ -533,9 +499,7 @@ export default function ApproveRequestsPage() {
     use_sick_time: boolean = false,
     use_vacation_time: boolean = false
   ) => {
-    const request = requests.find(
-      (req: TimeOffRequest) => req.request_id === request_id
-    );
+    const request = requests.find((req: TimeOffRequest) => req.request_id === request_id);
     if (!request) return;
 
     let templateName: string;
@@ -543,8 +507,8 @@ export default function ApproveRequestsPage() {
 
     // Determine email template and data based on action
     switch (action) {
-      case "time_off":
-        templateName = "TimeOffApproved";
+      case 'time_off':
+        templateName = 'TimeOffApproved';
         templateData = {
           name: DOMPurify.sanitize(request.name),
           startDate: formatDateWithDay(request.start_date),
@@ -552,8 +516,8 @@ export default function ApproveRequestsPage() {
           message: emailMessage,
         };
         break;
-      case "deny":
-        templateName = "TimeOffDenied";
+      case 'deny':
+        templateName = 'TimeOffDenied';
         templateData = {
           name: DOMPurify.sanitize(request.name),
           startDate: formatDateWithDay(request.start_date),
@@ -561,43 +525,43 @@ export default function ApproveRequestsPage() {
           message: emailMessage,
         };
         break;
-      case "called_out":
-        templateName = "CalledOut";
+      case 'called_out':
+        templateName = 'CalledOut';
         templateData = {
           name: DOMPurify.sanitize(request.name),
           date: formatDateWithDay(request.start_date),
           message: emailMessage,
         };
         break;
-      case "left_early":
-        templateName = "LeftEarly";
+      case 'left_early':
+        templateName = 'LeftEarly';
         templateData = {
           name: DOMPurify.sanitize(request.name),
           date: formatDateWithDay(request.start_date),
           message: emailMessage,
         };
         break;
-      case "pending":
-        templateName = "StatusUpdate";
+      case 'pending':
+        templateName = 'StatusUpdate';
         templateData = {
           name: DOMPurify.sanitize(request.name),
           startDate: formatDateWithDay(request.start_date),
           endDate: formatDateWithDay(request.end_date),
-          status: "pending",
+          status: 'pending',
           message: emailMessage,
         };
         break;
       default:
-        if (action.startsWith("Custom: Early Leave @")) {
-          templateName = "LeftEarly";
+        if (action.startsWith('Custom: Early Leave @')) {
+          templateName = 'LeftEarly';
           templateData = {
             name: DOMPurify.sanitize(request.name),
             date: formatDateWithDay(request.start_date),
-            time: action.split("Early Leave @ ")[1],
+            time: action.split('Early Leave @ ')[1],
             message: emailMessage,
           };
-        } else if (action.startsWith("Custom: ")) {
-          templateName = "CustomStatus";
+        } else if (action.startsWith('Custom: ')) {
+          templateName = 'CustomStatus';
           templateData = {
             name: DOMPurify.sanitize(request.name),
             startDate: formatDateWithDay(request.start_date),
@@ -606,23 +570,23 @@ export default function ApproveRequestsPage() {
             message: emailMessage,
           };
         } else {
-          throw new Error("Invalid action");
+          throw new Error('Invalid action');
         }
     }
 
-    const subject = action.startsWith("Custom: Early Leave @")
-      ? "Left Early Notification"
-      : action === "deny"
-        ? "Time Off Request Denied"
-        : action === "called_out"
+    const subject = action.startsWith('Custom: Early Leave @')
+      ? 'Left Early Notification'
+      : action === 'deny'
+        ? 'Time Off Request Denied'
+        : action === 'called_out'
           ? "You've Called Out"
-          : action === "left_early"
+          : action === 'left_early'
             ? "You've Left Early"
-            : action === "time_off"
-              ? "Time Off Request Approved"
-              : action.startsWith("Custom: ")
-                ? "Time Off Request Approval"
-                : "Time Off Request Status Update";
+            : action === 'time_off'
+              ? 'Time Off Request Approved'
+              : action.startsWith('Custom: ')
+                ? 'Time Off Request Approval'
+                : 'Time Off Request Status Update';
 
     // Chain mutations
     return Promise.resolve()
@@ -647,16 +611,16 @@ export default function ApproveRequestsPage() {
   const createVTOEntryMutation = useMutation({
     mutationFn: async ({
       request,
-      action = "approved",
+      action = 'approved',
     }: {
       request: TimeOffRequest;
       action?: string;
     }) => {
       // Skip VTO entry creation for salary employees
-      if (request.pay_type?.toLowerCase() === "salary") {
+      if (request.pay_type?.toLowerCase() === 'salary') {
         return {
           skipped: true,
-          message: "Skipped VTO entry for salary employee",
+          message: 'Skipped VTO entry for salary employee',
         };
       }
 
@@ -667,18 +631,18 @@ export default function ApproveRequestsPage() {
       let currentDate = start;
 
       while (currentDate <= end) {
-        dates.push(format(currentDate, "yyyy-MM-dd"));
+        dates.push(format(currentDate, 'yyyy-MM-dd'));
         currentDate = addDays(currentDate, 1);
       }
 
       // Determine the VTO type based on the action
-      let vto_type = "approved";
-      if (action === "called_out") {
-        vto_type = "called_out";
-      } else if (action === "no_call_no_show") {
-        vto_type = "no_call_no_show";
-      } else if (action?.startsWith("Custom:")) {
-        vto_type = "custom";
+      let vto_type = 'approved';
+      if (action === 'called_out') {
+        vto_type = 'called_out';
+      } else if (action === 'no_call_no_show') {
+        vto_type = 'no_call_no_show';
+      } else if (action?.startsWith('Custom:')) {
+        vto_type = 'custom';
       }
 
       const timesheetData = {
@@ -688,15 +652,15 @@ export default function ApproveRequestsPage() {
         vto_type,
       };
 
-      const response = await fetch("/api/timesheets", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/timesheets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(timesheetData),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to create VTO entry");
+        throw new Error(errorData.error || 'Failed to create VTO entry');
       }
 
       return response.json();
@@ -704,12 +668,12 @@ export default function ApproveRequestsPage() {
     onSuccess: (data) => {
       // Only show success message if VTO entry was actually created
       if (!data.skipped) {
-        toast.success("VTO entries created successfully");
-        queryClient.invalidateQueries({ queryKey: ["timeOffRequests"] });
+        toast.success('VTO entries created successfully');
+        queryClient.invalidateQueries({ queryKey: ['timeOffRequests'] });
       }
     },
     onError: (error: Error) => {
-      console.error("Error creating VTO entries:", error);
+      console.error('Error creating VTO entries:', error);
       toast.error(`Failed to create VTO entries: ${error.message}`);
     },
   });
@@ -719,35 +683,31 @@ export default function ApproveRequestsPage() {
   };
 
   const handleApprove = async (request_id: number) => {
-    const request = requests.find(
-      (req: TimeOffRequest) => req.request_id === request_id
-    );
+    const request = requests.find((req: TimeOffRequest) => req.request_id === request_id);
     if (request) {
       if (request.use_sick_time && request.use_vacation_time) {
-        toast.error(
-          "Cannot use both sick time and vacation time for the same request"
-        );
+        toast.error('Cannot use both sick time and vacation time for the same request');
         return;
       }
 
       try {
         // Create VTO entry if not using sick time and employee is hourly
         if (!request.use_sick_time && !request.use_vacation_time) {
-          await createVTOEntry(request, "approved");
+          await createVTOEntry(request, 'approved');
         }
 
         await handleRequest(
           request_id,
-          "time_off",
+          'time_off',
           `Your Time Off Request For ${request.start_date} - ${request.end_date} Has Been Approved!`,
           request.use_sick_time,
           request.use_vacation_time
         );
 
-        toast.success("Request approved successfully");
+        toast.success('Request approved successfully');
       } catch (error) {
         toast.error(
-          `Failed to approve request: ${error instanceof Error ? error.message : "Unknown error"}`
+          `Failed to approve request: ${error instanceof Error ? error.message : 'Unknown error'}`
         );
       }
     }
@@ -756,64 +716,55 @@ export default function ApproveRequestsPage() {
   const handleDeny = (request_id: number) => {
     handleRequest(
       request_id,
-      "deny",
-      "Your Time Off Request Has Been Denied. Please Contact Management Directly For Details."
+      'deny',
+      'Your Time Off Request Has Been Denied. Please Contact Management Directly For Details.'
     );
   };
 
   const handleCalledOut = async (request_id: number) => {
-    const request = requests.find(
-      (req: TimeOffRequest) => req.request_id === request_id
-    );
+    const request = requests.find((req: TimeOffRequest) => req.request_id === request_id);
     if (request) {
       try {
         // Create VTO entry if not using sick time and employee is hourly
         if (!request.use_sick_time && !request.use_vacation_time) {
-          await createVTOEntry(request, "called_out");
+          await createVTOEntry(request, 'called_out');
         }
 
         await handleRequest(
           request_id,
-          "called_out",
-          "Your Schedule Has Been Updated To Reflect That You Called Out.",
+          'called_out',
+          'Your Schedule Has Been Updated To Reflect That You Called Out.',
           request.use_sick_time,
           request.use_vacation_time
         );
 
-        toast.success("Called out status updated successfully");
+        toast.success('Called out status updated successfully');
       } catch (error) {
         toast.error(
-          `Failed to update called out status: ${error instanceof Error ? error.message : "Unknown error"}`
+          `Failed to update called out status: ${error instanceof Error ? error.message : 'Unknown error'}`
         );
       }
     }
   };
 
   const handleLeftEarlyWithTime = (requestId: number) => {
-    const request = requests.find(
-      (req: TimeOffRequest) => req.request_id === requestId
-    );
+    const request = requests.find((req: TimeOffRequest) => req.request_id === requestId);
     if (request) {
       leftEarlyDialogMutation.mutate({
         isOpen: true,
-        time: "",
+        time: '',
         currentRequestId: requestId,
       });
     }
   };
 
-  const handleCustomApproval = async (
-    request_id: number,
-    customText: string
-  ) => {
-    const request = requests.find(
-      (req: TimeOffRequest) => req.request_id === request_id
-    );
+  const handleCustomApproval = async (request_id: number, customText: string) => {
+    const request = requests.find((req: TimeOffRequest) => req.request_id === request_id);
     if (request) {
       try {
         // Create VTO entry if not using sick time and employee is hourly
         if (!request.use_sick_time && !request.use_vacation_time) {
-          await createVTOEntry(request, "Custom: " + customText);
+          await createVTOEntry(request, 'Custom: ' + customText);
         }
 
         await handleRequest(
@@ -824,17 +775,17 @@ export default function ApproveRequestsPage() {
           request.use_vacation_time
         );
 
-        toast.success("Custom approval submitted successfully");
+        toast.success('Custom approval submitted successfully');
       } catch (error) {
         toast.error(
-          `Failed to submit custom approval: ${error instanceof Error ? error.message : "Unknown error"}`
+          `Failed to submit custom approval: ${error instanceof Error ? error.message : 'Unknown error'}`
         );
       }
     }
   };
 
   const handleLeftEarlyTimeChange = (time: string) => {
-    const currentState = queryClient.getQueryData(["leftEarlyDialog"]) as any;
+    const currentState = queryClient.getQueryData(['leftEarlyDialog']) as any;
     leftEarlyDialogMutation.mutate({
       ...currentState,
       time: DOMPurify.sanitize(time),
@@ -842,7 +793,7 @@ export default function ApproveRequestsPage() {
   };
 
   const handleSubmitLeftEarly = () => {
-    const dialogState = queryClient.getQueryData(["leftEarlyDialog"]) as any;
+    const dialogState = queryClient.getQueryData(['leftEarlyDialog']) as any;
     if (dialogState?.currentRequestId && dialogState?.time) {
       handleRequest(
         dialogState.currentRequestId,
@@ -851,14 +802,14 @@ export default function ApproveRequestsPage() {
       );
       leftEarlyDialogMutation.mutate({
         isOpen: false,
-        time: "",
+        time: '',
         currentRequestId: null,
       });
     }
   };
 
   return (
-    <RoleBasedWrapper allowedRoles={["admin", "ceo", "super admin", "dev"]}>
+    <RoleBasedWrapper allowedRoles={['admin', 'ceo', 'super admin', 'dev']}>
       <Toaster richColors position="top-center" />
       <div className="w-full">
         <div
@@ -873,7 +824,7 @@ export default function ApproveRequestsPage() {
                 <CardHeader>
                   <CardTitle>Time Off Request - {request.name}</CardTitle>
                   <CardDescription>
-                    Submitted on{" "}
+                    Submitted on{' '}
                     {formatTZ(
                       toZonedTime(parseISO(request.created_at), timeZone),
                       "MMM d, yyyy 'at' h:mm a",
@@ -885,26 +836,24 @@ export default function ApproveRequestsPage() {
                   <Tabs defaultValue="details">
                     <TabsList className="grid w-full grid-cols-3">
                       <TabsTrigger value="details">Details</TabsTrigger>
-                      <TabsTrigger value="time">
-                        Use Sick Or Vacation
-                      </TabsTrigger>
+                      <TabsTrigger value="time">Use Sick Or Vacation</TabsTrigger>
                       <TabsTrigger value="actions">Actions</TabsTrigger>
                     </TabsList>
                     <TabsContent value="details">
                       <div className="space-y-2">
                         <p>
-                          <strong>Start Date:</strong>{" "}
+                          <strong>Start Date:</strong>{' '}
                           {formatTZ(
                             toZonedTime(parseISO(request.start_date), timeZone),
-                            "MMM d, yyyy",
+                            'MMM d, yyyy',
                             { timeZone }
                           )}
                         </p>
                         <p>
-                          <strong>End Date:</strong>{" "}
+                          <strong>End Date:</strong>{' '}
                           {formatTZ(
                             toZonedTime(parseISO(request.end_date), timeZone),
-                            "MMM d, yyyy",
+                            'MMM d, yyyy',
                             { timeZone }
                           )}
                         </p>
@@ -918,9 +867,7 @@ export default function ApproveRequestsPage() {
                         )}
                       </div>
                     </TabsContent>
-                    <TabsContent value="time">
-                      {renderTimeUsageSwitches(request)}
-                    </TabsContent>
+                    <TabsContent value="time">{renderTimeUsageSwitches(request)}</TabsContent>
                     <TabsContent value="actions">
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         <Button
@@ -940,9 +887,7 @@ export default function ApproveRequestsPage() {
                         <Button
                           className="w-full"
                           variant="outline"
-                          onClick={() =>
-                            handleOpenCustomApproval(request.request_id)
-                          }
+                          onClick={() => handleOpenCustomApproval(request.request_id)}
                         >
                           Custom Approval
                         </Button>
@@ -956,20 +901,14 @@ export default function ApproveRequestsPage() {
                         <Button
                           className="w-full"
                           variant="outline"
-                          onClick={() =>
-                            handleLeftEarlyWithTime(request.request_id)
-                          }
+                          onClick={() => handleLeftEarlyWithTime(request.request_id)}
                         >
                           Early Leave
                         </Button>
                         <Button
                           className="w-full"
                           variant="outline"
-                          onClick={() =>
-                            markDuplicateMutation.mutateAsync(
-                              request.request_id
-                            )
-                          }
+                          onClick={() => markDuplicateMutation.mutateAsync(request.request_id)}
                         >
                           Mark As Duplicate
                         </Button>
@@ -991,10 +930,8 @@ export default function ApproveRequestsPage() {
                   <DialogTitle>Custom Approval</DialogTitle>
                 </DialogHeader>
                 <Textarea
-                  value={dialogQuery.data?.text || ""}
-                  onChange={(e) =>
-                    handleCustomApprovalTextChange(e.target.value)
-                  }
+                  value={dialogQuery.data?.text || ''}
+                  onChange={(e) => handleCustomApprovalTextChange(e.target.value)}
                   placeholder="Enter custom approval text..."
                   className="min-h-[100px]"
                 />
@@ -1013,7 +950,7 @@ export default function ApproveRequestsPage() {
                 if (!open) {
                   leftEarlyDialogMutation.mutate({
                     isOpen: false,
-                    time: "",
+                    time: '',
                     currentRequestId: null,
                   });
                 }
@@ -1030,12 +967,10 @@ export default function ApproveRequestsPage() {
                       type="text"
                       placeholder="HH"
                       maxLength={2}
-                      value={leftEarlyDataQuery.data?.hour || ""}
+                      value={leftEarlyDataQuery.data?.hour || ''}
                       onChange={(e) => {
-                        const currentData = queryClient.getQueryData([
-                          "leftEarlyData",
-                        ]) as any;
-                        queryClient.setQueryData(["leftEarlyData"], {
+                        const currentData = queryClient.getQueryData(['leftEarlyData']) as any;
+                        queryClient.setQueryData(['leftEarlyData'], {
                           ...currentData,
                           hour: e.target.value,
                         });
@@ -1048,12 +983,10 @@ export default function ApproveRequestsPage() {
                       type="text"
                       placeholder="MM"
                       maxLength={2}
-                      value={leftEarlyDataQuery.data?.minute || ""}
+                      value={leftEarlyDataQuery.data?.minute || ''}
                       onChange={(e) => {
-                        const currentData = queryClient.getQueryData([
-                          "leftEarlyData",
-                        ]) as any;
-                        queryClient.setQueryData(["leftEarlyData"], {
+                        const currentData = queryClient.getQueryData(['leftEarlyData']) as any;
+                        queryClient.setQueryData(['leftEarlyData'], {
                           ...currentData,
                           minute: e.target.value,
                         });
@@ -1063,12 +996,10 @@ export default function ApproveRequestsPage() {
                   <div className="flex-1">
                     <Label>AM/PM</Label>
                     <Select
-                      value={leftEarlyDataQuery.data?.period || "PM"}
+                      value={leftEarlyDataQuery.data?.period || 'PM'}
                       onValueChange={(value) => {
-                        const currentData = queryClient.getQueryData([
-                          "leftEarlyData",
-                        ]) as any;
-                        queryClient.setQueryData(["leftEarlyData"], {
+                        const currentData = queryClient.getQueryData(['leftEarlyData']) as any;
+                        queryClient.setQueryData(['leftEarlyData'], {
                           ...currentData,
                           period: value,
                         });
@@ -1090,7 +1021,7 @@ export default function ApproveRequestsPage() {
                     onClick={() => {
                       leftEarlyDialogMutation.mutate({
                         isOpen: false,
-                        time: "",
+                        time: '',
                         currentRequestId: null,
                       });
                     }}
@@ -1099,9 +1030,7 @@ export default function ApproveRequestsPage() {
                   </Button>
                   <Button
                     onClick={() => {
-                      const data = queryClient.getQueryData([
-                        "leftEarlyData",
-                      ]) as any;
+                      const data = queryClient.getQueryData(['leftEarlyData']) as any;
                       if (data?.hour && data?.minute && data?.period) {
                         const formattedTime = `${data.hour}:${data.minute} ${data.period}`;
                         handleRequest(
@@ -1111,7 +1040,7 @@ export default function ApproveRequestsPage() {
                         );
                         leftEarlyDialogMutation.mutate({
                           isOpen: false,
-                          time: "",
+                          time: '',
                           currentRequestId: null,
                         });
                       }

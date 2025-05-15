@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import * as React from "react";
+import * as React from 'react';
 import {
   useReactTable,
   ColumnDef,
@@ -13,14 +13,14 @@ import {
   GroupingState,
   ExpandedState,
   getExpandedRowModel,
-} from "@tanstack/react-table";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { ScheduleRowActions } from "./schedule-row-actions";
-import { SchedulePagination } from "./schedule-pagination";
-import { formatInTimeZone, toZonedTime } from "date-fns-tz";
+} from '@tanstack/react-table';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { ScheduleRowActions } from './schedule-row-actions';
+import { SchedulePagination } from './schedule-pagination';
+import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
 
-const timeZone = "America/Los_Angeles";
+const timeZone = 'America/Los_Angeles';
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -42,62 +42,49 @@ export function CustomDataTable<TData, TValue>({
   showPagination = true,
 }: DataTableProps<TData, TValue>) {
   const [localSorting, setLocalSorting] = React.useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
-  );
-  const [searchInput, setSearchInput] = React.useState("");
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+  const [searchInput, setSearchInput] = React.useState('');
 
-  const [grouping, setGrouping] = React.useState<GroupingState>([
-    "employee_name",
-  ]);
+  const [grouping, setGrouping] = React.useState<GroupingState>(['employee_name']);
   const [expanded, setExpanded] = React.useState<ExpandedState>({});
 
   const formattedColumns = React.useMemo(() => {
     return columns.map((column) => {
-      if (column.id === "day_of_week") {
+      if (column.id === 'day_of_week') {
         return {
           ...column,
           sortingFn: (rowA: any, rowB: any, columnId: string) => {
             const days = [
-              "Sunday",
-              "Monday",
-              "Tuesday",
-              "Wednesday",
-              "Thursday",
-              "Friday",
-              "Saturday",
+              'Sunday',
+              'Monday',
+              'Tuesday',
+              'Wednesday',
+              'Thursday',
+              'Friday',
+              'Saturday',
             ];
-            return (
-              days.indexOf(rowA.getValue(columnId)) -
-              days.indexOf(rowB.getValue(columnId))
-            );
+            return days.indexOf(rowA.getValue(columnId)) - days.indexOf(rowB.getValue(columnId));
           },
         };
       }
-      if (column.id === "start_time" || column.id === "end_time") {
+      if (column.id === 'start_time' || column.id === 'end_time') {
         return {
           ...column,
           cell: ({ getValue }: { getValue: () => any }) => {
             const value = getValue();
-            if (typeof value === "string") {
+            if (typeof value === 'string') {
               // Handle HH:mm:ss or HH:mm format
               const match = value.match(/^(\d{2}):(\d{2})(?::(\d{2}))?$/);
               if (match) {
                 const [_, hours, minutes] = match;
-                const date = new Date(
-                  2000,
-                  0,
-                  1,
-                  parseInt(hours),
-                  parseInt(minutes)
-                );
+                const date = new Date(2000, 0, 1, parseInt(hours), parseInt(minutes));
                 const zonedDate = toZonedTime(date, timeZone);
-                return formatInTimeZone(zonedDate, timeZone, "h:mm a");
+                return formatInTimeZone(zonedDate, timeZone, 'h:mm a');
               }
             }
             if (value instanceof Date) {
               const zonedDate = toZonedTime(value, timeZone);
-              return formatInTimeZone(zonedDate, timeZone, "h:mm a");
+              return formatInTimeZone(zonedDate, timeZone, 'h:mm a');
             }
             return value;
           },
@@ -115,10 +102,7 @@ export function CustomDataTable<TData, TValue>({
       sorting: sorting || [],
     },
     onSortingChange: (updater) => {
-      const newSorting =
-        typeof updater === "function"
-          ? updater(sorting || localSorting)
-          : updater;
+      const newSorting = typeof updater === 'function' ? updater(sorting || localSorting) : updater;
       if (onSortingChange) {
         onSortingChange(newSorting);
       } else {
@@ -132,15 +116,15 @@ export function CustomDataTable<TData, TValue>({
     initialState: {
       pagination: { pageSize: showPagination ? 7 : data.length },
       sorting: [
-        { id: "employee_name", desc: false },
-        { id: "day_of_week", desc: false },
+        { id: 'employee_name', desc: false },
+        { id: 'day_of_week', desc: false },
       ],
     },
   });
 
   const handleResetFilter = () => {
-    table.getColumn("employee_name")?.setFilterValue("");
-    setSearchInput("");
+    table.getColumn('employee_name')?.setFilterValue('');
+    setSearchInput('');
   };
 
   return (
@@ -157,10 +141,7 @@ export function CustomDataTable<TData, TValue>({
                   >
                     {header.isPlaceholder
                       ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
+                      : flexRender(header.column.columnDef.header, header.getContext())}
                   </th>
                 ))}
               </tr>
@@ -175,10 +156,7 @@ export function CustomDataTable<TData, TValue>({
                   </td>
                 ))}
                 <td>
-                  <ScheduleRowActions
-                    row={row}
-                    fetchReferenceSchedules={fetchReferenceSchedules}
-                  />
+                  <ScheduleRowActions row={row} fetchReferenceSchedules={fetchReferenceSchedules} />
                 </td>
               </tr>
             ))}

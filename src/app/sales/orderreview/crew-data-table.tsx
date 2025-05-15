@@ -1,7 +1,7 @@
 // src/app/sales/orderreview/data-table.tsx
 
-import * as React from "react";
-import { flexRender, Table as TableType } from "@tanstack/react-table";
+import * as React from 'react';
+import { flexRender, Table as TableType } from '@tanstack/react-table';
 import {
   Table,
   TableBody,
@@ -9,21 +9,21 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+} from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { ChevronDown } from "lucide-react";
-import { DataTablePagination } from "@/app/admin/audits/review/pagination";
-import { useSidebar } from "@/components/ui/sidebar";
-import classNames from "classnames";
-import styles from "./table.module.css";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+} from '@/components/ui/dropdown-menu';
+import { ChevronDown } from 'lucide-react';
+import { DataTablePagination } from '@/app/admin/audits/review/pagination';
+import { useSidebar } from '@/components/ui/sidebar';
+import classNames from 'classnames';
+import styles from './table.module.css';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 interface DataTableProps<TData> {
   table: TableType<TData>;
@@ -53,9 +53,7 @@ export function DataTable<TData>({ table }: DataTableProps<TData>) {
                     key={column.id}
                     className="capitalize"
                     checked={column.getIsVisible()}
-                    onCheckedChange={(value) =>
-                      column.toggleVisibility(!!value)
-                    }
+                    onCheckedChange={(value) => column.toggleVisibility(!!value)}
                   >
                     {column.id}
                   </DropdownMenuCheckboxItem>
@@ -71,7 +69,7 @@ export function DataTable<TData>({ table }: DataTableProps<TData>) {
           <ScrollArea
             className={classNames(
               styles.noScroll,
-              "h-[calc(100vh-20rem)] w-full md:w-[calc(100vw-15rem)] lg:w-[calc(100vw-20rem)] overflow-hidden relative"
+              'h-[calc(100vh-20rem)] w-full md:w-[calc(100vw-15rem)] lg:w-[calc(100vw-20rem)] overflow-hidden relative'
             )}
           >
             <Table className="w-full md:w-[calc(100vw-15rem)] lg:w-[calc(100vw-20rem)] overflow-hidden transition-all duration-300">
@@ -88,10 +86,7 @@ export function DataTable<TData>({ table }: DataTableProps<TData>) {
                         <TableHead key={header.id} style={metaStyle}>
                           {header.isPlaceholder
                             ? null
-                            : flexRender(
-                                header.column.columnDef.header,
-                                header.getContext()
-                              )}
+                            : flexRender(header.column.columnDef.header, header.getContext())}
                         </TableHead>
                       );
                     })}
@@ -101,10 +96,7 @@ export function DataTable<TData>({ table }: DataTableProps<TData>) {
               <TableBody>
                 {table.getRowModel().rows?.length ? (
                   table.getRowModel().rows.map((row) => (
-                    <TableRow
-                      key={row.id}
-                      data-state={row.getIsSelected() && "selected"}
-                    >
+                    <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'}>
                       {row.getVisibleCells().map((cell) => {
                         const metaStyle = (
                           cell.column.columnDef.meta as {
@@ -113,10 +105,7 @@ export function DataTable<TData>({ table }: DataTableProps<TData>) {
                         )?.style;
                         return (
                           <TableCell key={cell.id} style={metaStyle}>
-                            {flexRender(
-                              cell.column.columnDef.cell,
-                              cell.getContext()
-                            )}
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
                           </TableCell>
                         );
                       })}
@@ -124,10 +113,7 @@ export function DataTable<TData>({ table }: DataTableProps<TData>) {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell
-                      colSpan={table.getAllColumns().length}
-                      className="h-24 text-center"
-                    >
+                    <TableCell colSpan={table.getAllColumns().length} className="h-24 text-center">
                       No results.
                     </TableCell>
                   </TableRow>

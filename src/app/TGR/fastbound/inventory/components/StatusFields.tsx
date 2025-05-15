@@ -1,14 +1,14 @@
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { SearchParams } from "../types";
-import { DateInput } from "./DateInput";
+} from '@/components/ui/select';
+import { SearchParams } from '../types';
+import { DateInput } from './DateInput';
 
 interface StatusFieldsProps {
   searchParams: SearchParams | undefined;
@@ -16,18 +16,14 @@ interface StatusFieldsProps {
   onSelectChange: (name: string, value: string) => void;
 }
 
-export function StatusFields({
-  searchParams,
-  onInputChange,
-  onSelectChange,
-}: StatusFieldsProps) {
+export function StatusFields({ searchParams, onInputChange, onSelectChange }: StatusFieldsProps) {
   return (
     <>
       <div>
         <Label htmlFor="disposedStatus">Disposed Items</Label>
         <Select
-          onValueChange={(value) => onSelectChange("disposedStatus", value)}
-          value={searchParams?.disposedStatus || "1"}
+          onValueChange={(value) => onSelectChange('disposedStatus', value)}
+          value={searchParams?.disposedStatus || '1'}
         >
           <SelectTrigger>
             <SelectValue placeholder="Select disposed status" />
@@ -43,8 +39,8 @@ export function StatusFields({
       <div>
         <Label htmlFor="deletedStatus">Deleted Items</Label>
         <Select
-          onValueChange={(value) => onSelectChange("deletedStatus", value)}
-          value={searchParams?.deletedStatus || "1"}
+          onValueChange={(value) => onSelectChange('deletedStatus', value)}
+          value={searchParams?.deletedStatus || '1'}
         >
           <SelectTrigger>
             <SelectValue placeholder="Select deleted status" />
@@ -60,8 +56,8 @@ export function StatusFields({
       <div>
         <Label htmlFor="doNotDisposeStatus">Do Not Dispose Items</Label>
         <Select
-          onValueChange={(value) => onSelectChange("doNotDisposeStatus", value)}
-          value={searchParams?.doNotDisposeStatus || "1"}
+          onValueChange={(value) => onSelectChange('doNotDisposeStatus', value)}
+          value={searchParams?.doNotDisposeStatus || '1'}
         >
           <SelectTrigger>
             <SelectValue placeholder="Select do not dispose status" />
@@ -78,7 +74,7 @@ export function StatusFields({
         id="inventoryAsOf"
         name="inventoryAsOf"
         label="Inventory As Of"
-        value={searchParams?.inventoryAsOf || ""}
+        value={searchParams?.inventoryAsOf || ''}
         onChange={onInputChange}
       />
     </>

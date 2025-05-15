@@ -1,16 +1,16 @@
-import React from "react";
-import { useQuery } from "@tanstack/react-query";
+import React from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import DOMPurify from "isomorphic-dompurify";
-import { UseFormSetValue } from "react-hook-form";
-import type { FormData } from "../app/TGR/dros/training/handgunredemption/page";
+} from '@/components/ui/select';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import DOMPurify from 'isomorphic-dompurify';
+import { UseFormSetValue } from 'react-hook-form';
+import type { FormData } from '../app/TGR/dros/training/handgunredemption/page';
 
 interface Manufacturer {
   value: string;
@@ -50,8 +50,8 @@ const MakeSelectRedemption = React.memo(
       <Select
         value={value}
         onValueChange={(newValue) => {
-          setValue("make", newValue);
-          setValue("model", "");
+          setValue('make', newValue);
+          setValue('model', '');
         }}
       >
         <SelectTrigger className="w-full">
@@ -75,6 +75,6 @@ const MakeSelectRedemption = React.memo(
   }
 );
 
-MakeSelectRedemption.displayName = "MakeSelectRedemption";
+MakeSelectRedemption.displayName = 'MakeSelectRedemption';
 
 export default MakeSelectRedemption;

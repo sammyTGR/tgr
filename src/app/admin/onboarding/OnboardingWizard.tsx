@@ -1,20 +1,20 @@
-"use client";
+'use client';
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { ArrowLeft, ArrowRight, Check } from "lucide-react";
-import { supabase } from "@/utils/supabase/client";
-import { toast } from "sonner";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
+} from '@/components/ui/select';
+import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
+import { supabase } from '@/utils/supabase/client';
+import { toast } from 'sonner';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,7 +23,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from '@/components/ui/alert-dialog';
 
 type OnboardingData = {
   name: string;
@@ -49,31 +49,31 @@ type OnboardingData = {
 };
 
 const initialData: OnboardingData = {
-  name: "",
-  last_name: "",
-  contact_info: "",
-  phone_number: "",
-  street_address: "",
-  city: "",
-  state: "",
-  zip: "",
-  birthday: "",
-  hire_date: "",
+  name: '',
+  last_name: '',
+  contact_info: '',
+  phone_number: '',
+  street_address: '',
+  city: '',
+  state: '',
+  zip: '',
+  birthday: '',
+  hire_date: '',
   // promotion_date: null,
-  department: "",
-  role: "",
+  department: '',
+  role: '',
   position: null,
   rank: 0,
-  pay_type: "hourly",
+  pay_type: 'hourly',
   pay_rate: 0,
   schedule: {
-    monday: { start_time: "", end_time: "" },
-    tuesday: { start_time: "", end_time: "" },
-    wednesday: { start_time: "", end_time: "" },
-    thursday: { start_time: "", end_time: "" },
-    friday: { start_time: "", end_time: "" },
-    saturday: { start_time: "", end_time: "" },
-    sunday: { start_time: "", end_time: "" },
+    monday: { start_time: '', end_time: '' },
+    tuesday: { start_time: '', end_time: '' },
+    wednesday: { start_time: '', end_time: '' },
+    thursday: { start_time: '', end_time: '' },
+    friday: { start_time: '', end_time: '' },
+    saturday: { start_time: '', end_time: '' },
+    sunday: { start_time: '', end_time: '' },
   },
 };
 
@@ -82,55 +82,55 @@ const OnboardingWizard = () => {
   const queryClient = useQueryClient();
 
   const { data: formData } = useQuery({
-    queryKey: ["onboardingForm"],
+    queryKey: ['onboardingForm'],
     queryFn: () => initialData,
     initialData: initialData,
   });
 
   const { data: currentStep } = useQuery({
-    queryKey: ["onboardingStep"],
+    queryKey: ['onboardingStep'],
     queryFn: () => 1,
     initialData: 1,
   });
 
   const { data: showCompletionDialog = false } = useQuery({
-    queryKey: ["completionDialog"],
+    queryKey: ['completionDialog'],
     queryFn: () => false,
     initialData: false,
   });
 
   const { data: departments = [] } = useQuery({
-    queryKey: ["departments"],
+    queryKey: ['departments'],
     queryFn: async () => {
       const { data } = await supabase
-        .from("onboarding_references")
-        .select("option_value")
-        .eq("field_name", "department")
-        .order("display_order");
+        .from('onboarding_references')
+        .select('option_value')
+        .eq('field_name', 'department')
+        .order('display_order');
       return data?.map((d) => d.option_value) || [];
     },
   });
 
   const { data: positions = [] } = useQuery({
-    queryKey: ["positions"],
+    queryKey: ['positions'],
     queryFn: async () => {
       const { data } = await supabase
-        .from("onboarding_references")
-        .select("option_value")
-        .eq("field_name", "position")
-        .order("display_order");
+        .from('onboarding_references')
+        .select('option_value')
+        .eq('field_name', 'position')
+        .order('display_order');
       return data?.map((p) => p.option_value) || [];
     },
   });
 
   const { data: roles = [] } = useQuery({
-    queryKey: ["roles"],
+    queryKey: ['roles'],
     queryFn: async () => {
       const { data } = await supabase
-        .from("onboarding_references")
-        .select("option_value")
-        .eq("field_name", "role")
-        .order("display_order");
+        .from('onboarding_references')
+        .select('option_value')
+        .eq('field_name', 'role')
+        .order('display_order');
       return data?.map((r) => r.option_value) || [];
     },
   });
@@ -142,25 +142,21 @@ const OnboardingWizard = () => {
   };
 
   const updateData = (fields: Partial<OnboardingData>) => {
-    queryClient.setQueryData(["onboardingForm"], (old: OnboardingData) => ({
+    queryClient.setQueryData(['onboardingForm'], (old: OnboardingData) => ({
       ...old,
       ...fields,
     }));
   };
 
   const handleNext = () => {
-    queryClient.setQueryData(["onboardingStep"], (prev: number) =>
-      Math.min(prev + 1, 4)
-    );
+    queryClient.setQueryData(['onboardingStep'], (prev: number) => Math.min(prev + 1, 4));
   };
   const handlePrev = () => {
-    queryClient.setQueryData(["onboardingStep"], (prev: number) =>
-      Math.max(prev - 1, 1)
-    );
+    queryClient.setQueryData(['onboardingStep'], (prev: number) => Math.max(prev - 1, 1));
   };
 
   const formatPhoneNumber = (input: string) => {
-    const cleaned = input.replace(/\D/g, "");
+    const cleaned = input.replace(/\D/g, '');
     const match = cleaned.match(/^(\d{3})(\d{3})(\d{4})$/);
     if (match) {
       return `${match[1]}-${match[2]}-${match[3]}`;
@@ -173,11 +169,7 @@ const OnboardingWizard = () => {
     updateData({ phone_number: formatted });
   };
 
-  const handleTimeChange = (
-    day: string,
-    field: "start_time" | "end_time",
-    value: string
-  ) => {
+  const handleTimeChange = (day: string, field: 'start_time' | 'end_time', value: string) => {
     updateData({
       schedule: {
         ...formData.schedule,
@@ -190,20 +182,18 @@ const OnboardingWizard = () => {
     switch (currentStep) {
       case 1:
         return (
-          formData.name.trim() !== "" &&
-          formData.last_name.trim() !== "" &&
-          formData.contact_info.trim() !== "" &&
-          formData.birthday.trim() !== "" &&
-          formData.hire_date.trim() !== ""
+          formData.name.trim() !== '' &&
+          formData.last_name.trim() !== '' &&
+          formData.contact_info.trim() !== '' &&
+          formData.birthday.trim() !== '' &&
+          formData.hire_date.trim() !== ''
         );
       case 2:
-        return formData.department !== "" && formData.role !== "";
+        return formData.department !== '' && formData.role !== '';
       case 3:
-        return formData.pay_type !== "" && formData.pay_rate > 0;
+        return formData.pay_type !== '' && formData.pay_rate > 0;
       case 4:
-        return Object.values(formData.schedule).some(
-          (day) => day.start_time && day.end_time
-        );
+        return Object.values(formData.schedule).some((day) => day.start_time && day.end_time);
       default:
         return false;
     }
@@ -331,17 +321,14 @@ const OnboardingWizard = () => {
                 onValueChange={(value) => {
                   // console.log("Department selected:", value);
                   // Update the form data with the new department value
-                  queryClient.setQueryData(
-                    ["onboardingForm"],
-                    (old: OnboardingData) => {
-                      const updated = {
-                        ...old,
-                        department: value,
-                      };
-                      // console.log("Updated form data:", updated);
-                      return updated;
-                    }
-                  );
+                  queryClient.setQueryData(['onboardingForm'], (old: OnboardingData) => {
+                    const updated = {
+                      ...old,
+                      department: value,
+                    };
+                    // console.log("Updated form data:", updated);
+                    return updated;
+                  });
                 }}
               >
                 <SelectTrigger id="department">
@@ -376,10 +363,7 @@ const OnboardingWizard = () => {
             </div> */}
             <div className="space-y-2">
               <Label htmlFor="role">Role</Label>
-              <Select
-                value={formData.role}
-                onValueChange={(value) => updateData({ role: value })}
-              >
+              <Select value={formData.role} onValueChange={(value) => updateData({ role: value })}>
                 <SelectTrigger id="role">
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
@@ -398,9 +382,7 @@ const OnboardingWizard = () => {
                 id="rank"
                 type="number"
                 value={formData.rank.toString()}
-                onChange={(e) =>
-                  updateData({ rank: parseInt(e.target.value) || 0 })
-                }
+                onChange={(e) => updateData({ rank: parseInt(e.target.value) || 0 })}
                 placeholder="0"
               />
             </div>
@@ -431,9 +413,7 @@ const OnboardingWizard = () => {
                 type="number"
                 step="0.01"
                 value={formData.pay_rate.toString()}
-                onChange={(e) =>
-                  updateData({ pay_rate: parseFloat(e.target.value) || 0 })
-                }
+                onChange={(e) => updateData({ pay_rate: parseFloat(e.target.value) || 0 })}
                 placeholder="0.00"
               />
             </div>
@@ -457,17 +437,13 @@ const OnboardingWizard = () => {
                   id={`${day}-start`}
                   type="time"
                   value={times.start_time}
-                  onChange={(e) =>
-                    handleTimeChange(day, "start_time", e.target.value)
-                  }
+                  onChange={(e) => handleTimeChange(day, 'start_time', e.target.value)}
                 />
                 <Input
                   id={`${day}-end`}
                   type="time"
                   value={times.end_time}
-                  onChange={(e) =>
-                    handleTimeChange(day, "end_time", e.target.value)
-                  }
+                  onChange={(e) => handleTimeChange(day, 'end_time', e.target.value)}
                 />
               </div>
             ))}
@@ -499,27 +475,27 @@ const OnboardingWizard = () => {
         city: employeeData.city,
         state: employeeData.state,
         zip: employeeData.zip,
-        status: "active",
+        status: 'active',
       };
 
       // console.log("Sanitized data for insert:", sanitizedData);
 
       const { data: debugData } = await supabase
-        .from("employees")
-        .select("department")
-        .order("employee_id", { ascending: false })
+        .from('employees')
+        .select('department')
+        .order('employee_id', { ascending: false })
         .limit(1);
 
       // console.log("Most recent employee department:", debugData);
 
       const { data, error } = await supabase
-        .from("employees")
+        .from('employees')
         .insert(sanitizedData)
-        .select("*")
+        .select('*')
         .single();
 
       if (error) {
-        console.error("Employee insertion error:", error);
+        console.error('Employee insertion error:', error);
         throw error;
       }
 
@@ -535,26 +511,26 @@ const OnboardingWizard = () => {
       employeeName,
     }: {
       employeeId: number;
-      scheduleData: OnboardingData["schedule"];
+      scheduleData: OnboardingData['schedule'];
       employeeName: string;
     }) => {
       // Define all days of the week in the desired order
       const daysOfWeek = [
-        "Sunday",
-        "Monday",
-        "Tuesday",
-        "Wednesday",
-        "Thursday",
-        "Friday",
-        "Saturday",
+        'Sunday',
+        'Monday',
+        'Tuesday',
+        'Wednesday',
+        'Thursday',
+        'Friday',
+        'Saturday',
       ];
 
       // Create schedule entries for all days
       const scheduleEntries = daysOfWeek.map((day) => {
         const lowercaseDay = day.toLowerCase();
         const times = scheduleData[lowercaseDay] || {
-          start_time: "",
-          end_time: "",
+          start_time: '',
+          end_time: '',
         };
 
         const startTime = times.start_time ? `${times.start_time}:00` : null;
@@ -578,16 +554,13 @@ const OnboardingWizard = () => {
       for (const entry of scheduleEntries) {
         try {
           const { data, error } = await supabase
-            .from("reference_schedules")
+            .from('reference_schedules')
             .insert(entry)
             .select()
             .single();
 
           if (error) {
-            console.error(
-              `Error inserting schedule for ${entry.day_of_week}:`,
-              error
-            );
+            console.error(`Error inserting schedule for ${entry.day_of_week}:`, error);
             throw error;
           }
 
@@ -597,10 +570,7 @@ const OnboardingWizard = () => {
           // );
           results.push(data);
         } catch (error) {
-          console.error(
-            `Failed to insert schedule for ${entry.day_of_week}:`,
-            error
-          );
+          console.error(`Failed to insert schedule for ${entry.day_of_week}:`, error);
           throw error;
         }
       }
@@ -619,7 +589,7 @@ const OnboardingWizard = () => {
       // console.log("Employee created successfully:", employee);
 
       if (!employee?.employee_id) {
-        throw new Error("Employee creation failed: missing employee_id");
+        throw new Error('Employee creation failed: missing employee_id');
       }
 
       const firstName = formData.name;
@@ -633,16 +603,12 @@ const OnboardingWizard = () => {
 
       // console.log("Schedules created successfully:", schedules);
 
-      toast.success("Employee onboarded successfully!");
-      queryClient.invalidateQueries({ queryKey: ["employees"] });
-      queryClient.setQueryData(["completionDialog"], true);
+      toast.success('Employee onboarded successfully!');
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+      queryClient.setQueryData(['completionDialog'], true);
     } catch (error) {
-      console.error("Submission error:", error);
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Failed to complete onboarding process"
-      );
+      console.error('Submission error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to complete onboarding process');
     }
   };
 
@@ -658,14 +624,14 @@ const OnboardingWizard = () => {
         <AlertDialogFooter>
           <AlertDialogAction
             onClick={() => {
-              queryClient.setQueryData(["onboardingForm"], initialData);
-              queryClient.setQueryData(["onboardingStep"], 1);
-              queryClient.setQueryData(["completionDialog"], false);
+              queryClient.setQueryData(['onboardingForm'], initialData);
+              queryClient.setQueryData(['onboardingStep'], 1);
+              queryClient.setQueryData(['completionDialog'], false);
             }}
           >
             Add Another Employee
           </AlertDialogAction>
-          <AlertDialogAction onClick={() => router.push("/TGR/employees")}>
+          <AlertDialogAction onClick={() => router.push('/TGR/employees')}>
             Manage Staff
           </AlertDialogAction>
         </AlertDialogFooter>
@@ -681,14 +647,12 @@ const OnboardingWizard = () => {
             <div
               key={i}
               className={`w-1/4 h-2 rounded-full ${
-                i <= currentStep ? "bg-primary" : "bg-gray-200"
+                i <= currentStep ? 'bg-primary' : 'bg-gray-200'
               }`}
             />
           ))}
         </div>
-        <p className="text-sm text-muted-foreground text-center">
-          Step {currentStep} of 4
-        </p>
+        <p className="text-sm text-muted-foreground text-center">Step {currentStep} of 4</p>
       </div>
 
       <form onSubmit={handleSubmit}>
@@ -710,11 +674,7 @@ const OnboardingWizard = () => {
               Next <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           ) : (
-            <Button
-              type="submit"
-              disabled={!isStepComplete()}
-              className="ml-auto"
-            >
+            <Button type="submit" disabled={!isStepComplete()} className="ml-auto">
               Complete Onboarding <Check className="ml-2 h-4 w-4" />
             </Button>
           )}

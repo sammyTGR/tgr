@@ -1,6 +1,6 @@
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
+import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   const { weeks } = await request.json();
@@ -12,20 +12,20 @@ export async function POST(request: Request) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Validate input
-    const parsedWeeks = parseInt(weeks || "1", 10);
+    const parsedWeeks = parseInt(weeks || '1', 10);
     if (isNaN(parsedWeeks) || parsedWeeks < 1) {
       return NextResponse.json(
-        { error: "Invalid weeks parameter. Must be a positive number." },
+        { error: 'Invalid weeks parameter. Must be a positive number.' },
         { status: 400 }
       );
     }
 
     // Call the RPC function
-    const { data, error } = await supabase.rpc("generate_all_schedules", {
+    const { data, error } = await supabase.rpc('generate_all_schedules', {
       weeks: parsedWeeks,
     });
 
@@ -41,11 +41,11 @@ export async function POST(request: Request) {
       message: `Successfully generated ${result.schedules_created} schedules for ${result.employees_processed} employees`,
     });
   } catch (error) {
-    console.error("Error generating schedules:", error);
+    console.error('Error generating schedules:', error);
     return NextResponse.json(
       {
-        error: "Failed to generate schedules",
-        details: error instanceof Error ? error.message : "Unknown error",
+        error: 'Failed to generate schedules',
+        details: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );

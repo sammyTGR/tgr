@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
+import { NextResponse } from 'next/server';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
 
 interface TimeOffRequest {
   request_id: number;
@@ -29,12 +29,12 @@ export async function GET() {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // First query to get time off requests
     const timeOffResult = await supabase
-      .from("time_off_requests")
+      .from('time_off_requests')
       .select(
         `
         *,
@@ -47,14 +47,14 @@ export async function GET() {
         )
       `
       )
-      .eq("status", "pending")
-      .order("created_at", { ascending: true });
+      .eq('status', 'pending')
+      .order('created_at', { ascending: true });
 
     if (timeOffResult.error) {
-      console.error("Error in initial query:", timeOffResult.error);
+      console.error('Error in initial query:', timeOffResult.error);
       return NextResponse.json(
         {
-          error: "Database query failed",
+          error: 'Database query failed',
           details: timeOffResult.error.message,
         },
         { status: 500 }
@@ -70,13 +70,13 @@ export async function GET() {
     const enrichedData = await Promise.all(
       data.map(async (request) => {
         const [sickTimeResult, employeeResult] = await Promise.all([
-          supabase.rpc("calculate_available_sick_time", {
+          supabase.rpc('calculate_available_sick_time', {
             p_emp_id: request.employee_id,
           }),
           supabase
-            .from("employees")
-            .select("pay_type, hire_date, vacation_time")
-            .eq("employee_id", request.employee_id)
+            .from('employees')
+            .select('pay_type, hire_date, vacation_time')
+            .eq('employee_id', request.employee_id)
             .single(),
         ]);
 
@@ -101,7 +101,7 @@ export async function GET() {
         return {
           ...request,
           available_sick_time: availableSickTime,
-          pay_type: employeeResult.data?.pay_type || "unknown",
+          pay_type: employeeResult.data?.pay_type || 'unknown',
           hire_date: employeeResult.data?.hire_date || null,
           vacation_time: employeeResult.data?.vacation_time || 0,
         };
@@ -110,11 +110,11 @@ export async function GET() {
 
     return NextResponse.json(enrichedData);
   } catch (err) {
-    console.error("Unexpected error in GET handler:", err);
+    console.error('Unexpected error in GET handler:', err);
     return NextResponse.json(
       {
-        error: "Unexpected error",
-        details: err instanceof Error ? err.message : "Unknown error",
+        error: 'Unexpected error',
+        details: err instanceof Error ? err.message : 'Unknown error',
       },
       { status: 500 }
     );
@@ -125,10 +125,9 @@ export async function OPTIONS() {
   return new NextResponse(null, {
     status: 200,
     headers: {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, OPTIONS",
-      "Access-Control-Allow-Headers":
-        "authorization, x-client-info, apikey, content-type",
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
     },
   });
 }

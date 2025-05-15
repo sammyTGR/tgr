@@ -1,7 +1,7 @@
-"use client";
-import React from "react";
-import Link from "next/link";
-import { TextGenerateEffect } from "./ui/text-generate-effect";
+'use client';
+import React from 'react';
+import Link from 'next/link';
+import { TextGenerateEffect } from './ui/text-generate-effect';
 import {
   DrosGuidanceCard,
   TimeOffRequestCard,
@@ -14,16 +14,16 @@ import {
   SOPCard,
   PointsCard,
   CrewOrdersCard,
-} from "@/components/LandingCards";
-import { Separator } from "./ui/separator";
-import { useRole } from "../context/RoleContext";
-import { Button } from "./ui/button";
-import Image from "next/image";
-import LoadingIndicator from "@/components/LoadingIndicator";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+} from '@/components/LandingCards';
+import { Separator } from './ui/separator';
+import { useRole } from '../context/RoleContext';
+import { Button } from './ui/button';
+import Image from 'next/image';
+import LoadingIndicator from '@/components/LoadingIndicator';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
-const words = "Employee Dashboard";
+const words = 'Employee Dashboard';
 const subwords = "Let's GOOOOOOO!";
 
 const LandingPageUser: React.FC = React.memo(() => {
@@ -32,7 +32,7 @@ const LandingPageUser: React.FC = React.memo(() => {
   const searchParams = useSearchParams();
 
   const { isLoading } = useQuery({
-    queryKey: ["navigation", pathname, searchParams],
+    queryKey: ['navigation', pathname, searchParams],
     queryFn: async () => {
       // Simulate a delay to show the loading indicator
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -42,7 +42,7 @@ const LandingPageUser: React.FC = React.memo(() => {
     refetchInterval: 0, // Disable automatic refetching
   });
 
-  if (role !== "user") {
+  if (role !== 'user') {
     return (
       <div>
         {isLoading && <LoadingIndicator />}
@@ -107,6 +107,6 @@ const LandingPageUser: React.FC = React.memo(() => {
   );
 });
 
-LandingPageUser.displayName = "LandingPageUser";
+LandingPageUser.displayName = 'LandingPageUser';
 
 export default LandingPageUser;

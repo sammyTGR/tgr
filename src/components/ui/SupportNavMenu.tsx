@@ -1,124 +1,89 @@
-import * as NavigationMenu from "@radix-ui/react-navigation-menu";
-import dynamic from "next/dynamic";
-import React, { useEffect, useRef, useState } from "react";
-import styled from "styled-components";
-import { supabase } from "@/utils/supabase/client";
-import { Button } from "./button";
-import RoleBasedWrapper from "../RoleBasedWrapper";
-import { ScrollArea, ScrollBar } from "./scroll-area";
-import { Cross2Icon } from "@radix-ui/react-icons";
+import * as NavigationMenu from '@radix-ui/react-navigation-menu';
+import dynamic from 'next/dynamic';
+import React, { useEffect, useRef, useState } from 'react';
+import styled from 'styled-components';
+import { supabase } from '@/utils/supabase/client';
+import { Button } from './button';
+import RoleBasedWrapper from '../RoleBasedWrapper';
+import { ScrollArea, ScrollBar } from './scroll-area';
+import { Cross2Icon } from '@radix-ui/react-icons';
 
 // Verify and update the paths here
-const DeptId = dynamic(() => import("../../app/TGR/dros/cards/DeptId"), {
+const DeptId = dynamic(() => import('../../app/TGR/dros/cards/DeptId'), {
   ssr: false,
 });
-const IDsCard = dynamic(() => import("../../app/TGR/dros/cards/IDsCard"), {
+const IDsCard = dynamic(() => import('../../app/TGR/dros/cards/IDsCard'), {
   ssr: false,
 });
-const FedsCard = dynamic(() => import("../../app/TGR/dros/cards/FedsCard"), {
+const FedsCard = dynamic(() => import('../../app/TGR/dros/cards/FedsCard'), {
   ssr: false,
 });
-const FedLimits = dynamic(() => import("../../app/TGR/dros/cards/FedLimits"), {
+const FedLimits = dynamic(() => import('../../app/TGR/dros/cards/FedLimits'), {
   ssr: false,
 });
-const FedLimsName = dynamic(
-  () => import("../../app/TGR/dros/cards/FedLimsName"),
-  { ssr: false }
-);
-const ProofDocs = dynamic(() => import("../../app/TGR/dros/cards/ProofDocs"), {
+const FedLimsName = dynamic(() => import('../../app/TGR/dros/cards/FedLimsName'), { ssr: false });
+const ProofDocs = dynamic(() => import('../../app/TGR/dros/cards/ProofDocs'), {
   ssr: false,
 });
-const CorrectionDocs = dynamic(
-  () => import("../../app/TGR/dros/cards/CorrectionDocs"),
-  { ssr: false }
-);
-const DelayedDeliveries = dynamic(
-  () => import("../../app/TGR/dros/cards/DelayedDeliveries"),
-  { ssr: false }
-);
-const LeoPPT = dynamic(() => import("../../app/TGR/dros/cards/LeoPPT"), {
+const CorrectionDocs = dynamic(() => import('../../app/TGR/dros/cards/CorrectionDocs'), {
   ssr: false,
 });
-const PeaceOfficer = dynamic(
-  () => import("../../app/TGR/dros/cards/PeaceOfficerDROS"),
-  { ssr: false }
-);
-const ReserveOfficer = dynamic(
-  () => import("../../app/TGR/dros/cards/ReserveOfficer"),
-  { ssr: false }
-);
-const FederalAgent = dynamic(
-  () => import("../../app/TGR/dros/cards/FederalAgent"),
-  { ssr: false }
-);
-const ActiveDuty = dynamic(
-  () => import("../../app/TGR/dros/cards/ActiveDuty"),
-  { ssr: false }
-);
-const LocalActive = dynamic(
-  () => import("../../app/TGR/dros/cards/LocalActive"),
-  { ssr: false }
-);
-const RetiredMilitary = dynamic(
-  () => import("../../app/TGR/dros/cards/RetiredMilitary"),
-  { ssr: false }
-);
-const InterimDl = dynamic(() => import("../../app/TGR/dros/cards/InterimDl"), {
+const DelayedDeliveries = dynamic(() => import('../../app/TGR/dros/cards/DelayedDeliveries'), {
   ssr: false,
 });
-const PeaceOfficerDROS = dynamic(
-  () => import("../../app/TGR/dros/cards/PeaceOfficer"),
-  { ssr: false }
-);
-const ReserveInfo = dynamic(
-  () => import("../../app/TGR/dros/cards/ReserveInfo"),
-  { ssr: false }
-);
-const FedsAgentLeo = dynamic(
-  () => import("../../app/TGR/dros/cards/FedsAgentLeo"),
-  { ssr: false }
-);
-const PartiucularLimDROS = dynamic(
-  () => import("../../app/TGR/dros/cards/PartiucularLimDROS"),
-  { ssr: false }
-);
-const SecurityGuards = dynamic(
-  () => import("../../app/TGR/dros/cards/SecurityGuards"),
-  { ssr: false }
-);
-const FFL03COE = dynamic(() => import("../../app/TGR/dros/cards/FFL03COE"), {
+const LeoPPT = dynamic(() => import('../../app/TGR/dros/cards/LeoPPT'), {
   ssr: false,
 });
-const ConsignRedemp = dynamic(
-  () => import("../../app/TGR/dros/cards/ConsignRedemp"),
-  { ssr: false }
-);
-const AmmoPurchase = dynamic(
-  () => import("../../app/TGR/dros/cards/AmmoPurchase"),
-  { ssr: false }
-);
-const RegisteredAlien = dynamic(
-  () => import("../../app/TGR/dros/cards/RegisteredAlien"),
-  { ssr: false }
-);
-const StudentVISA = dynamic(
-  () => import("../../app/TGR/dros/cards/StudentVISA"),
-  { ssr: false }
-);
-const WorkVISA = dynamic(() => import("../../app/TGR/dros/cards/WorkVISA"), {
+const PeaceOfficer = dynamic(() => import('../../app/TGR/dros/cards/PeaceOfficerDROS'), {
   ssr: false,
 });
-const EmpAuth = dynamic(() => import("../../app/TGR/dros/cards/EmpAuth"), {
+const ReserveOfficer = dynamic(() => import('../../app/TGR/dros/cards/ReserveOfficer'), {
   ssr: false,
 });
-const PendingResident = dynamic(
-  () => import("../../app/TGR/dros/cards/PendingResident"),
-  { ssr: false }
-);
-const FirstLine = dynamic(() => import("../../app/TGR/dros/cards/FirstLine"), {
+const FederalAgent = dynamic(() => import('../../app/TGR/dros/cards/FederalAgent'), { ssr: false });
+const ActiveDuty = dynamic(() => import('../../app/TGR/dros/cards/ActiveDuty'), { ssr: false });
+const LocalActive = dynamic(() => import('../../app/TGR/dros/cards/LocalActive'), { ssr: false });
+const RetiredMilitary = dynamic(() => import('../../app/TGR/dros/cards/RetiredMilitary'), {
   ssr: false,
 });
-const BlueLabel = dynamic(() => import("../../app/TGR/dros/cards/BlueLabel"), {
+const InterimDl = dynamic(() => import('../../app/TGR/dros/cards/InterimDl'), {
+  ssr: false,
+});
+const PeaceOfficerDROS = dynamic(() => import('../../app/TGR/dros/cards/PeaceOfficer'), {
+  ssr: false,
+});
+const ReserveInfo = dynamic(() => import('../../app/TGR/dros/cards/ReserveInfo'), { ssr: false });
+const FedsAgentLeo = dynamic(() => import('../../app/TGR/dros/cards/FedsAgentLeo'), { ssr: false });
+const PartiucularLimDROS = dynamic(() => import('../../app/TGR/dros/cards/PartiucularLimDROS'), {
+  ssr: false,
+});
+const SecurityGuards = dynamic(() => import('../../app/TGR/dros/cards/SecurityGuards'), {
+  ssr: false,
+});
+const FFL03COE = dynamic(() => import('../../app/TGR/dros/cards/FFL03COE'), {
+  ssr: false,
+});
+const ConsignRedemp = dynamic(() => import('../../app/TGR/dros/cards/ConsignRedemp'), {
+  ssr: false,
+});
+const AmmoPurchase = dynamic(() => import('../../app/TGR/dros/cards/AmmoPurchase'), { ssr: false });
+const RegisteredAlien = dynamic(() => import('../../app/TGR/dros/cards/RegisteredAlien'), {
+  ssr: false,
+});
+const StudentVISA = dynamic(() => import('../../app/TGR/dros/cards/StudentVISA'), { ssr: false });
+const WorkVISA = dynamic(() => import('../../app/TGR/dros/cards/WorkVISA'), {
+  ssr: false,
+});
+const EmpAuth = dynamic(() => import('../../app/TGR/dros/cards/EmpAuth'), {
+  ssr: false,
+});
+const PendingResident = dynamic(() => import('../../app/TGR/dros/cards/PendingResident'), {
+  ssr: false,
+});
+const FirstLine = dynamic(() => import('../../app/TGR/dros/cards/FirstLine'), {
+  ssr: false,
+});
+const BlueLabel = dynamic(() => import('../../app/TGR/dros/cards/BlueLabel'), {
   ssr: false,
 });
 // Add other imports as needed
@@ -180,9 +145,9 @@ const LineSeparator = styled.div`
 `;
 
 const colorMapping = {
-  Special: "#f00", // Red
-  Important: "#00f", // Blue
-  Note: "#0f0", // Green
+  Special: '#f00', // Red
+  Important: '#00f', // Blue
+  Note: '#0f0', // Green
   // Add more mappings as needed
 };
 
@@ -262,18 +227,17 @@ const dialogContentComponents = {
 export default function SupportNavMenu() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const dialogRef = useRef<HTMLDivElement>(null);
-  const [activeDialogContent, setActiveDialogContent] =
-    useState<React.ReactNode | null>(null);
+  const [activeDialogContent, setActiveDialogContent] = useState<React.ReactNode | null>(null);
   const [activeDialog, setActiveDialog] = useState(null);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [subItemsPosition, setSubItemsPosition] = useState({ left: 0, top: 0 });
 
   useEffect(() => {
     const fetchMenuItems = async () => {
-      let { data, error } = await supabase.from("Navmenuoptions").select("*");
+      let { data, error } = await supabase.from('Navmenuoptions').select('*');
 
       if (error) {
-        console.error("Failed to fetch menu items:", error.message);
+        console.error('Failed to fetch menu items:', error.message);
         return;
       }
 
@@ -290,7 +254,7 @@ export default function SupportNavMenu() {
             menuItem.subItems.push({
               label: subitem_label,
               contentId: card_names,
-              link: "",
+              link: '',
             }); // Assuming 'link' might be used later or is part of your model
           }
         });
@@ -298,7 +262,7 @@ export default function SupportNavMenu() {
         setMenuItems(Array.from(itemsMap.values()));
         // console.log("Menu items set:", Array.from(itemsMap.values())); // Check the structured menu items
       } else {
-        console.error("No data available");
+        console.error('No data available');
       }
     };
 
@@ -324,31 +288,26 @@ export default function SupportNavMenu() {
 
   const handleSubItemClick = (contentId: string) => {
     const contentComponent =
-      dialogContentComponents[
-        contentId as keyof typeof dialogContentComponents
-      ];
+      dialogContentComponents[contentId as keyof typeof dialogContentComponents];
     if (contentComponent) {
       setActiveDialogContent(contentComponent);
     } else {
-      console.error("Content not found for id:", contentId);
+      console.error('Content not found for id:', contentId);
     }
   };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dialogRef.current &&
-        !dialogRef.current.contains(event.target as Node)
-      ) {
+      if (dialogRef.current && !dialogRef.current.contains(event.target as Node)) {
         setActiveDialogContent(null); // Hide active dialog content
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const setSubItemsDisplay = (index: number, displayType: "grid" | "none") => {
+  const setSubItemsDisplay = (index: number, displayType: 'grid' | 'none') => {
     const subitemsElement = document.getElementById(`subitems-${index}`);
     if (subitemsElement) {
       subitemsElement.style.display = displayType;
@@ -358,20 +317,14 @@ export default function SupportNavMenu() {
   // Define a component to render subitem labels with styles
   const StyledSubItemLabel = ({ label }: { label: string }) => {
     // Simple parser to replace [color] tags with styled spans
-    const parsedLabel = label.replace(
-      /\[(.*?)\](.*?)\[\/\1\]/g,
-      (match, p1, p2) => {
-        return `<span style="color: ${p1};">${p2}</span>`;
-      }
-    );
+    const parsedLabel = label.replace(/\[(.*?)\](.*?)\[\/\1\]/g, (match, p1, p2) => {
+      return `<span style="color: ${p1};">${p2}</span>`;
+    });
 
     return <span dangerouslySetInnerHTML={{ __html: parsedLabel }} />;
   };
 
-  const handleMenuItemHover = (
-    index: number,
-    event: React.MouseEvent<HTMLLIElement>
-  ) => {
+  const handleMenuItemHover = (index: number, event: React.MouseEvent<HTMLLIElement>) => {
     const menuItem = event.currentTarget;
     const rect = menuItem.getBoundingClientRect();
     const viewportWidth = window.innerWidth;
@@ -395,29 +348,21 @@ export default function SupportNavMenu() {
 
   return (
     <RoleBasedWrapper
-      allowedRoles={[
-        "user",
-        "auditor",
-        "admin",
-        "super admin",
-        "dev",
-        "gunsmith",
-        "ceo",
-      ]}
+      allowedRoles={['user', 'auditor', 'admin', 'super admin', 'dev', 'gunsmith', 'ceo']}
     >
       <div
         style={{
-          position: "relative",
-          display: "flex",
-          justifyContent: "center",
+          position: 'relative',
+          display: 'flex',
+          justifyContent: 'center',
         }}
       >
         <NavigationMenu.Root>
           <NavigationMenu.List
             style={{
-              display: "flex",
-              flexDirection: "row",
-              listStyleType: "none",
+              display: 'flex',
+              flexDirection: 'row',
+              listStyleType: 'none',
             }}
           >
             {menuItems.map((menuItem, index) => (
@@ -427,7 +372,7 @@ export default function SupportNavMenu() {
                 onMouseLeave={() => setHoveredIndex(null)}
               >
                 <NavigationMenu.Trigger asChild>
-                  <Button variant="ghost" style={{ cursor: "pointer" }}>
+                  <Button variant="ghost" style={{ cursor: 'pointer' }}>
                     {menuItem.label}
                   </Button>
                 </NavigationMenu.Trigger>
@@ -454,8 +399,8 @@ export default function SupportNavMenu() {
               style={{
                 bottom: 0,
                 height: 5,
-                backgroundColor: "aqua",
-                transition: "all 0.5s ease",
+                backgroundColor: 'aqua',
+                transition: 'all 0.5s ease',
               }}
             />
           </NavigationMenu.List>

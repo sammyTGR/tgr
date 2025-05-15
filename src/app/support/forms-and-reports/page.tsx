@@ -1,13 +1,13 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import Link from "next/link";
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import Link from 'next/link';
 
 export default function FormsAndReportsPage() {
   const sections = [
     {
-      id: "forms-guide",
-      title: "Forms Guide",
+      id: 'forms-guide',
+      title: 'Forms Guide',
       content: `To view all forms & reports options:
         • Hover over the "Forms & Reports" tab in the navigation bar to view all available forms and reports
         • One of the forms available is the Certifications form, which is used to track employee certifications
@@ -23,8 +23,8 @@ export default function FormsAndReportsPage() {
         `,
     },
     {
-      id: "certifications",
-      title: "Certifications",
+      id: 'certifications',
+      title: 'Certifications',
       content: `After opening the Certifications form:
         • You can filter for specific employees or certifications by using the search bars at the top of the table
         • To filter for specific columns to view in the table, click on the "Columns" dropdown menu to the right of the search bars
@@ -36,8 +36,8 @@ export default function FormsAndReportsPage() {
         `,
     },
     {
-      id: "range-walks-and-repairs",
-      title: "Range Walks & Repairs",
+      id: 'range-walks-and-repairs',
+      title: 'Range Walks & Repairs',
       content: `After opening the Range Walks & Repairs form:
         • The Range Walks & Repairs table will show all range walks that are done every evening with the closing crew, as well as all repairs to those problematic lanes that were reported
         • To submit a range walk, click on the "Submit Daily Range Walk" button in the Range Walk card
@@ -47,8 +47,8 @@ export default function FormsAndReportsPage() {
         `,
     },
     {
-      id: "daily-deposits",
-      title: "Daily Deposits",
+      id: 'daily-deposits',
+      title: 'Daily Deposits',
       content: `After opening the daily deposits form:
         • There are tabs to enter daily deposits for each register, which will automatically calculate each denomination's total per row, and the total to deposit for that register
         • To clear a specific register's daily deposits, click on the "Clear Current Register" button at the bottom of each register's table
@@ -56,15 +56,15 @@ export default function FormsAndReportsPage() {
         `,
     },
     {
-      id: "special-orders",
-      title: "Special Orders",
+      id: 'special-orders',
+      title: 'Special Orders',
       content: `After opening the special orders form:
         • Fill out the form to submit a special order request that notifies Sam directly so that he can review and email the customer directly
         `,
     },
     {
-      id: "rental-firearms-checklist",
-      title: "Rental Firearms Checklist",
+      id: 'rental-firearms-checklist',
+      title: 'Rental Firearms Checklist',
       content: `After opening the rental firearms checklist form:
           • The form will show the full, current list of all rental firearms with any notes to indicate if specific firearms are sitting with the gunsmith or if they are rented out at the moment
           • You can search for specific firearms by entering any part of the firearm's make, model or serial number in the search bar, or by the set Note under the Checklist Notes column with the dropdown menu, or filtering which Columns you want to view with the "Columns" dropdown menu at the top of the table
@@ -76,15 +76,15 @@ export default function FormsAndReportsPage() {
           `,
     },
     {
-      id: "newsletter",
-      title: "Newsletter",
+      id: 'newsletter',
+      title: 'Newsletter',
       content: `After opening the newsletter form:
           • Fill out the form to submit a newsletter signup which will add the customer to our email blasts list
           `,
     },
     {
-      id: "bulletins",
-      title: "Bulletins",
+      id: 'bulletins',
+      title: 'Bulletins',
       content: `After opening the bulletins form:
           • The Bulletins tab will show all of the posted bulletins for all employees
           • Admins will see another tab for "Acknowledgements" which will show all of the bulletins that have been acknowledged by employees
@@ -92,24 +92,24 @@ export default function FormsAndReportsPage() {
           `,
     },
     {
-      id: "patch-notes",
-      title: "Patch Notes",
+      id: 'patch-notes',
+      title: 'Patch Notes',
       content: `After opening the patch notes form:
           • The Patch Notes page will show all of the patch notes that have been posted for the TGR application
           • Only the developer can submit patch notes, and they will be shown here after they are submitted
           `,
     },
     {
-      id: "claimed-points",
-      title: "Claimed Points",
+      id: 'claimed-points',
+      title: 'Claimed Points',
       content: `After opening the claimed points form:
           • Complete all fields to submit tracking for your claimed points that are used for any vendor
           • This form is used to keep a history of who hs claimed points for specific firearms that can be used in case there are any discrepancies or issues with claimed points
           `,
     },
     {
-      id: "dros-training",
-      title: "DROS Training",
+      id: 'dros-training',
+      title: 'DROS Training',
       content: `After opening the DROS Training page:
           • This page is made to emulate the actual DROS Entry System, and is used to train employees up to do sales and as needed for refresher training
           • Select the type of transaction you want the employee to submit, and have the employee fill out the DROS
@@ -151,16 +151,11 @@ export default function FormsAndReportsPage() {
           <div className="space-y-8">
             <h1 className="text-4xl font-bold mb-4">Forms & Reports Guide</h1>
             <p className="text-muted-foreground">
-              Utilize this guide to help you navigate through the forms and
-              reports process.
+              Utilize this guide to help you navigate through the forms and reports process.
             </p>
 
             {sections.map((section) => (
-              <section
-                key={section.id}
-                id={section.id}
-                className="scroll-mt-16"
-              >
+              <section key={section.id} id={section.id} className="scroll-mt-16">
                 <Card>
                   <CardHeader>
                     <CardTitle>{section.title}</CardTitle>

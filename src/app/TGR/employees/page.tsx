@@ -1,19 +1,19 @@
-"use client";
+'use client';
 
-import { useMemo, useState } from "react";
-import { supabase } from "@/utils/supabase/client";
-import { Employee, PromotionData } from "./types";
-import { DataTable } from "./data-table";
-import { columns } from "./columns";
-import { EmployeeTableRowActions } from "./employee-table-row-actions";
-import { toast } from "sonner";
-import { Row } from "@tanstack/react-table";
-import RoleBasedWrapper from "@/components/RoleBasedWrapper";
-import AddEmployeeDialog from "./add-employee-dialog";
-import { Button } from "@/components/ui/button";
-import { PlusCircledIcon } from "@radix-ui/react-icons";
-import { Label } from "@/components/ui/label";
-import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { useMemo, useState } from 'react';
+import { supabase } from '@/utils/supabase/client';
+import { Employee, PromotionData } from './types';
+import { DataTable } from './data-table';
+import { columns } from './columns';
+import { EmployeeTableRowActions } from './employee-table-row-actions';
+import { toast } from 'sonner';
+import { Row } from '@tanstack/react-table';
+import RoleBasedWrapper from '@/components/RoleBasedWrapper';
+import AddEmployeeDialog from './add-employee-dialog';
+import { Button } from '@/components/ui/button';
+import { PlusCircledIcon } from '@radix-ui/react-icons';
+import { Label } from '@/components/ui/label';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 
 interface WeeklySchedule {
   [day: string]: { start_time: string | null; end_time: string | null };
@@ -25,10 +25,10 @@ export default function EmployeesPage() {
   const queryClient = useQueryClient();
 
   const fetchEmployees = async () => {
-    let query = supabase.from("employees").select("*").order("name");
+    let query = supabase.from('employees').select('*').order('name');
 
     if (!showTerminated) {
-      query = query.neq("status", "terminated");
+      query = query.neq('status', 'terminated');
     }
 
     const { data, error } = await query;
@@ -45,14 +45,14 @@ export default function EmployeesPage() {
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["employees", showTerminated],
+    queryKey: ['employees', showTerminated],
     queryFn: fetchEmployees,
   });
 
   const addEmployeeMutation = useMutation({
-    mutationFn: async (newEmployee: Omit<Employee, "employee_id">) => {
+    mutationFn: async (newEmployee: Omit<Employee, 'employee_id'>) => {
       const { data, error } = await supabase
-        .from("employees")
+        .from('employees')
         .insert([newEmployee])
         .select()
         .single();
@@ -60,94 +60,88 @@ export default function EmployeesPage() {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["employees"] });
-      toast.success("Employee added successfully");
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+      toast.success('Employee added successfully');
     },
     onError: (error: any) => {
-      console.error("Error adding employee:", error);
-      toast.error("Failed to add employee");
+      console.error('Error adding employee:', error);
+      toast.error('Failed to add employee');
     },
   });
 
   const editEmployeeMutation = useMutation({
     mutationFn: async (updatedEmployee: Employee) => {
       const { data, error } = await supabase
-        .from("employees")
+        .from('employees')
         .update(updatedEmployee)
-        .eq("employee_id", updatedEmployee.employee_id)
+        .eq('employee_id', updatedEmployee.employee_id)
         .select()
         .single();
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["employees"] });
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
       // toast.success("Employee updated successfully");
     },
     onError: (error: any) => {
-      console.error("Error updating employee:", error);
-      toast.error("Failed to update employee");
+      console.error('Error updating employee:', error);
+      toast.error('Failed to update employee');
     },
   });
 
   const termEmployeeMutation = useMutation({
-    mutationFn: async ({
-      employeeId,
-      termDate,
-    }: {
-      employeeId: number;
-      termDate: string;
-    }) => {
+    mutationFn: async ({ employeeId, termDate }: { employeeId: number; termDate: string }) => {
       const { error: updateError } = await supabase
-        .from("employees")
-        .update({ term_date: termDate, status: "terminated" })
-        .eq("employee_id", employeeId);
+        .from('employees')
+        .update({ term_date: termDate, status: 'terminated' })
+        .eq('employee_id', employeeId);
 
       if (updateError) throw updateError;
 
       const { error: deleteRefError } = await supabase
-        .from("reference_schedules")
+        .from('reference_schedules')
         .delete()
-        .eq("employee_id", employeeId);
+        .eq('employee_id', employeeId);
 
       if (deleteRefError) throw deleteRefError;
 
       const { error: deleteSchedError } = await supabase
-        .from("schedules")
+        .from('schedules')
         .delete()
-        .eq("employee_id", employeeId)
-        .gte("schedule_date", termDate);
+        .eq('employee_id', employeeId)
+        .gte('schedule_date', termDate);
 
       if (deleteSchedError) throw deleteSchedError;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["employees"] });
-      toast.success("Employee terminated successfully");
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+      toast.success('Employee terminated successfully');
     },
     onError: (error: any) => {
-      console.error("Error terminating employee:", error);
-      toast.error("Failed to terminate employee");
+      console.error('Error terminating employee:', error);
+      toast.error('Failed to terminate employee');
     },
   });
 
   const deleteEmployeeMutation = useMutation({
     mutationFn: async (employeeId: number) => {
       const { data, error } = await supabase
-        .from("employees")
+        .from('employees')
         .delete()
-        .eq("employee_id", employeeId)
+        .eq('employee_id', employeeId)
         .select()
         .single();
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["employees"] });
-      toast.success("Employee deleted successfully");
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+      toast.success('Employee deleted successfully');
     },
     onError: (error: any) => {
-      console.error("Error deleting employee:", error);
-      toast.error("Failed to delete employee");
+      console.error('Error deleting employee:', error);
+      toast.error('Failed to delete employee');
     },
   });
 
@@ -161,66 +155,64 @@ export default function EmployeesPage() {
     }) => {
       const employee = employees?.find((emp) => emp.employee_id === employeeId);
       if (!employee) {
-        throw new Error("Employee not found");
+        throw new Error('Employee not found');
       }
 
       const daysOfWeek = [
-        "Monday",
-        "Tuesday",
-        "Wednesday",
-        "Thursday",
-        "Friday",
-        "Saturday",
-        "Sunday",
+        'Monday',
+        'Tuesday',
+        'Wednesday',
+        'Thursday',
+        'Friday',
+        'Saturday',
+        'Sunday',
       ];
 
       for (const day of daysOfWeek) {
         const times = schedules[day] || { start_time: null, end_time: null };
 
         const { data: existingRecord, error: selectError } = await supabase
-          .from("reference_schedules")
-          .select("*")
-          .eq("employee_id", employeeId)
-          .eq("day_of_week", day)
+          .from('reference_schedules')
+          .select('*')
+          .eq('employee_id', employeeId)
+          .eq('day_of_week', day)
           .single();
 
-        if (selectError && selectError.code !== "PGRST116") {
+        if (selectError && selectError.code !== 'PGRST116') {
           throw selectError;
         }
 
         if (existingRecord) {
           const { error: updateError } = await supabase
-            .from("reference_schedules")
+            .from('reference_schedules')
             .update({
               start_time: times.start_time,
               end_time: times.end_time,
               name: employee.name,
             })
-            .eq("id", existingRecord.id);
+            .eq('id', existingRecord.id);
 
           if (updateError) throw updateError;
         } else {
-          const { error: insertError } = await supabase
-            .from("reference_schedules")
-            .insert({
-              employee_id: employeeId,
-              day_of_week: day,
-              start_time: times.start_time,
-              end_time: times.end_time,
-              name: employee.name,
-            });
+          const { error: insertError } = await supabase.from('reference_schedules').insert({
+            employee_id: employeeId,
+            day_of_week: day,
+            start_time: times.start_time,
+            end_time: times.end_time,
+            name: employee.name,
+          });
 
           if (insertError) throw insertError;
         }
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["employees"] });
-      toast.success("Schedule updated successfully");
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+      toast.success('Schedule updated successfully');
     },
     onError: (error: any) => {
-      console.error("Error updating schedule:", error);
-      toast.error("Failed to update schedule");
+      console.error('Error updating schedule:', error);
+      toast.error('Failed to update schedule');
     },
   });
 
@@ -233,14 +225,14 @@ export default function EmployeesPage() {
       promotionData: PromotionData;
     }) => {
       const { data, error } = await supabase
-        .from("employees")
+        .from('employees')
         .update({
           role: promotionData.newRole,
           pay_type: promotionData.newPayType,
           pay_rate: promotionData.newPayRate,
           promotion_date: promotionData.promotionDate,
         })
-        .eq("employee_id", employeeId)
+        .eq('employee_id', employeeId)
         .select()
         .single();
 
@@ -248,27 +240,22 @@ export default function EmployeesPage() {
       return data;
     },
     onSuccess: (data) => {
-      queryClient.setQueryData(
-        ["employees"],
-        (oldData: Employee[] | undefined) => {
-          if (!oldData) return [data];
-          return oldData.map((emp) =>
-            emp.employee_id === data.employee_id ? data : emp
-          );
-        }
-      );
-      toast.success("Employee promoted successfully");
+      queryClient.setQueryData(['employees'], (oldData: Employee[] | undefined) => {
+        if (!oldData) return [data];
+        return oldData.map((emp) => (emp.employee_id === data.employee_id ? data : emp));
+      });
+      toast.success('Employee promoted successfully');
     },
     onError: (error: any) => {
-      console.error("Error promoting employee:", error);
-      toast.error("Failed to promote employee");
+      console.error('Error promoting employee:', error);
+      toast.error('Failed to promote employee');
     },
   });
 
   const tableColumns = useMemo(
     () =>
       columns.map((col) => {
-        if (col.id === "actions") {
+        if (col.id === 'actions') {
           return {
             ...col,
             cell: ({ row }: { row: Row<Employee> }) => (
@@ -290,10 +277,7 @@ export default function EmployeesPage() {
                     });
                   })
                 }
-                onUpdateSchedule={(
-                  employeeId: number,
-                  schedules: WeeklySchedule
-                ) =>
+                onUpdateSchedule={(employeeId: number, schedules: WeeklySchedule) =>
                   new Promise<void>((resolve) => {
                     updateScheduleMutation.mutate(
                       { employeeId, schedules },
@@ -346,7 +330,7 @@ export default function EmployeesPage() {
   }
 
   return (
-    <RoleBasedWrapper allowedRoles={["super admin", "ceo", "dev", "admin"]}>
+    <RoleBasedWrapper allowedRoles={['super admin', 'ceo', 'dev', 'admin']}>
       <div
         className={`flex flex-col items-center space-y-4 w-full ml-6 md:ml-6 lg:ml-6 md:w-[calc(100vw-15rem)] lg:w-[calc(100vw-20rem)] transition-all duration-300`}
       >

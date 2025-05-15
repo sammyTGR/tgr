@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { useQuery } from "@tanstack/react-query";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { useEffect, useState } from "react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { useQuery } from '@tanstack/react-query';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { useEffect, useState } from 'react';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 interface AccountResponse {
   number: number;
@@ -22,10 +22,10 @@ interface AccountResponse {
 const supabase = createClientComponentClient();
 
 const fetchAccountInfo = async (): Promise<AccountResponse> => {
-  const response = await fetch("/api/fastBoundApi");
+  const response = await fetch('/api/fastBoundApi');
   if (!response.ok) {
     const errorData = await response.json();
-    throw new Error(errorData.error || "Failed to fetch account information");
+    throw new Error(errorData.error || 'Failed to fetch account information');
   }
   return response.json();
 };
@@ -50,7 +50,7 @@ export default function AccountInfo() {
     error,
     refetch,
   } = useQuery<AccountResponse, Error>({
-    queryKey: ["accountInfo"],
+    queryKey: ['accountInfo'],
     queryFn: fetchAccountInfo,
     enabled: !!user,
   });
@@ -77,10 +77,7 @@ export default function AccountInfo() {
             <p>License Name: {accountInfo.owner.licenseName}</p>
             <p>Trade Name: {accountInfo.owner.tradeName}</p>
             <p>FFL Number: {accountInfo.owner.fflNumber}</p>
-            <p>
-              FFL Expires:{" "}
-              {new Date(accountInfo.owner.fflExpires).toLocaleDateString()}
-            </p>
+            <p>FFL Expires: {new Date(accountInfo.owner.fflExpires).toLocaleDateString()}</p>
           </>
         )}
         <Button onClick={() => refetch()}>Refresh</Button>

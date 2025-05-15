@@ -1,16 +1,16 @@
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { SearchParams } from "../types";
-import { DateInput } from "./DateInput";
-import { validateDateRange } from "../utils/dateValidation";
-import { useState, useEffect } from "react";
+} from '@/components/ui/select';
+import { SearchParams } from '../types';
+import { DateInput } from './DateInput';
+import { validateDateRange } from '../utils/dateValidation';
+import { useState, useEffect } from 'react';
 
 interface AcquisitionFieldsProps {
   searchParams: SearchParams | undefined;
@@ -24,33 +24,33 @@ export function AcquisitionFields({
   onSelectChange,
 }: AcquisitionFieldsProps) {
   const acquisitionFields = [
-    "acquiredOnAfter",
-    "acquiredOnBefore",
-    "acquiredType",
-    "manufacturingAcquiredType",
-    "acquiredFromLicenseName",
-    "acquiredFromFFL",
-    "acquiredFromTradeName",
-    "acquiredFromFirstName",
-    "acquiredFromLastName",
-    "acquiredOrganizationName",
-    "acquiredFromAddress1",
-    "acquiredFromAddress2",
-    "acquiredFromCity",
-    "acquiredFromState",
-    "acquiredFromZip",
-    "acquiredFromCountry",
-    "acquiredFromPONumber",
-    "acquiredFromInvoiceNumber",
-    "acquiredFromShipmentTracking",
+    'acquiredOnAfter',
+    'acquiredOnBefore',
+    'acquiredType',
+    'manufacturingAcquiredType',
+    'acquiredFromLicenseName',
+    'acquiredFromFFL',
+    'acquiredFromTradeName',
+    'acquiredFromFirstName',
+    'acquiredFromLastName',
+    'acquiredOrganizationName',
+    'acquiredFromAddress1',
+    'acquiredFromAddress2',
+    'acquiredFromCity',
+    'acquiredFromState',
+    'acquiredFromZip',
+    'acquiredFromCountry',
+    'acquiredFromPONumber',
+    'acquiredFromInvoiceNumber',
+    'acquiredFromShipmentTracking',
   ];
 
   const [dateRangeError, setDateRangeError] = useState<string | null>(null);
 
   useEffect(() => {
     const error = validateDateRange(
-      searchParams?.acquiredOnAfter || "",
-      searchParams?.acquiredOnBefore || ""
+      searchParams?.acquiredOnAfter || '',
+      searchParams?.acquiredOnBefore || ''
     );
     setDateRangeError(error);
   }, [searchParams?.acquiredOnAfter, searchParams?.acquiredOnBefore]);
@@ -62,7 +62,7 @@ export function AcquisitionFields({
           id="acquiredOnAfter"
           name="acquiredOnAfter"
           label="Acquired On or After"
-          value={searchParams?.acquiredOnAfter || ""}
+          value={searchParams?.acquiredOnAfter || ''}
           onChange={onInputChange}
           error={dateRangeError ?? undefined}
         />
@@ -70,26 +70,24 @@ export function AcquisitionFields({
           id="acquiredOnBefore"
           name="acquiredOnBefore"
           label="Acquired On or Before"
-          value={searchParams?.acquiredOnBefore || ""}
+          value={searchParams?.acquiredOnBefore || ''}
           onChange={onInputChange}
           error={dateRangeError ?? undefined}
         />
       </div>
       {acquisitionFields.map((field) => (
         <div key={field}>
-          <Label htmlFor={field}>{field.split(/(?=[A-Z])/).join(" ")}</Label>
-          {field === "acquiredType" || field === "manufacturingAcquiredType" ? (
+          <Label htmlFor={field}>{field.split(/(?=[A-Z])/).join(' ')}</Label>
+          {field === 'acquiredType' || field === 'manufacturingAcquiredType' ? (
             <Select
               onValueChange={(value) => onSelectChange(field, value)}
-              value={
-                searchParams?.[field as keyof SearchParams]?.toString() ?? ""
-              }
+              value={searchParams?.[field as keyof SearchParams]?.toString() ?? ''}
             >
               <SelectTrigger>
                 <SelectValue placeholder={`Select ${field}`} />
               </SelectTrigger>
               <SelectContent>
-                {field === "acquiredType" && (
+                {field === 'acquiredType' && (
                   <>
                     <SelectItem value="purchase">Purchase</SelectItem>
                     <SelectItem value="trade">Trade</SelectItem>
@@ -98,7 +96,7 @@ export function AcquisitionFields({
                     <SelectItem value="transfer">Transfer</SelectItem>
                   </>
                 )}
-                {field === "manufacturingAcquiredType" && (
+                {field === 'manufacturingAcquiredType' && (
                   <>
                     <SelectItem value="manufacture">Manufacture</SelectItem>
                     <SelectItem value="assembly">Assembly</SelectItem>
@@ -112,11 +110,9 @@ export function AcquisitionFields({
             <Input
               id={field}
               name={field}
-              value={
-                searchParams?.[field as keyof SearchParams]?.toString() ?? ""
-              }
+              value={searchParams?.[field as keyof SearchParams]?.toString() ?? ''}
               onChange={onInputChange}
-              type={field.includes("Date") ? "date" : "text"}
+              type={field.includes('Date') ? 'date' : 'text'}
             />
           )}
         </div>

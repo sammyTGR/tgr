@@ -1,19 +1,19 @@
-"use client";
-import { useState, useEffect, ChangeEvent } from "react";
-import { Button } from "@/components/ui/button";
-import { supabase } from "@/utils/supabase/client";
-import { Input } from "@/components/ui/input";
+'use client';
+import { useState, useEffect, ChangeEvent } from 'react';
+import { Button } from '@/components/ui/button';
+import { supabase } from '@/utils/supabase/client';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectItem,
   SelectTrigger,
   SelectContent,
   SelectGroup,
-} from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
-import * as SelectPrimitive from "@radix-ui/react-select";
-import RoleBasedWrapper from "@/components/RoleBasedWrapper";
-import { useRouter } from "next/navigation";
+} from '@/components/ui/select';
+import { Calendar } from '@/components/ui/calendar';
+import * as SelectPrimitive from '@radix-ui/react-select';
+import RoleBasedWrapper from '@/components/RoleBasedWrapper';
+import { useRouter } from 'next/navigation';
 
 interface ScheduleData {
   employee_id: string;
@@ -25,20 +25,16 @@ interface ScheduleData {
 export default function ScheduleGeneratorPage() {
   const [weeks, setWeeks] = useState(4);
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
-  const [employees, setEmployees] = useState<
-    { employee_id: string; name: string }[]
-  >([]);
+  const [message, setMessage] = useState('');
+  const [employees, setEmployees] = useState<{ employee_id: string; name: string }[]>([]);
   const [scheduleData, setScheduleData] = useState<ScheduleData[]>([
-    { employee_id: "", day: null, start_time: "", end_time: "" },
+    { employee_id: '', day: null, start_time: '', end_time: '' },
   ]);
 
   useEffect(() => {
     // Fetch employees from Supabase
     const fetchEmployees = async () => {
-      const { data, error } = await supabase
-        .from("employees")
-        .select("employee_id, name");
+      const { data, error } = await supabase.from('employees').select('employee_id, name');
       if (error) {
         //console.("Error fetching employees:", error);
       } else {
@@ -55,11 +51,7 @@ export default function ScheduleGeneratorPage() {
   ) => {
     const { name, value } = event.target;
     const values = [...scheduleData];
-    if (
-      name === "employee_id" ||
-      name === "start_time" ||
-      name === "end_time"
-    ) {
+    if (name === 'employee_id' || name === 'start_time' || name === 'end_time') {
       values[index][name as keyof ScheduleData] = value as never;
     }
     setScheduleData(values);
@@ -74,7 +66,7 @@ export default function ScheduleGeneratorPage() {
   const handleAddFields = () => {
     setScheduleData([
       ...scheduleData,
-      { employee_id: "", day: null, start_time: "", end_time: "" },
+      { employee_id: '', day: null, start_time: '', end_time: '' },
     ]);
   };
 
@@ -87,14 +79,14 @@ export default function ScheduleGeneratorPage() {
   const handleSubmitSchedule = async (schedule: ScheduleData) => {
     // console.log("Submitting schedule:", schedule);
     try {
-      const response = await fetch("/api/submit_schedule", {
-        method: "POST",
+      const response = await fetch('/api/submit_schedule', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           employee_id: schedule.employee_id,
-          day: schedule.day?.toISOString().split("T")[0], // Format the date as YYYY-MM-DD
+          day: schedule.day?.toISOString().split('T')[0], // Format the date as YYYY-MM-DD
           start_time: schedule.start_time,
           end_time: schedule.end_time,
         }),
@@ -104,9 +96,7 @@ export default function ScheduleGeneratorPage() {
       // console.log("Server response:", result);
 
       if (!response.ok) {
-        throw new Error(
-          `HTTP error! status: ${response.status} - ${result.message}`
-        );
+        throw new Error(`HTTP error! status: ${response.status} - ${result.message}`);
       }
       setMessage(result.message);
     } catch (error: any) {
@@ -117,12 +107,12 @@ export default function ScheduleGeneratorPage() {
 
   const handleGenerateSchedules = async () => {
     setLoading(true);
-    setMessage("");
+    setMessage('');
     try {
       for (const schedule of scheduleData) {
         await handleSubmitSchedule(schedule);
       }
-      setMessage("Schedules generated successfully");
+      setMessage('Schedules generated successfully');
     } catch (error: any) {
       setMessage(`Failed to generate schedules: ${error.message}`);
     } finally {
@@ -132,12 +122,12 @@ export default function ScheduleGeneratorPage() {
 
   const generateSchedulesForAllEmployees = async () => {
     setLoading(true);
-    setMessage("");
+    setMessage('');
     try {
-      const response = await fetch("/api/generate_all_schedules", {
-        method: "POST",
+      const response = await fetch('/api/generate_all_schedules', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({ weeks }),
       });
@@ -146,9 +136,7 @@ export default function ScheduleGeneratorPage() {
       // console.log("Server response:", result);
 
       if (!response.ok) {
-        throw new Error(
-          `HTTP error! status: ${response.status} - ${result.message}`
-        );
+        throw new Error(`HTTP error! status: ${response.status} - ${result.message}`);
       }
       setMessage(result.message);
     } catch (error: any) {
@@ -160,7 +148,7 @@ export default function ScheduleGeneratorPage() {
   };
 
   return (
-    <RoleBasedWrapper allowedRoles={["super admin", "dev"]}>
+    <RoleBasedWrapper allowedRoles={['super admin', 'dev']}>
       <div className="flex flex-col w-full max-w-md mx-auto py-8 md:py-12">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">Generate Schedules</h1>
@@ -179,14 +167,11 @@ export default function ScheduleGeneratorPage() {
           />
         </div>
         {scheduleData.map((schedule, index) => (
-          <div
-            key={index}
-            className="mb-4 flex flex-col items-center space-y-2"
-          >
+          <div key={index} className="mb-4 flex flex-col items-center space-y-2">
             <Select
               onValueChange={(value) =>
                 handleInputChange(index, {
-                  target: { name: "employee_id", value },
+                  target: { name: 'employee_id', value },
                 } as ChangeEvent<HTMLSelectElement>)
               }
             >
@@ -196,10 +181,7 @@ export default function ScheduleGeneratorPage() {
               <SelectContent>
                 <SelectGroup>
                   {employees.map((employee) => (
-                    <SelectItem
-                      key={employee.employee_id}
-                      value={employee.employee_id}
-                    >
+                    <SelectItem key={employee.employee_id} value={employee.employee_id}>
                       {employee.name}
                     </SelectItem>
                   ))}
@@ -227,10 +209,7 @@ export default function ScheduleGeneratorPage() {
               />
             </div>
             <div className="flex space-x-2">
-              <Button
-                variant="outline"
-                onClick={() => handleRemoveFields(index)}
-              >
+              <Button variant="outline" onClick={() => handleRemoveFields(index)}>
                 Remove
               </Button>
               <Button
@@ -238,7 +217,7 @@ export default function ScheduleGeneratorPage() {
                 onClick={() => handleSubmitSchedule(schedule)}
                 disabled={loading}
               >
-                {loading ? "Submitting..." : "Submit Schedule"}
+                {loading ? 'Submitting...' : 'Submit Schedule'}
               </Button>
             </div>
           </div>
@@ -247,21 +226,13 @@ export default function ScheduleGeneratorPage() {
           <Button variant="outline" onClick={handleAddFields}>
             Add Schedule
           </Button>
-          <Button
-            variant="outline"
-            onClick={handleGenerateSchedules}
-            disabled={loading}
-          >
-            {loading ? "Generating..." : "Generate Schedules"}
+          <Button variant="outline" onClick={handleGenerateSchedules} disabled={loading}>
+            {loading ? 'Generating...' : 'Generate Schedules'}
           </Button>
         </div>
         <div className="mt-6">
-          <Button
-            variant="outline"
-            onClick={generateSchedulesForAllEmployees}
-            disabled={loading}
-          >
-            {loading ? "Generating All..." : "Generate All Schedules"}
+          <Button variant="outline" onClick={generateSchedulesForAllEmployees} disabled={loading}>
+            {loading ? 'Generating All...' : 'Generate All Schedules'}
           </Button>
         </div>
         {message && <p className="mt-4 text-center text-lg">{message}</p>}

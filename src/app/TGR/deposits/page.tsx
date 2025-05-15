@@ -1,61 +1,49 @@
-"use client";
-import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
-import { supabase } from "@/utils/supabase/client";
-import { toast } from "sonner";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-  CardFooter,
-} from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import RoleBasedWrapper from "@/components/RoleBasedWrapper";
-import { useQuery, useQueryClient, useIsFetching } from "@tanstack/react-query";
-import { Textarea } from "@/components/ui/textarea";
-import { User } from "@supabase/supabase-js";
-import { useSidebar } from "@/components/ui/sidebar";
+'use client';
+import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/utils/supabase/client';
+import { toast } from 'sonner';
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import RoleBasedWrapper from '@/components/RoleBasedWrapper';
+import { useQuery, useQueryClient, useIsFetching } from '@tanstack/react-query';
+import { Textarea } from '@/components/ui/textarea';
+import { User } from '@supabase/supabase-js';
+import { useSidebar } from '@/components/ui/sidebar';
 
 const denominations = [
-  { name: "Pennies", value: 0.01 },
-  { name: "Nickels", value: 0.05 },
-  { name: "Dimes", value: 0.1 },
-  { name: "Quarters", value: 0.25 },
+  { name: 'Pennies', value: 0.01 },
+  { name: 'Nickels', value: 0.05 },
+  { name: 'Dimes', value: 0.1 },
+  { name: 'Quarters', value: 0.25 },
   { name: "$1's", value: 1 },
   { name: "$5's", value: 5 },
   { name: "$10's", value: 10 },
   { name: "$20's", value: 20 },
   { name: "$50's", value: 50 },
   { name: "$100's", value: 100 },
-  { name: "Roll Of Pennies", value: 0.5 },
-  { name: "Roll Of Nickels", value: 2 },
-  { name: "Roll Of Dimes", value: 5 },
-  { name: "Roll Of Quarters", value: 10 },
+  { name: 'Roll Of Pennies', value: 0.5 },
+  { name: 'Roll Of Nickels', value: 2 },
+  { name: 'Roll Of Dimes', value: 5 },
+  { name: 'Roll Of Quarters', value: 10 },
 ];
 
-const registers = [
-  "Register 1",
-  "Register 2",
-  "Register 3",
-  "Register 4",
-  "Register 5",
-];
+const registers = ['Register 1', 'Register 2', 'Register 3', 'Register 4', 'Register 5'];
 
 export default function DailyDepositsPage() {
   const { state } = useSidebar();
   const router = useRouter();
   const inputRefs = useRef<(HTMLInputElement | null)[][]>([]);
   const queryClient = useQueryClient();
-  const isFetching = useIsFetching({ queryKey: ["wheelEventHandlers"] });
+  const isFetching = useIsFetching({ queryKey: ['wheelEventHandlers'] });
 
   // Add user query
   const { data: user } = useQuery({
-    queryKey: ["user"],
+    queryKey: ['user'],
     queryFn: async () => {
       const {
         data: { user },
@@ -73,22 +61,22 @@ export default function DailyDepositsPage() {
   );
   const [isSecondCount, setIsSecondCount] = useState(false);
   const [aimGeneratedTotals, setAimGeneratedTotals] = useState<string[]>(
-    Array(registers.length).fill("")
+    Array(registers.length).fill('')
   );
   const [discrepancyMessages, setDiscrepancyMessages] = useState<string[]>(
-    Array(registers.length).fill("")
+    Array(registers.length).fill('')
   );
   const [explainDiscrepancies, setExplainDiscrepancies] = useState<string[]>(
-    Array(registers.length).fill("")
+    Array(registers.length).fill('')
   );
-  const [activeTab, setActiveTab] = useState("reg1");
+  const [activeTab, setActiveTab] = useState('reg1');
 
   useEffect(() => {
     if (!isFetching) {
       // Add wheel event listeners
       inputRefs.current.flat().forEach((input) => {
         if (input) {
-          input.addEventListener("wheel", handleWheel, { passive: false });
+          input.addEventListener('wheel', handleWheel, { passive: false });
         }
       });
 
@@ -96,7 +84,7 @@ export default function DailyDepositsPage() {
       return () => {
         inputRefs.current.flat().forEach((input) => {
           if (input) {
-            input.removeEventListener("wheel", handleWheel);
+            input.removeEventListener('wheel', handleWheel);
           }
         });
       };
@@ -113,20 +101,14 @@ export default function DailyDepositsPage() {
     setQuantities(newQuantities);
   };
 
-  const handleAimGeneratedTotalChange = (
-    registerIndex: number,
-    value: string
-  ) => {
+  const handleAimGeneratedTotalChange = (registerIndex: number, value: string) => {
     const newAimGeneratedTotals = [...aimGeneratedTotals];
     newAimGeneratedTotals[registerIndex] = value;
     setAimGeneratedTotals(newAimGeneratedTotals);
     updateDiscrepancyMessage(registerIndex, parseFloat(value));
   };
 
-  const handleExplainDiscrepanciesChange = (
-    registerIndex: number,
-    value: string
-  ) => {
+  const handleExplainDiscrepanciesChange = (registerIndex: number, value: string) => {
     const newExplainDiscrepancies = [...explainDiscrepancies];
     newExplainDiscrepancies[registerIndex] = value;
     setExplainDiscrepancies(newExplainDiscrepancies);
@@ -134,32 +116,25 @@ export default function DailyDepositsPage() {
 
   const calculateTotal = (registerIndex: number, denominationIndex: number) => {
     return (
-      quantities[registerIndex][denominationIndex] *
-      denominations[denominationIndex].value
+      quantities[registerIndex][denominationIndex] * denominations[denominationIndex].value
     ).toFixed(2);
   };
 
   const calculateOverallTotal = (registerIndex: number) => {
     return quantities[registerIndex]
-      .reduce(
-        (total, quantity, index) =>
-          total + quantity * denominations[index].value,
-        0
-      )
+      .reduce((total, quantity, index) => total + quantity * denominations[index].value, 0)
       .toFixed(2);
   };
 
   const calculateTotalToDeposit = (registerIndex: number) => {
     const overallTotal = parseFloat(calculateOverallTotal(registerIndex));
-    return overallTotal >= 300 ? (overallTotal - 300).toFixed(2) : "";
+    return overallTotal >= 300 ? (overallTotal - 300).toFixed(2) : '';
   };
 
   const calculateRemainingBalance = (registerIndex: number) => {
     const overallTotal = parseFloat(calculateOverallTotal(registerIndex));
     const totalToDeposit = parseFloat(calculateTotalToDeposit(registerIndex));
-    return overallTotal >= 300
-      ? (overallTotal - totalToDeposit).toFixed(2)
-      : "";
+    return overallTotal >= 300 ? (overallTotal - totalToDeposit).toFixed(2) : '';
   };
 
   const clearForm = (registerIndex: number) => {
@@ -168,15 +143,15 @@ export default function DailyDepositsPage() {
     setQuantities(newQuantities);
 
     const newAimGeneratedTotals = [...aimGeneratedTotals];
-    newAimGeneratedTotals[registerIndex] = "";
+    newAimGeneratedTotals[registerIndex] = '';
     setAimGeneratedTotals(newAimGeneratedTotals);
 
     const newDiscrepancyMessages = [...discrepancyMessages];
-    newDiscrepancyMessages[registerIndex] = "";
+    newDiscrepancyMessages[registerIndex] = '';
     setDiscrepancyMessages(newDiscrepancyMessages);
 
     const newExplainDiscrepancies = [...explainDiscrepancies];
-    newExplainDiscrepancies[registerIndex] = "";
+    newExplainDiscrepancies[registerIndex] = '';
     setExplainDiscrepancies(newExplainDiscrepancies);
   };
 
@@ -186,11 +161,11 @@ export default function DailyDepositsPage() {
         .fill(0)
         .map(() => Array(denominations.length).fill(0))
     );
-    setAimGeneratedTotals(Array(registers.length).fill(""));
-    setDiscrepancyMessages(Array(registers.length).fill(""));
-    setExplainDiscrepancies(Array(registers.length).fill(""));
+    setAimGeneratedTotals(Array(registers.length).fill(''));
+    setDiscrepancyMessages(Array(registers.length).fill(''));
+    setExplainDiscrepancies(Array(registers.length).fill(''));
     setIsSecondCount(false);
-    setActiveTab("reg1");
+    setActiveTab('reg1');
   };
 
   const handleSwitchChange = () => {
@@ -202,7 +177,7 @@ export default function DailyDepositsPage() {
     registerIndex: number,
     denominationIndex: number
   ) => {
-    if (e.key === "Enter") {
+    if (e.key === 'Enter') {
       e.preventDefault();
       const nextInput = inputRefs.current[registerIndex][denominationIndex + 1];
       if (nextInput) {
@@ -220,24 +195,17 @@ export default function DailyDepositsPage() {
     e.preventDefault();
   };
 
-  const updateDiscrepancyMessage = (
-    registerIndex: number,
-    aimGenerated: number
-  ) => {
+  const updateDiscrepancyMessage = (registerIndex: number, aimGenerated: number) => {
     const totalToDeposit = parseFloat(calculateTotalToDeposit(registerIndex));
-    let message = "";
+    let message = '';
 
     if (!isNaN(totalToDeposit)) {
       if (aimGenerated === totalToDeposit) {
-        message = "No Discrepancies";
+        message = 'No Discrepancies';
       } else if (aimGenerated > totalToDeposit) {
-        message = `Register Is Short By $${(
-          aimGenerated - totalToDeposit
-        ).toFixed(2)}`;
+        message = `Register Is Short By $${(aimGenerated - totalToDeposit).toFixed(2)}`;
       } else if (aimGenerated < totalToDeposit) {
-        message = `Register Is Over By $${(
-          totalToDeposit - aimGenerated
-        ).toFixed(2)}`;
+        message = `Register Is Over By $${(totalToDeposit - aimGenerated).toFixed(2)}`;
       }
     }
 
@@ -248,12 +216,12 @@ export default function DailyDepositsPage() {
 
   const handleSubmit = async () => {
     if (!user) {
-      console.error("Error retrieving user data: User not found");
+      console.error('Error retrieving user data: User not found');
       return;
     }
 
-    const employee_name = user.user_metadata?.full_name || "Unknown";
-    const user_uuid = user.id || "";
+    const employee_name = user.user_metadata?.full_name || 'Unknown';
+    const user_uuid = user.id || '';
 
     for (let i = 0; i < registers.length; i++) {
       const remainingBalance = parseFloat(calculateRemainingBalance(i));
@@ -294,18 +262,15 @@ export default function DailyDepositsPage() {
         error: sessionError,
       } = await supabase.auth.getSession();
       if (sessionError || !session) {
-        toast.error("Unauthorized");
-        console.error(
-          "Unauthorized: ",
-          sessionError?.message || "No active session"
-        );
+        toast.error('Unauthorized');
+        console.error('Unauthorized: ', sessionError?.message || 'No active session');
         return;
       }
 
-      const response = await fetch("/api/submitDailyDeposit", {
-        method: "POST",
+      const response = await fetch('/api/submitDailyDeposit', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
           Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify(deposits),
@@ -313,8 +278,8 @@ export default function DailyDepositsPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error("Error submitting deposit data:", errorData);
-        toast.error("There was an error submitting the deposit data.");
+        console.error('Error submitting deposit data:', errorData);
+        toast.error('There was an error submitting the deposit data.');
         return;
       }
 
@@ -322,17 +287,13 @@ export default function DailyDepositsPage() {
       toast.success(`Successfully submitted deposit data for ${currentDate}!`);
       resetFormAndTabs();
     } catch (error) {
-      console.error("Unexpected error submitting deposit data:", error);
-      toast.error(
-        "Unexpected error occurred while submitting the deposit data."
-      );
+      console.error('Unexpected error submitting deposit data:', error);
+      toast.error('Unexpected error occurred while submitting the deposit data.');
     }
   };
 
   return (
-    <RoleBasedWrapper
-      allowedRoles={["user", "auditor", "admin", "super admin", "dev", "ceo"]}
-    >
+    <RoleBasedWrapper allowedRoles={['user', 'auditor', 'admin', 'super admin', 'dev', 'ceo']}>
       <main
         className={`relative w-full ml-6 md:ml-6 lg:ml-6 md:w-[calc(100vw-10rem)] lg:w-[calc(100vw-60rem)] h-full overflow-hidden flex-1 transition-all duration-300`}
       >
@@ -366,10 +327,7 @@ export default function DailyDepositsPage() {
                 <CardContent className="flex-1 flex flex-col">
                   <div className="flex-1 flex flex-col">
                     {denominations.map((denomination, denominationIndex) => (
-                      <div
-                        className="flex grid grid-cols-3 mb-1"
-                        key={denominationIndex}
-                      >
+                      <div className="flex grid grid-cols-3 mb-1" key={denominationIndex}>
                         <div>{denomination.name}</div>
                         <Input
                           id={`input-${registerIndex}-${denominationIndex}`}
@@ -380,16 +338,12 @@ export default function DailyDepositsPage() {
                             if (!inputRefs.current[registerIndex]) {
                               inputRefs.current[registerIndex] = [];
                             }
-                            inputRefs.current[registerIndex][
-                              denominationIndex
-                            ] = el;
+                            inputRefs.current[registerIndex][denominationIndex] = el;
                           }}
                           value={
                             quantities[registerIndex][denominationIndex] === 0
-                              ? ""
-                              : quantities[registerIndex][
-                                  denominationIndex
-                                ].toString()
+                              ? ''
+                              : quantities[registerIndex][denominationIndex].toString()
                           }
                           onChange={(e) =>
                             handleQuantityChange(
@@ -398,9 +352,7 @@ export default function DailyDepositsPage() {
                               parseInt(e.target.value)
                             )
                           }
-                          onKeyDown={(e) =>
-                            handleKeyDown(e, registerIndex, denominationIndex)
-                          }
+                          onKeyDown={(e) => handleKeyDown(e, registerIndex, denominationIndex)}
                         />
                         <div className="text-right">
                           ${calculateTotal(registerIndex, denominationIndex)}
@@ -408,9 +360,7 @@ export default function DailyDepositsPage() {
                       </div>
                     ))}
                     <div className="grid grid-cols-3 mb-2">
-                      <div className="col-span-1 text-left">
-                        Total In Drawer
-                      </div>
+                      <div className="col-span-1 text-left">Total In Drawer</div>
                       <div className="col-span-2 text-right">
                         ${calculateOverallTotal(registerIndex)}
                       </div>
@@ -431,10 +381,7 @@ export default function DailyDepositsPage() {
                             placeholder="AIM Cash Clearing Total"
                             value={aimGeneratedTotals[registerIndex]}
                             onChange={(e) =>
-                              handleAimGeneratedTotalChange(
-                                registerIndex,
-                                e.target.value
-                              )
+                              handleAimGeneratedTotalChange(registerIndex, e.target.value)
                             }
                           />
                           <div className="col-span-2 text-center">
@@ -444,8 +391,7 @@ export default function DailyDepositsPage() {
                         <div className="grid grid-cols-3 mb-2">
                           <div className="col-span-2 text-left">
                             Remaining Balance In Register After $
-                            {calculateTotalToDeposit(registerIndex)} Is
-                            Deposited
+                            {calculateTotalToDeposit(registerIndex)} Is Deposited
                           </div>
                           <div className="col-span-1 text-right">
                             ${calculateRemainingBalance(registerIndex)}
@@ -456,10 +402,7 @@ export default function DailyDepositsPage() {
                           placeholder="Explain Discrepancies"
                           value={explainDiscrepancies[registerIndex]}
                           onChange={(e) =>
-                            handleExplainDiscrepanciesChange(
-                              registerIndex,
-                              e.target.value
-                            )
+                            handleExplainDiscrepanciesChange(registerIndex, e.target.value)
                           }
                         />
                       </>

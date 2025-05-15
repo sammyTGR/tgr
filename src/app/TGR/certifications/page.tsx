@@ -1,8 +1,8 @@
 // src/app/TGR/certifications/page.tsx
-"use client";
+'use client';
 
-import React from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import React from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   useReactTable,
   getCoreRowModel,
@@ -15,22 +15,22 @@ import {
   VisibilityState,
   TableState,
   Updater,
-} from "@tanstack/react-table";
-import DOMPurify from "isomorphic-dompurify";
-import { supabase } from "@/utils/supabase/client";
-import { CertificationDataTable } from "./certification-data-table";
-import { CertificationTableToolbar } from "./certification-table-toolbar";
-import { certificationColumns } from "./columns";
-import { toast } from "sonner";
-import { PopoverForm } from "./PopoverForm";
-import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import classNames from "classnames";
-import styles from "./table.module.css";
-import { useSidebar } from "@/components/ui/sidebar";
-import RoleBasedWrapper from "@/components/RoleBasedWrapper";
+} from '@tanstack/react-table';
+import DOMPurify from 'isomorphic-dompurify';
+import { supabase } from '@/utils/supabase/client';
+import { CertificationDataTable } from './certification-data-table';
+import { CertificationTableToolbar } from './certification-table-toolbar';
+import { certificationColumns } from './columns';
+import { toast } from 'sonner';
+import { PopoverForm } from './PopoverForm';
+import { TextGenerateEffect } from '@/components/ui/text-generate-effect';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import classNames from 'classnames';
+import styles from './table.module.css';
+import { useSidebar } from '@/components/ui/sidebar';
+import RoleBasedWrapper from '@/components/RoleBasedWrapper';
 
 // Types and Interfaces
 interface CertificationData {
@@ -60,7 +60,7 @@ interface FilterItem {
 }
 
 interface MutationError extends Error {
-  type: "update" | "delete";
+  type: 'update' | 'delete';
 }
 
 const CertificationsPage: React.FC = () => {
@@ -69,7 +69,7 @@ const CertificationsPage: React.FC = () => {
 
   // Convert tableState from ref to state
   const [tableState, setTableState] = React.useState({
-    sorting: [{ id: "expiration", desc: false }] as SortingState,
+    sorting: [{ id: 'expiration', desc: false }] as SortingState,
     pagination: {
       pageIndex: 0,
       pageSize: 10,
@@ -80,40 +80,38 @@ const CertificationsPage: React.FC = () => {
 
   // Queries
   const employeesQuery = useQuery({
-    queryKey: ["employees"],
+    queryKey: ['employees'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("employees")
-        .select("employee_id, name, status")
-        .eq("status", "active");
+        .from('employees')
+        .select('employee_id, name, status')
+        .eq('status', 'active');
       if (error) throw error;
       return data.map((emp) => ({
         ...emp,
-        name: DOMPurify.sanitize(emp.name || ""),
+        name: DOMPurify.sanitize(emp.name || ''),
       }));
     },
   });
 
   const certificationsQuery = useQuery({
     queryKey: [
-      "certifications",
+      'certifications',
       tableState.pagination,
       tableState.sorting,
       tableState.columnFilters,
     ],
     queryFn: async () => {
-      const response = await fetch("/api/fetch-certifications-data", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/fetch-certifications-data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           pageIndex: tableState.pagination.pageIndex,
           pageSize: tableState.pagination.pageSize,
           filters: tableState.columnFilters.map((filter) => ({
             id: DOMPurify.sanitize(filter.id),
             value:
-              typeof filter.value === "string"
-                ? DOMPurify.sanitize(filter.value)
-                : filter.value,
+              typeof filter.value === 'string' ? DOMPurify.sanitize(filter.value) : filter.value,
           })),
           sorting: tableState.sorting,
         }),
@@ -125,9 +123,9 @@ const CertificationsPage: React.FC = () => {
       return {
         data: result.data.map((cert: CertificationData) => ({
           ...cert,
-          name: DOMPurify.sanitize(cert.name ?? ""),
-          certificate: DOMPurify.sanitize(cert.certificate ?? ""),
-          status: DOMPurify.sanitize(cert.status ?? ""),
+          name: DOMPurify.sanitize(cert.name ?? ''),
+          certificate: DOMPurify.sanitize(cert.certificate ?? ''),
+          status: DOMPurify.sanitize(cert.status ?? ''),
         })),
         pageCount: Math.ceil(result.count / tableState.pagination.pageSize),
       };
@@ -141,73 +139,53 @@ const CertificationsPage: React.FC = () => {
   );
 
   const pageCount = React.useMemo(
-    () =>
-      Math.ceil(
-        (certificationsQuery.data?.pageCount ?? 0) *
-          tableState.pagination.pageSize
-      ),
+    () => Math.ceil((certificationsQuery.data?.pageCount ?? 0) * tableState.pagination.pageSize),
     [certificationsQuery.data?.pageCount, tableState.pagination.pageSize]
   );
 
   // Mutations
   const updateMutation = useMutation({
-    mutationFn: async ({
-      id,
-      updates,
-    }: {
-      id: string;
-      updates: Partial<CertificationData>;
-    }) => {
+    mutationFn: async ({ id, updates }: { id: string; updates: Partial<CertificationData> }) => {
       if (Object.keys(updates).length === 0) {
-        const { error } = await supabase
-          .from("certifications")
-          .delete()
-          .eq("id", id);
+        const { error } = await supabase.from('certifications').delete().eq('id', id);
         if (error) throw error;
       } else {
-        const { error } = await supabase
-          .from("certifications")
-          .update(updates)
-          .eq("id", id);
+        const { error } = await supabase.from('certifications').update(updates).eq('id', id);
         if (error) throw error;
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["certifications"] });
-      toast.success("Certification updated successfully");
+      queryClient.invalidateQueries({ queryKey: ['certifications'] });
+      toast.success('Certification updated successfully');
     },
     onError: (error: Error) => {
       toast.error(`Failed to update certification: ${error.message}`);
     },
   });
 
-  const addMutation = useMutation<
-    CertificationData,
-    Error,
-    Partial<CertificationData>
-  >({
+  const addMutation = useMutation<CertificationData, Error, Partial<CertificationData>>({
     mutationFn: async (newCertification) => {
       const sanitizedCert = {
         ...newCertification,
-        name: DOMPurify.sanitize(newCertification.name ?? ""),
-        certificate: DOMPurify.sanitize(newCertification.certificate ?? ""),
-        status: DOMPurify.sanitize(newCertification.status ?? ""),
+        name: DOMPurify.sanitize(newCertification.name ?? ''),
+        certificate: DOMPurify.sanitize(newCertification.certificate ?? ''),
+        status: DOMPurify.sanitize(newCertification.status ?? ''),
       };
 
       const { data, error } = await supabase
-        .from("certifications")
+        .from('certifications')
         .insert([sanitizedCert])
         .select()
         .single();
 
       if (error) throw error;
-      if (!data) throw new Error("No data returned from insert");
+      if (!data) throw new Error('No data returned from insert');
 
       return data as CertificationData;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["certifications"] });
-      toast.success("Certification added successfully");
+      queryClient.invalidateQueries({ queryKey: ['certifications'] });
+      toast.success('Certification added successfully');
     },
     onError: (error: Error) => {
       toast.error(`Failed to add certification: ${error.message}`);
@@ -217,9 +195,7 @@ const CertificationsPage: React.FC = () => {
   // Table instance
   const table = useReactTable({
     data: tableData,
-    columns: certificationColumns((id, updates) =>
-      updateMutation.mutate({ id, updates })
-    ),
+    columns: certificationColumns((id, updates) => updateMutation.mutate({ id, updates })),
     pageCount: certificationsQuery.data?.pageCount ?? -1,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -241,46 +217,31 @@ const CertificationsPage: React.FC = () => {
     onPaginationChange: (updater) => {
       setTableState((prev) => ({
         ...prev,
-        pagination:
-          typeof updater === "function" ? updater(prev.pagination) : updater,
+        pagination: typeof updater === 'function' ? updater(prev.pagination) : updater,
       }));
     },
     onSortingChange: (updater) => {
       setTableState((prev) => ({
         ...prev,
-        sorting:
-          typeof updater === "function" ? updater(prev.sorting) : updater,
+        sorting: typeof updater === 'function' ? updater(prev.sorting) : updater,
       }));
     },
     onColumnFiltersChange: (updater) => {
       setTableState((prev) => ({
         ...prev,
-        columnFilters:
-          typeof updater === "function" ? updater(prev.columnFilters) : updater,
+        columnFilters: typeof updater === 'function' ? updater(prev.columnFilters) : updater,
       }));
     },
     onColumnVisibilityChange: (updater) => {
       setTableState((prev) => ({
         ...prev,
-        columnVisibility:
-          typeof updater === "function"
-            ? updater(prev.columnVisibility)
-            : updater,
+        columnVisibility: typeof updater === 'function' ? updater(prev.columnVisibility) : updater,
       }));
     },
   });
 
   return (
-    <RoleBasedWrapper
-      allowedRoles={[
-        "admin",
-        "super admin",
-        "dev",
-        "auditor",
-        "gunsmith",
-        "user",
-      ]}
-    >
+    <RoleBasedWrapper allowedRoles={['admin', 'super admin', 'dev', 'auditor', 'gunsmith', 'user']}>
       <div
         className={`relative w-full ml-6 md:w-[calc(100vw-15rem)] md:ml-6 lg:w-[calc(100vw-15rem)] lg:ml-6 h-full overflow-hidden flex-1 transition-all duration-300`}
       >
@@ -318,7 +279,7 @@ const CertificationsPage: React.FC = () => {
                           columnFilters: filters,
                         }));
                         queryClient.invalidateQueries({
-                          queryKey: ["certifications"],
+                          queryKey: ['certifications'],
                         });
                       }}
                     />

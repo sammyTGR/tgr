@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import React from "react";
+import React from 'react';
 import {
   Area,
   AreaChart,
@@ -9,22 +9,16 @@ import {
   YAxis,
   Tooltip,
   ResponsiveContainer,
-} from "recharts";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+} from 'recharts';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { format } from "date-fns";
+} from '@/components/ui/select';
+import { format } from 'date-fns';
 
 interface ChartDataPoint {
   date: string;
@@ -58,7 +52,7 @@ const AuditChart: React.FC<AuditChartProps> = ({
     data.forEach((audit) => {
       if (!audit.audit_date) return;
 
-      const dateKey = format(new Date(audit.audit_date), "yyyy-MM-dd");
+      const dateKey = format(new Date(audit.audit_date), 'yyyy-MM-dd');
       const currentData = auditsByDate.get(dateKey) || {
         date: dateKey,
         minorMistakes: 0,
@@ -70,8 +64,8 @@ const AuditChart: React.FC<AuditChartProps> = ({
       if (audit.error_location) {
         // You'll need to adjust these conditions based on your business logic
         if (
-          audit.error_location.includes("Minor") ||
-          audit.error_location === "DROS Pending Form"
+          audit.error_location.includes('Minor') ||
+          audit.error_location === 'DROS Pending Form'
         ) {
           currentData.minorMistakes += 1;
         } else {
@@ -80,7 +74,7 @@ const AuditChart: React.FC<AuditChartProps> = ({
       }
 
       // Check for cancelled DROS
-      if (audit.dros_cancel === "Yes") {
+      if (audit.dros_cancel === 'Yes') {
         currentData.cancelledDros += 1;
       }
 
@@ -105,16 +99,11 @@ const AuditChart: React.FC<AuditChartProps> = ({
       <CardHeader className="flex items-center gap-2 space-y-0 border-b py-5 sm:flex-row">
         <div className="grid flex-1 gap-1 text-center sm:text-left">
           <CardTitle>Daily Audit Metrics</CardTitle>
-          <CardDescription>
-            Daily breakdown of mistakes and cancelled DROS
-          </CardDescription>
+          <CardDescription>Daily breakdown of mistakes and cancelled DROS</CardDescription>
         </div>
         {showTimeRangeSelector && timeRange && onTimeRangeChange && (
           <Select value={timeRange} onValueChange={onTimeRangeChange}>
-            <SelectTrigger
-              className="w-40 rounded-lg sm:ml-auto"
-              aria-label="Select time range"
-            >
+            <SelectTrigger className="w-40 rounded-lg sm:ml-auto" aria-label="Select time range">
               <SelectValue placeholder="Select range" />
             </SelectTrigger>
             <SelectContent>
@@ -128,10 +117,7 @@ const AuditChart: React.FC<AuditChartProps> = ({
       <CardContent className="pt-6">
         <div className="h-[350px] w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart
-              data={chartData}
-              margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-            >
+            <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="minorMistakes" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8} />
@@ -150,26 +136,24 @@ const AuditChart: React.FC<AuditChartProps> = ({
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis
                 dataKey="date"
-                tickFormatter={(date) => format(new Date(date), "MMM d")}
+                tickFormatter={(date) => format(new Date(date), 'MMM d')}
                 tickMargin={8}
                 minTickGap={20}
               />
               <YAxis />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: "var(--background)",
-                  borderRadius: "8px",
-                  border: "1px solid var(--border)",
+                  backgroundColor: 'var(--background)',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border)',
                 }}
-                labelFormatter={(label) =>
-                  format(new Date(label), "MMMM d, yyyy")
-                }
+                labelFormatter={(label) => format(new Date(label), 'MMMM d, yyyy')}
                 formatter={(value: number, name: string) => {
                   const formattedName =
                     {
-                      minorMistakes: "Minor Mistakes",
-                      majorMistakes: "Major Mistakes",
-                      cancelledDros: "Cancelled DROS",
+                      minorMistakes: 'Minor Mistakes',
+                      majorMistakes: 'Major Mistakes',
+                      cancelledDros: 'Cancelled DROS',
                     }[name] || name;
                   return [value, formattedName];
                 }}

@@ -1,27 +1,27 @@
-"use client";
+'use client';
 
-import { useState } from "react";
+import { useState } from 'react';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Employee, PromotionData } from "./types";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
-import { supabase } from "@/utils/supabase/client";
+} from '@/components/ui/select';
+import { Employee, PromotionData } from './types';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { supabase } from '@/utils/supabase/client';
 
 interface PromoteEmployeeDialogProps {
   isOpen: boolean;
@@ -36,12 +36,10 @@ export function PromoteEmployeeDialog({
   employee,
   onPromote,
 }: PromoteEmployeeDialogProps) {
-  const [promotionDate, setPromotionDate] = useState("");
-  const [newRole, setNewRole] = useState("");
+  const [promotionDate, setPromotionDate] = useState('');
+  const [newRole, setNewRole] = useState('');
   const [newPayType, setNewPayType] = useState(employee.pay_type);
-  const [newPayRate, setNewPayRate] = useState(
-    employee.pay_rate?.toString() || ""
-  );
+  const [newPayRate, setNewPayRate] = useState(employee.pay_rate?.toString() || '');
   const queryClient = useQueryClient();
 
   const promoteMutation = useMutation({
@@ -57,9 +55,9 @@ export function PromoteEmployeeDialog({
       }
 
       const { data, error } = await supabase
-        .from("employees")
+        .from('employees')
         .update(updateData)
-        .eq("employee_id", employee.employee_id)
+        .eq('employee_id', employee.employee_id)
         .select()
         .single();
 
@@ -67,40 +65,34 @@ export function PromoteEmployeeDialog({
       return data;
     },
     onSuccess: (data) => {
-      queryClient.setQueryData(
-        ["employees"],
-        (oldData: Employee[] | undefined) => {
-          if (!oldData) return [data];
-          return oldData.map((emp) =>
-            emp.employee_id === data.employee_id ? data : emp
-          );
-        }
-      );
+      queryClient.setQueryData(['employees'], (oldData: Employee[] | undefined) => {
+        if (!oldData) return [data];
+        return oldData.map((emp) => (emp.employee_id === data.employee_id ? data : emp));
+      });
       onPromote(data);
-      toast.success("Employee Promoted", {
+      toast.success('Employee Promoted', {
         description: `${employee.name} has been successfully promoted.`,
       });
       onClose();
     },
     onError: (error) => {
-      console.error("Error promoting employee:", error);
-      toast.error("Promotion Failed", {
-        description:
-          "There was an error promoting the employee. Please try again.",
+      console.error('Error promoting employee:', error);
+      toast.error('Promotion Failed', {
+        description: 'There was an error promoting the employee. Please try again.',
       });
     },
   });
 
   const handlePromote = () => {
     if (!promotionDate || !newPayType || !newPayRate) {
-      toast.error("Invalid Input", {
-        description: "Please fill in all required fields.",
+      toast.error('Invalid Input', {
+        description: 'Please fill in all required fields.',
       });
       return;
     }
 
     promoteMutation.mutate({
-      newRole: newRole || "",
+      newRole: newRole || '',
       newPayType,
       newPayRate: parseFloat(newPayRate),
       promotionDate,
@@ -143,11 +135,7 @@ export function PromoteEmployeeDialog({
             <Label htmlFor="new-pay-type" className="text-right">
               New Pay Type*
             </Label>
-            <Select
-              onValueChange={setNewPayType}
-              defaultValue={newPayType || ""}
-              required
-            >
+            <Select onValueChange={setNewPayType} defaultValue={newPayType || ''} required>
               <SelectTrigger className="col-span-3">
                 <SelectValue placeholder="Select pay type" />
               </SelectTrigger>
@@ -176,7 +164,7 @@ export function PromoteEmployeeDialog({
             Cancel
           </Button>
           <Button onClick={handlePromote} disabled={promoteMutation.isPending}>
-            {promoteMutation.isPending ? "Promoting..." : "Confirm Promotion"}
+            {promoteMutation.isPending ? 'Promoting...' : 'Confirm Promotion'}
           </Button>
         </DialogFooter>
       </DialogContent>

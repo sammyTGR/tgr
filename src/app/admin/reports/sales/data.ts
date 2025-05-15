@@ -1,8 +1,8 @@
-import { supabase } from "@/utils/supabase/client";
-import { SalesData } from "./types";
+import { supabase } from '@/utils/supabase/client';
+import { SalesData } from './types';
 
 export const fetchSalesData = async (): Promise<SalesData[]> => {
-  const { data, error } = await supabase.from("sales_data").select("*");
+  const { data, error } = await supabase.from('sales_data').select('*');
   if (error) {
     //console.('Error fetching sales data:', error);
     return [];

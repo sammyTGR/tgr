@@ -1,12 +1,12 @@
-"use client";
-import { useCallback, useEffect, useState } from "react";
-import { supabase } from "@/utils/supabase/client";
-import { RangeWalkData, columns } from "./columns";
-import { DataTable } from "./data-table";
-import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
-import RoleBasedWrapper from "@/components/RoleBasedWrapper";
+'use client';
+import { useCallback, useEffect, useState } from 'react';
+import { supabase } from '@/utils/supabase/client';
+import { RangeWalkData, columns } from './columns';
+import { DataTable } from './data-table';
+import { TextGenerateEffect } from '@/components/ui/text-generate-effect';
+import RoleBasedWrapper from '@/components/RoleBasedWrapper';
 
-const words = "Range Walk Reports";
+const words = 'Range Walk Reports';
 
 export default function RangeWalkReport() {
   const [data, setData] = useState<RangeWalkData[]>([]);
@@ -17,31 +17,28 @@ export default function RangeWalkReport() {
   const fetchUserRoleAndUuid = useCallback(async () => {
     const { data: userData, error: userError } = await supabase.auth.getUser();
     if (userError) {
-      console.error("Error fetching user:", userError.message);
+      console.error('Error fetching user:', userError.message);
       return;
     }
 
     const user = userData.user;
-    setUserUuid(user?.id || "");
+    setUserUuid(user?.id || '');
 
     const { data: roleData, error: roleError } = await supabase
-      .from("employees")
-      .select("role")
-      .eq("user_uuid", user?.id)
+      .from('employees')
+      .select('role')
+      .eq('user_uuid', user?.id)
       .single();
 
     if (roleError || !roleData) {
       const { data: customerData, error: customerError } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("email", user?.email)
+        .from('profiles')
+        .select('role')
+        .eq('email', user?.email)
         .single();
 
       if (customerError || !customerData) {
-        console.error(
-          "Error fetching role:",
-          roleError?.message || customerError?.message
-        );
+        console.error('Error fetching role:', roleError?.message || customerError?.message);
         return;
       }
 
@@ -57,12 +54,12 @@ export default function RangeWalkReport() {
 
   const fetchRangeWalkData = useCallback(async () => {
     const { data, error } = await supabase
-      .from("range_walk_reports")
-      .select("*")
-      .order("date_of_walk", { ascending: false });
+      .from('range_walk_reports')
+      .select('*')
+      .order('date_of_walk', { ascending: false });
 
     if (error) {
-      console.error("Error fetching initial data:", error.message);
+      console.error('Error fetching initial data:', error.message);
       throw new Error(error.message);
     }
     return data as RangeWalkData[];
@@ -75,7 +72,7 @@ export default function RangeWalkReport() {
       setData(fetchedData);
       setLoading(false);
     } catch (error) {
-      console.error("Failed to fetch data:", error);
+      console.error('Failed to fetch data:', error);
       setLoading(false);
     }
   }, [fetchRangeWalkData]);
@@ -87,9 +84,7 @@ export default function RangeWalkReport() {
   const handleStatusChange = (id: number, status: string | null) => {
     setData((prevData) =>
       prevData.map((item) =>
-        item.id === id
-          ? { ...item, status: status as string | undefined }
-          : item
+        item.id === id ? { ...item, status: status as string | undefined } : item
       )
     );
   };
@@ -97,31 +92,24 @@ export default function RangeWalkReport() {
   const handleNotesChange = (id: number, notes: string, userName: string) => {
     setData((prevData) =>
       prevData.map((item) =>
-        item.id === id
-          ? { ...item, repair_notes: notes, repair_notes_user: userName }
-          : item
+        item.id === id ? { ...item, repair_notes: notes, repair_notes_user: userName } : item
       )
     );
   };
 
   useEffect(() => {
     const RangeWalkTableSubscription = supabase
-      .channel("custom-all-range-walk-reports-channel")
+      .channel('custom-all-range-walk-reports-channel')
       .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "range_walk_reports" },
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'range_walk_reports' },
         (payload) => {
-          if (payload.eventType === "INSERT") {
-            setData((currentData) => [
-              payload.new as RangeWalkData,
-              ...currentData,
-            ]);
-          } else if (payload.eventType === "UPDATE") {
+          if (payload.eventType === 'INSERT') {
+            setData((currentData) => [payload.new as RangeWalkData, ...currentData]);
+          } else if (payload.eventType === 'UPDATE') {
             setData((currentData) =>
               currentData.map((item) =>
-                item.id === payload.new.id
-                  ? (payload.new as RangeWalkData)
-                  : item
+                item.id === payload.new.id ? (payload.new as RangeWalkData) : item
               )
             );
           } else {
@@ -137,9 +125,7 @@ export default function RangeWalkReport() {
   }, [fetchData]);
 
   return (
-    <RoleBasedWrapper
-      allowedRoles={["user", "admin", "ceo", "super admin", "dev"]}
-    >
+    <RoleBasedWrapper allowedRoles={['user', 'admin', 'ceo', 'super admin', 'dev']}>
       <div className="h-screen flex flex-col">
         <section className="flex-1 flex flex-col space-y-4 p-4">
           <div className="flex items-center justify-between space-y-2">

@@ -1,16 +1,16 @@
 // src/app/sales/waiver/checkin/waiver-data-table.tsx
-import { useState, useEffect } from "react";
+import { useState, useEffect } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
   getPaginationRowModel,
   getFilteredRowModel,
   getSortedRowModel,
-} from "@tanstack/react-table";
-import { waiverColumns, Waiver } from "./columns";
-import { fetchWaiverData } from "./data";
-import { DataTable } from "./data-table";
-import { WaiverTableToolbar } from "./waiver-table-toolbar";
+} from '@tanstack/react-table';
+import { waiverColumns, Waiver } from './columns';
+import { fetchWaiverData } from './data';
+import { DataTable } from './data-table';
+import { WaiverTableToolbar } from './waiver-table-toolbar';
 
 const WaiverDataTable = () => {
   const [waivers, setWaivers] = useState<Waiver[]>([]);
@@ -19,11 +19,9 @@ const WaiverDataTable = () => {
     fetchWaiverData().then((data: Waiver[]) => setWaivers(data));
   }, []);
 
-  const onStatusChange = (id: string, status: "checked_in" | "checked_out") => {
+  const onStatusChange = (id: string, status: 'checked_in' | 'checked_out') => {
     setWaivers((currentWaivers) =>
-      currentWaivers.map((waiver) =>
-        waiver.id === id ? { ...waiver, status } : waiver
-      )
+      currentWaivers.map((waiver) => (waiver.id === id ? { ...waiver, status } : waiver))
     );
   };
 

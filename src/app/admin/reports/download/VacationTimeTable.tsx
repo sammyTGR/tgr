@@ -1,4 +1,4 @@
-import React, { FC, useState, useEffect, useMemo } from "react";
+import React, { FC, useState, useEffect, useMemo } from 'react';
 import {
   Table,
   TableBody,
@@ -6,12 +6,12 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { format } from "date-fns";
-import { toZonedTime, formatInTimeZone } from "date-fns-tz";
-import { ChevronDown, ChevronRight } from "lucide-react";
+} from '@/components/ui/table';
+import { format } from 'date-fns';
+import { toZonedTime, formatInTimeZone } from 'date-fns-tz';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 
-const TIME_ZONE = "America/Los_Angeles";
+const TIME_ZONE = 'America/Los_Angeles';
 
 interface VacationTimeReport {
   employee_id: number;
@@ -35,17 +35,17 @@ export const VacationTimeTable: FC<VacationTimeTableProps> = ({
 }) => {
   const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
 
-  const filteredData = useMemo(
-    () => data.filter((row) => row.used_vacation_time > 0),
-    [data]
-  );
+  const filteredData = useMemo(() => data.filter((row) => row.used_vacation_time > 0), [data]);
 
   useEffect(() => {
     if (isAllExpanded) {
-      const expandAll = filteredData.reduce((acc, row) => {
-        acc[row.employee_id] = true;
-        return acc;
-      }, {} as Record<number, boolean>);
+      const expandAll = filteredData.reduce(
+        (acc, row) => {
+          acc[row.employee_id] = true;
+          return acc;
+        },
+        {} as Record<number, boolean>
+      );
       setExpandedRows(expandAll);
     } else {
       setExpandedRows({});
@@ -66,7 +66,7 @@ export const VacationTimeTable: FC<VacationTimeTableProps> = ({
 
     // Convert to zoned time and format
     const zonedDate = toZonedTime(date, TIME_ZONE);
-    return formatInTimeZone(zonedDate, TIME_ZONE, "MM/dd/yyyy");
+    return formatInTimeZone(zonedDate, TIME_ZONE, 'MM/dd/yyyy');
   };
 
   return (
@@ -84,10 +84,7 @@ export const VacationTimeTable: FC<VacationTimeTableProps> = ({
         <TableBody>
           {filteredData.map((row) => (
             <React.Fragment key={row.employee_id}>
-              <TableRow
-                className="cursor-pointer"
-                onClick={() => toggleExpand(row.employee_id)}
-              >
+              <TableRow className="cursor-pointer" onClick={() => toggleExpand(row.employee_id)}>
                 <TableCell>
                   {expandedRows[row.employee_id] ? (
                     <ChevronDown size={20} />
@@ -96,13 +93,11 @@ export const VacationTimeTable: FC<VacationTimeTableProps> = ({
                   )}
                 </TableCell>
                 <TableCell>{row.name}</TableCell>
-                <TableCell>
-                  {row.available_vacation_time.toFixed(2)} hours
-                </TableCell>
+                <TableCell>{row.available_vacation_time.toFixed(2)} hours</TableCell>
                 <TableCell>{row.used_vacation_time.toFixed(2)} hours</TableCell>
                 <TableCell>
                   {row.used_dates.length} day
-                  {row.used_dates.length !== 1 ? "s" : ""}
+                  {row.used_dates.length !== 1 ? 's' : ''}
                 </TableCell>
               </TableRow>
               {expandedRows[row.employee_id] &&
@@ -111,9 +106,7 @@ export const VacationTimeTable: FC<VacationTimeTableProps> = ({
                     <TableCell></TableCell>
                     <TableCell></TableCell>
                     <TableCell></TableCell>
-                    <TableCell>
-                      {row.hours_per_date[index].toFixed(2)} hours
-                    </TableCell>
+                    <TableCell>{row.hours_per_date[index].toFixed(2)} hours</TableCell>
                     <TableCell>{formatDate(date)}</TableCell>
                   </TableRow>
                 ))}

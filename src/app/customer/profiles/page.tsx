@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useRef } from "react";
-import { useForm } from "react-hook-form";
-import { Card } from "@/components/ui/card";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { supabase } from "@/utils/supabase/client";
-import { toast } from "sonner"; // Import toast from Sonner
+import { useState, useEffect, useRef } from 'react';
+import { useForm } from 'react-hook-form';
+import { Card } from '@/components/ui/card';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { supabase } from '@/utils/supabase/client';
+import { toast } from 'sonner'; // Import toast from Sonner
 
 type ProfileData = {
   first_name: string;
@@ -27,15 +27,15 @@ export default function ProfilePage() {
         setUser(userData.user);
 
         const { data: customerData } = await supabase
-          .from("customers")
-          .select("first_name, last_name, email")
-          .eq("user_uuid", userData.user?.id)
+          .from('customers')
+          .select('first_name, last_name, email')
+          .eq('user_uuid', userData.user?.id)
           .single();
 
         if (customerData) {
-          setValue("first_name", customerData.first_name);
-          setValue("last_name", customerData.last_name);
-          setValue("email", customerData.email);
+          setValue('first_name', customerData.first_name);
+          setValue('last_name', customerData.last_name);
+          setValue('email', customerData.email);
         }
       }
     };
@@ -46,18 +46,18 @@ export default function ProfilePage() {
   const onSubmit = async (data: ProfileData) => {
     if (user) {
       const { error } = await supabase
-        .from("customers")
+        .from('customers')
         .update({
           first_name: data.first_name,
           last_name: data.last_name,
           email: data.email,
         })
-        .eq("user_uuid", user.id);
+        .eq('user_uuid', user.id);
 
       if (error) {
-        console.error("Error updating profile:", error);
+        console.error('Error updating profile:', error);
       } else {
-        toast.success("Profile updated successfully!"); // Use toast.success to confirm success
+        toast.success('Profile updated successfully!'); // Use toast.success to confirm success
       }
     }
   };
@@ -81,7 +81,7 @@ export default function ProfilePage() {
                 <Label htmlFor="first_name">First Name</Label>
                 <input
                   id="first_name"
-                  {...register("first_name")}
+                  {...register('first_name')}
                   className="block w-full mt-1 p-2 border rounded"
                 />
               </div>
@@ -94,7 +94,7 @@ export default function ProfilePage() {
                 <Label htmlFor="last_name">Last Name</Label>
                 <input
                   id="last_name"
-                  {...register("last_name")}
+                  {...register('last_name')}
                   className="block w-full mt-1 p-2 border rounded"
                 />
               </div>
@@ -108,7 +108,7 @@ export default function ProfilePage() {
                 <input
                   id="email"
                   type="email"
-                  {...register("email")}
+                  {...register('email')}
                   className="block w-full mt-1 p-2 border rounded"
                 />
               </div>

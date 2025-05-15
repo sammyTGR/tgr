@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
-import { supabase } from "@/utils/supabase/client";
+import { NextResponse } from 'next/server';
+import { supabase } from '@/utils/supabase/client';
 
 export async function GET() {
   try {
@@ -10,8 +10,8 @@ export async function GET() {
 
     while (hasMoreData) {
       const { data, error } = await supabase
-        .from("sales_data")
-        .select("SoldQty, subcategory_label")
+        .from('sales_data')
+        .select('SoldQty, subcategory_label')
         .range(offset, offset + batchSize - 1);
 
       if (error) throw error;
@@ -23,10 +23,7 @@ export async function GET() {
 
       const batchTotal = data.reduce((total, row) => {
         if (row.subcategory_label) {
-          return (
-            total +
-            (row.SoldQty || 0) * (parseFloat(row.subcategory_label) || 0)
-          );
+          return total + (row.SoldQty || 0) * (parseFloat(row.subcategory_label) || 0);
         }
         return total;
       }, 0);
@@ -37,11 +34,8 @@ export async function GET() {
 
     return NextResponse.json({ totalDROS });
   } catch (error) {
-    console.error("Error calculating total DROS:", error);
-    return NextResponse.json(
-      { error: "Failed to calculate total DROS" },
-      { status: 500 }
-    );
+    console.error('Error calculating total DROS:', error);
+    return NextResponse.json({ error: 'Failed to calculate total DROS' }, { status: 500 });
   }
 }
 
@@ -49,10 +43,9 @@ export async function OPTIONS() {
   return new NextResponse(null, {
     status: 200,
     headers: {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, OPTIONS",
-      "Access-Control-Allow-Headers":
-        "authorization, x-client-info, apikey, content-type",
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
     },
   });
 }

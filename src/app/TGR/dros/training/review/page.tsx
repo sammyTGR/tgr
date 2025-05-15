@@ -1,13 +1,8 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "../../../../../components/ui/card";
+import * as React from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Card, CardContent, CardHeader, CardTitle } from '../../../../../components/ui/card';
 import {
   Table,
   TableBody,
@@ -15,15 +10,15 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "../../../../../components/ui/table";
-import { Button } from "../../../../../components/ui/button";
+} from '../../../../../components/ui/table';
+import { Button } from '../../../../../components/ui/button';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "../../../../../components/ui/dialog";
+} from '../../../../../components/ui/dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,14 +29,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { supabase } from "../../../../../utils/supabase/client";
-import type { FormData as OfficerPptHandgunFormData } from "../officerppthandgun/page";
-import type { FormData as OfficerHandgunFormData } from "../officerhandgun/page";
-import type { FormData as ExemptHandgunFormData } from "../exempthandgun/page";
-import type { FormData as HandgunRedemptionFormData } from "../handgunredemption/page";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import Link from "next/link";
+} from '@/components/ui/alert-dialog';
+import { supabase } from '../../../../../utils/supabase/client';
+import type { FormData as OfficerPptHandgunFormData } from '../officerppthandgun/page';
+import type { FormData as OfficerHandgunFormData } from '../officerhandgun/page';
+import type { FormData as ExemptHandgunFormData } from '../exempthandgun/page';
+import type { FormData as HandgunRedemptionFormData } from '../handgunredemption/page';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import Link from 'next/link';
 
 type DealerHandgunSale = {
   id: string;
@@ -91,7 +86,7 @@ type DealerHandgunSale = {
   is_new_gun: boolean;
   firearm_safety_device: string;
   comments?: string;
-  status: "draft" | "submitted" | "approved" | "rejected";
+  status: 'draft' | 'submitted' | 'approved' | 'rejected';
   transaction_type: string;
   seller_first_name?: string;
   seller_middle_name?: string;
@@ -139,93 +134,93 @@ type TransactionType = {
 };
 
 const TRANSACTION_TYPES: { [key: string]: TransactionType } = {
-  "dealer-handgun": {
-    title: "Dealer Handgun Sale",
-    table: "dealer_handgun_sales",
+  'dealer-handgun': {
+    title: 'Dealer Handgun Sale',
+    table: 'dealer_handgun_sales',
   },
   // Add other transaction types as needed
-  "ppt-handgun": {
-    title: "Handgun PPT",
-    table: "private_handgun_transfers",
+  'ppt-handgun': {
+    title: 'Handgun PPT',
+    table: 'private_handgun_transfers',
   },
-  "officer-ppt-handgun": {
-    title: "Officer Non-Roster Handgun PPT",
-    table: "officer_ppt_handgun_transfers",
+  'officer-ppt-handgun': {
+    title: 'Officer Non-Roster Handgun PPT',
+    table: 'officer_ppt_handgun_transfers',
   },
-  "peace-officer-handgun-sale-letter": {
-    title: "Peace Officer Handgun Sale (Letter Required)",
-    table: "officer_handgun",
+  'peace-officer-handgun-sale-letter': {
+    title: 'Peace Officer Handgun Sale (Letter Required)',
+    table: 'officer_handgun',
   },
-  "exempt-handgun": {
-    title: "Exempt Handgun Sale",
-    table: "exempt_handgun",
+  'exempt-handgun': {
+    title: 'Exempt Handgun Sale',
+    table: 'exempt_handgun',
   },
-  "handgun-redemption": {
-    title: "Consignment Handgun Redemption",
-    table: "handgun_redemption",
+  'handgun-redemption': {
+    title: 'Consignment Handgun Redemption',
+    table: 'handgun_redemption',
   },
-  "curiorelic-handgun": {
-    title: "Curio / Relic Handgun Sale",
-    table: "curio_relic_handgun",
+  'curiorelic-handgun': {
+    title: 'Curio / Relic Handgun Sale',
+    table: 'curio_relic_handgun',
   },
-  "olympic-pistol": {
-    title: "Olympic Pistol Sale",
-    table: "olympic_pistol",
+  'olympic-pistol': {
+    title: 'Olympic Pistol Sale',
+    table: 'olympic_pistol',
   },
-  "handgun-loan": {
-    title: "Handgun Loan",
-    table: "handgun_loan",
+  'handgun-loan': {
+    title: 'Handgun Loan',
+    table: 'handgun_loan',
   },
-  "handgun-temporary-storage-return": {
-    title: "Handgun Temporary Storage Return",
-    table: "handgun_temporary_storage_return",
+  'handgun-temporary-storage-return': {
+    title: 'Handgun Temporary Storage Return',
+    table: 'handgun_temporary_storage_return',
   },
-  "dealer-longgun": {
-    title: "Dealer Long Gun Sale",
-    table: "dealer_longgun",
+  'dealer-longgun': {
+    title: 'Dealer Long Gun Sale',
+    table: 'dealer_longgun',
   },
-  "ppt-longgun": {
-    title: "Private Party Long Gun Transfer",
-    table: "private_longgun_transfers",
+  'ppt-longgun': {
+    title: 'Private Party Long Gun Transfer',
+    table: 'private_longgun_transfers',
   },
-  "consignment-longgun-redemption": {
-    title: "Consignment Long Gun Redemption",
-    table: "consignment_longgun_redemption",
+  'consignment-longgun-redemption': {
+    title: 'Consignment Long Gun Redemption',
+    table: 'consignment_longgun_redemption',
   },
-  "curio-longgun": {
-    title: "Curio / Relic Long Gun Sale",
-    table: "curio_longgun",
+  'curio-longgun': {
+    title: 'Curio / Relic Long Gun Sale',
+    table: 'curio_longgun',
   },
-  "longgun-loan": {
-    title: "Long Gun Loan",
-    table: "longgun_loan",
+  'longgun-loan': {
+    title: 'Long Gun Loan',
+    table: 'longgun_loan',
   },
-  "longgun-temporary-storage-return": {
-    title: "Long Gun Temporary Storage Return",
-    table: "longgun_temporary_storage_return",
+  'longgun-temporary-storage-return': {
+    title: 'Long Gun Temporary Storage Return',
+    table: 'longgun_temporary_storage_return',
   },
-  "officer-handgun": {
-    title: "Officer Non-Roster Handgun",
-    table: "officer_handgun",
+  'officer-handgun': {
+    title: 'Officer Non-Roster Handgun',
+    table: 'officer_handgun',
   },
 };
 
 // Add this utility function after the TRANSACTION_TYPES object
 const toUpperCase = (value: any): string => {
-  if (value === null || value === undefined) return "";
-  if (typeof value === "boolean") return value ? "YES" : "NO";
-  if (typeof value === "string") return value.toUpperCase();
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'boolean') return value ? 'YES' : 'NO';
+  if (typeof value === 'string') return value.toUpperCase();
   return String(value).toUpperCase();
 };
 
 // Add this query hook at the component level
 const useAgencyDepartment = (agencyId: string | undefined) => {
   return useQuery({
-    queryKey: ["agencyDepartment", agencyId],
+    queryKey: ['agencyDepartment', agencyId],
     queryFn: async () => {
       if (!agencyId) return null;
       const response = await fetch(`/api/fetchAgencyPd?id=${agencyId}`);
-      if (!response.ok) throw new Error("Failed to fetch agency");
+      if (!response.ok) throw new Error('Failed to fetch agency');
       return response.json();
     },
     enabled: !!agencyId,
@@ -237,11 +232,11 @@ const ReviewPage = () => {
 
   // Fetch all employees with their user_uuid
   const { data: employees } = useQuery({
-    queryKey: ["employees"],
+    queryKey: ['employees'],
     queryFn: async () => {
-      const response = await fetch("/api/fetchEmployees?select=name,user_uuid");
+      const response = await fetch('/api/fetchEmployees?select=name,user_uuid');
       if (!response.ok) {
-        throw new Error("Failed to fetch employees");
+        throw new Error('Failed to fetch employees');
       }
       return response.json();
     },
@@ -249,64 +244,61 @@ const ReviewPage = () => {
 
   // Fetch submissions from both dealer handgun sales and private handgun transfers
   const { data: submissions, isLoading } = useQuery({
-    queryKey: ["drosSubmissions"],
+    queryKey: ['drosSubmissions'],
     queryFn: async () => {
       // Fetch dealer handgun sales
       const { data: dealerSales, error: dealerError } = await supabase
-        .from("dealer_handgun_sales")
-        .select("*")
-        .order("created_at", { ascending: false });
+        .from('dealer_handgun_sales')
+        .select('*')
+        .order('created_at', { ascending: false });
 
       if (dealerError) throw dealerError;
 
       // Fetch private party transfers
       const { data: pptSales, error: pptError } = await supabase
-        .from("private_handgun_transfers")
-        .select("*")
-        .order("created_at", { ascending: false });
+        .from('private_handgun_transfers')
+        .select('*')
+        .order('created_at', { ascending: false });
 
       if (pptError) throw pptError;
 
       // Fetch officer PPT handgun transfers
       const { data: officerPptSales, error: officerPptError } = await supabase
-        .from("officer_ppt_handgun_transfers")
-        .select("*")
-        .order("created_at", { ascending: false });
+        .from('officer_ppt_handgun_transfers')
+        .select('*')
+        .order('created_at', { ascending: false });
 
       if (officerPptError) throw officerPptError;
 
       // Fetch officer handgun
-      const { data: officerHandgun, error: officerHandgunError } =
-        await supabase
-          .from("officer_handgun")
-          .select("*")
-          .order("created_at", { ascending: false });
+      const { data: officerHandgun, error: officerHandgunError } = await supabase
+        .from('officer_handgun')
+        .select('*')
+        .order('created_at', { ascending: false });
 
       if (officerHandgunError) throw officerHandgunError;
 
       // Fetch exempt handgun
       const { data: exemptHandgun, error: exemptHandgunError } = await supabase
-        .from("exempt_handgun")
-        .select("*")
-        .order("created_at", { ascending: false });
+        .from('exempt_handgun')
+        .select('*')
+        .order('created_at', { ascending: false });
 
       if (exemptHandgunError) throw exemptHandgunError;
 
       // Fetch handgun redemption
-      const { data: handgunRedemption, error: handgunRedemptionError } =
-        await supabase
-          .from("handgun_redemption")
-          .select("*")
-          .order("created_at", { ascending: false });
+      const { data: handgunRedemption, error: handgunRedemptionError } = await supabase
+        .from('handgun_redemption')
+        .select('*')
+        .order('created_at', { ascending: false });
 
       if (handgunRedemptionError) throw handgunRedemptionError;
 
       // Fetch curio/relic handgun
-      const { data: curioRelicHandgun, error: curioRelicHandgunError } =
-        await supabase
-          .from("curiorelic_handgun")
-          .select("*")
-          .order("created_at", { ascending: false });
+      const { data: curioRelicHandgun, error: curioRelicHandgunError } = await supabase
+        .from('curiorelic_handgun')
+        .select('*')
+        .order('created_at', { ascending: false });
 
       if (curioRelicHandgunError) throw curioRelicHandgunError;
 
@@ -319,10 +311,7 @@ const ReviewPage = () => {
         ...(exemptHandgun || []),
         ...(handgunRedemption || []),
         ...(curioRelicHandgun || []),
-      ].sort(
-        (a, b) =>
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      );
+      ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
       return allSubmissions;
     },
@@ -330,33 +319,31 @@ const ReviewPage = () => {
 
   // Function to get employee name by user_id
   const getEmployeeName = (userId: string) => {
-    if (!employees) return "Unknown";
+    if (!employees) return 'Unknown';
     const employee = employees.find((emp: any) => emp.user_uuid === userId);
-    return employee?.name || "Unknown";
+    return employee?.name || 'Unknown';
   };
 
   // Add delete mutation
   const deleteMutation = useMutation({
     mutationFn: async ({ id, table }: { id: string; table: string }) => {
-      const { error } = await supabase.from(table).delete().eq("id", id);
+      const { error } = await supabase.from(table).delete().eq('id', id);
 
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["drosSubmissions"] });
+      queryClient.invalidateQueries({ queryKey: ['drosSubmissions'] });
     },
   });
 
   // Detailed view dialog component
   const DetailedView = ({ submission }: { submission: DealerHandgunSale }) => {
     // Add the agency department query
-    const { data: agencyData } = useAgencyDepartment(
-      submission.agency_department
-    );
+    const { data: agencyData } = useAgencyDepartment(submission.agency_department);
 
     // Add officer handgun specific information
     const renderOfficerHandgunInfo = () => {
-      if (submission.transaction_type !== "officer-handgun") return null;
+      if (submission.transaction_type !== 'officer-handgun') return null;
 
       return (
         <Card>
@@ -366,32 +353,26 @@ const ReviewPage = () => {
           <CardContent className="space-y-2">
             <p>
               <strong>Caliber:</strong> {submission.calibers}
-              {submission.additional_caliber &&
-                `, ${submission.additional_caliber}`}
-              {submission.additional_caliber2 &&
-                `, ${submission.additional_caliber2}`}
-              {submission.additional_caliber3 &&
-                `, ${submission.additional_caliber3}`}
+              {submission.additional_caliber && `, ${submission.additional_caliber}`}
+              {submission.additional_caliber2 && `, ${submission.additional_caliber2}`}
+              {submission.additional_caliber3 && `, ${submission.additional_caliber3}`}
             </p>
             {submission.barrel_length && (
               <p>
-                <strong>Barrel Length:</strong> {submission.barrel_length}{" "}
-                {submission.unit}
+                <strong>Barrel Length:</strong> {submission.barrel_length} {submission.unit}
               </p>
             )}
             <p>
-              <strong>Frame Only:</strong>{" "}
-              {submission.frame_only ? "Yes" : "No"}
+              <strong>Frame Only:</strong> {submission.frame_only ? 'Yes' : 'No'}
             </p>
             <p>
               <strong>Category:</strong> {submission.category}
             </p>
             <p>
-              <strong>Non-Roster Exemption:</strong>{" "}
-              {submission.non_roster_exemption}
+              <strong>Non-Roster Exemption:</strong> {submission.non_roster_exemption}
             </p>
             <p>
-              <strong>Agency:</strong> {agencyData?.label || ""}
+              <strong>Agency:</strong> {agencyData?.label || ''}
             </p>
           </CardContent>
         </Card>
@@ -400,7 +381,7 @@ const ReviewPage = () => {
 
     // Add exempt handgun specific information
     const renderExemptHandgunInfo = () => {
-      if (submission.transaction_type !== "exempt-handgun") return null;
+      if (submission.transaction_type !== 'exempt-handgun') return null;
 
       return (
         <Card>
@@ -424,27 +405,22 @@ const ReviewPage = () => {
               <>
                 <p>
                   <strong>Caliber:</strong> {submission.calibers}
-                  {submission.additional_caliber &&
-                    `, ${submission.additional_caliber}`}
-                  {submission.additional_caliber2 &&
-                    `, ${submission.additional_caliber2}`}
-                  {submission.additional_caliber3 &&
-                    `, ${submission.additional_caliber3}`}
+                  {submission.additional_caliber && `, ${submission.additional_caliber}`}
+                  {submission.additional_caliber2 && `, ${submission.additional_caliber2}`}
+                  {submission.additional_caliber3 && `, ${submission.additional_caliber3}`}
                 </p>
                 {submission.barrel_length && (
                   <p>
-                    <strong>Barrel Length:</strong> {submission.barrel_length}{" "}
-                    {submission.unit}
+                    <strong>Barrel Length:</strong> {submission.barrel_length} {submission.unit}
                   </p>
                 )}
               </>
             )}
             <p>
-              <strong>Non-Roster Exemption:</strong>{" "}
-              {submission.non_roster_exemption}
+              <strong>Non-Roster Exemption:</strong> {submission.non_roster_exemption}
             </p>
             <p>
-              <strong>Agency:</strong> {agencyData?.label || ""}
+              <strong>Agency:</strong> {agencyData?.label || ''}
             </p>
           </CardContent>
         </Card>
@@ -453,7 +429,7 @@ const ReviewPage = () => {
 
     // Add handgun redemption specific information
     const renderHandgunRedemptionInfo = () => {
-      if (submission.transaction_type !== "handgun-redemption") return null;
+      if (submission.transaction_type !== 'handgun-redemption') return null;
 
       return (
         <Card>
@@ -477,24 +453,19 @@ const ReviewPage = () => {
               <>
                 <p>
                   <strong>Caliber:</strong> {submission.calibers}
-                  {submission.additional_caliber &&
-                    `, ${submission.additional_caliber}`}
-                  {submission.additional_caliber2 &&
-                    `, ${submission.additional_caliber2}`}
-                  {submission.additional_caliber3 &&
-                    `, ${submission.additional_caliber3}`}
+                  {submission.additional_caliber && `, ${submission.additional_caliber}`}
+                  {submission.additional_caliber2 && `, ${submission.additional_caliber2}`}
+                  {submission.additional_caliber3 && `, ${submission.additional_caliber3}`}
                 </p>
                 {submission.barrel_length && (
                   <p>
-                    <strong>Barrel Length:</strong> {submission.barrel_length}{" "}
-                    {submission.unit}
+                    <strong>Barrel Length:</strong> {submission.barrel_length} {submission.unit}
                   </p>
                 )}
               </>
             )}
             <p>
-              <strong>Return to Owner:</strong>{" "}
-              {submission.restriction_exemption}
+              <strong>Return to Owner:</strong> {submission.restriction_exemption}
             </p>
           </CardContent>
         </Card>
@@ -518,18 +489,15 @@ const ReviewPage = () => {
               </CardHeader>
               <CardContent className="space-y-2">
                 <p>
-                  <strong>Name:</strong> {toUpperCase(submission.first_name)}{" "}
-                  {toUpperCase(submission.middle_name)}{" "}
-                  {toUpperCase(submission.last_name)}
+                  <strong>Name:</strong> {toUpperCase(submission.first_name)}{' '}
+                  {toUpperCase(submission.middle_name)} {toUpperCase(submission.last_name)}
                 </p>
                 <p>
-                  <strong>Address:</strong>{" "}
-                  {toUpperCase(submission.street_address)}
+                  <strong>Address:</strong> {toUpperCase(submission.street_address)}
                 </p>
                 <p>
-                  <strong>Location:</strong> {toUpperCase(submission.city)},{" "}
-                  {toUpperCase(submission.state)}{" "}
-                  {toUpperCase(submission.zip_code)}
+                  <strong>Location:</strong> {toUpperCase(submission.city)},{' '}
+                  {toUpperCase(submission.state)} {toUpperCase(submission.zip_code)}
                 </p>
                 <p>
                   <strong>Phone:</strong> {toUpperCase(submission.phone_number)}
@@ -538,58 +506,49 @@ const ReviewPage = () => {
                   <strong>ID Type:</strong> {toUpperCase(submission.id_type)}
                 </p>
                 <p>
-                  <strong>ID Number:</strong>{" "}
-                  {toUpperCase(submission.id_number)}
+                  <strong>ID Number:</strong> {toUpperCase(submission.id_number)}
                 </p>
               </CardContent>
             </Card>
 
             {/* Show Seller Information for PPT and Officer PPT transactions */}
-            {(submission.transaction_type === "ppt-handgun" ||
-              submission.transaction_type === "officer-ppt-handgun") && (
+            {(submission.transaction_type === 'ppt-handgun' ||
+              submission.transaction_type === 'officer-ppt-handgun') && (
               <Card>
                 <CardHeader>
                   <CardTitle>Seller Information</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
                   <p>
-                    <strong>Name:</strong>{" "}
-                    {toUpperCase(submission.seller_first_name)}{" "}
-                    {toUpperCase(submission.seller_middle_name)}{" "}
-                    {toUpperCase(submission.seller_last_name)}{" "}
+                    <strong>Name:</strong> {toUpperCase(submission.seller_first_name)}{' '}
+                    {toUpperCase(submission.seller_middle_name)}{' '}
+                    {toUpperCase(submission.seller_last_name)}{' '}
                     {toUpperCase(submission.seller_suffix)}
                   </p>
                   <p>
-                    <strong>Address:</strong>{" "}
-                    {toUpperCase(submission.seller_street_address)}
+                    <strong>Address:</strong> {toUpperCase(submission.seller_street_address)}
                   </p>
                   <p>
-                    <strong>Location:</strong>{" "}
-                    {toUpperCase(submission.seller_city)},{" "}
-                    {toUpperCase(submission.seller_state)}{" "}
-                    {toUpperCase(submission.seller_zip_code)}
+                    <strong>Location:</strong> {toUpperCase(submission.seller_city)},{' '}
+                    {toUpperCase(submission.seller_state)} {toUpperCase(submission.seller_zip_code)}
                   </p>
                   <p>
-                    <strong>Phone:</strong>{" "}
-                    {toUpperCase(submission.seller_phone_number)}
+                    <strong>Phone:</strong> {toUpperCase(submission.seller_phone_number)}
                   </p>
                   <p>
-                    <strong>ID Type:</strong>{" "}
-                    {toUpperCase(submission.seller_id_type)}
+                    <strong>ID Type:</strong> {toUpperCase(submission.seller_id_type)}
                   </p>
                   <p>
-                    <strong>ID Number:</strong>{" "}
-                    {toUpperCase(submission.seller_id_number)}
+                    <strong>ID Number:</strong> {toUpperCase(submission.seller_id_number)}
                   </p>
-                  {submission.transaction_type === "officer-ppt-handgun" && (
+                  {submission.transaction_type === 'officer-ppt-handgun' && (
                     <>
                       <p>
-                        <strong>Non-Roster Exemption:</strong>{" "}
+                        <strong>Non-Roster Exemption:</strong>{' '}
                         {toUpperCase(submission.non_roster_exemption)}
                       </p>
                       <p>
-                        <strong>Agency:</strong>{" "}
-                        {toUpperCase(agencyData?.label || "")}
+                        <strong>Agency:</strong> {toUpperCase(agencyData?.label || '')}
                       </p>
                     </>
                   )}
@@ -607,16 +566,14 @@ const ReviewPage = () => {
                   <strong>Gender:</strong> {toUpperCase(submission.gender)}
                 </p>
                 <p>
-                  <strong>Hair Color:</strong>{" "}
-                  {toUpperCase(submission.hair_color)}
+                  <strong>Hair Color:</strong> {toUpperCase(submission.hair_color)}
                 </p>
                 <p>
-                  <strong>Eye Color:</strong>{" "}
-                  {toUpperCase(submission.eye_color)}
+                  <strong>Eye Color:</strong> {toUpperCase(submission.eye_color)}
                 </p>
                 <p>
-                  <strong>Height:</strong> {submission.height_feet}&apos;{" "}
-                  {submission.height_inches}&quot;
+                  <strong>Height:</strong> {submission.height_feet}&apos; {submission.height_inches}
+                  &quot;
                 </p>
                 <p>
                   <strong>Weight:</strong> {submission.weight} lbs
@@ -643,23 +600,20 @@ const ReviewPage = () => {
                   <strong>Model:</strong> {toUpperCase(submission.model)}
                 </p>
                 <p>
-                  <strong>Serial Number:</strong>{" "}
-                  {toUpperCase(submission.serial_number)}
+                  <strong>Serial Number:</strong> {toUpperCase(submission.serial_number)}
                 </p>
                 <p>
                   <strong>Color:</strong> {toUpperCase(submission.color)}
                 </p>
                 <p>
-                  <strong>Condition:</strong>{" "}
-                  {submission.is_new_gun ? "NEW" : "USED"}
+                  <strong>Condition:</strong> {submission.is_new_gun ? 'NEW' : 'USED'}
                 </p>
                 <p>
-                  <strong>Safety Device:</strong>{" "}
-                  {toUpperCase(submission.firearm_safety_device)}
+                  <strong>Safety Device:</strong> {toUpperCase(submission.firearm_safety_device)}
                 </p>
                 <p>
-                  <strong>Gun Show Transaction:</strong>{" "}
-                  {submission.is_gun_show_transaction ? "YES" : "NO"}
+                  <strong>Gun Show Transaction:</strong>{' '}
+                  {submission.is_gun_show_transaction ? 'YES' : 'NO'}
                 </p>
               </CardContent>
             </Card>
@@ -671,19 +625,17 @@ const ReviewPage = () => {
               </CardHeader>
               <CardContent className="space-y-2">
                 <p>
-                  <strong>HSC/FSC Number:</strong>{" "}
-                  {toUpperCase(submission.hsc_fsc_number)}
+                  <strong>HSC/FSC Number:</strong> {toUpperCase(submission.hsc_fsc_number)}
                 </p>
                 <p>
-                  <strong>Exemption Code:</strong>{" "}
-                  {toUpperCase(submission.exemption_code)}
+                  <strong>Exemption Code:</strong> {toUpperCase(submission.exemption_code)}
                 </p>
                 <p>
-                  <strong>Waiting Period Exemption:</strong>{" "}
+                  <strong>Waiting Period Exemption:</strong>{' '}
                   {toUpperCase(submission.waiting_period_exemption)}
                 </p>
                 <p>
-                  <strong>Restriction Exemption:</strong>{" "}
+                  <strong>Restriction Exemption:</strong>{' '}
                   {toUpperCase(submission.restriction_exemption)}
                 </p>
               </CardContent>
@@ -696,48 +648,48 @@ const ReviewPage = () => {
               </CardHeader>
               <CardContent className="space-y-2">
                 <p>
-                  <strong>Question 1:</strong>{" "}
-                  {typeof submission.eligibility_q1 === "string"
-                    ? submission.eligibility_q1.toLowerCase() === "yes"
-                      ? "YES"
-                      : "NO"
+                  <strong>Question 1:</strong>{' '}
+                  {typeof submission.eligibility_q1 === 'string'
+                    ? submission.eligibility_q1.toLowerCase() === 'yes'
+                      ? 'YES'
+                      : 'NO'
                     : submission.eligibility_q1
-                      ? "YES"
-                      : "NO"}
+                      ? 'YES'
+                      : 'NO'}
                 </p>
                 <p>
-                  <strong>Question 2:</strong>{" "}
-                  {typeof submission.eligibility_q2 === "string"
-                    ? submission.eligibility_q2.toLowerCase() === "yes"
-                      ? "YES"
-                      : "NO"
+                  <strong>Question 2:</strong>{' '}
+                  {typeof submission.eligibility_q2 === 'string'
+                    ? submission.eligibility_q2.toLowerCase() === 'yes'
+                      ? 'YES'
+                      : 'NO'
                     : submission.eligibility_q2
-                      ? "YES"
-                      : "NO"}
+                      ? 'YES'
+                      : 'NO'}
                 </p>
                 <p>
-                  <strong>Question 3:</strong>{" "}
-                  {typeof submission.eligibility_q3 === "string"
-                    ? submission.eligibility_q3.toLowerCase() === "yes"
-                      ? "YES"
-                      : "NO"
+                  <strong>Question 3:</strong>{' '}
+                  {typeof submission.eligibility_q3 === 'string'
+                    ? submission.eligibility_q3.toLowerCase() === 'yes'
+                      ? 'YES'
+                      : 'NO'
                     : submission.eligibility_q3
-                      ? "YES"
-                      : "NO"}
+                      ? 'YES'
+                      : 'NO'}
                 </p>
                 <p>
-                  <strong>Question 4:</strong>{" "}
-                  {typeof submission.eligibility_q4 === "string"
-                    ? submission.eligibility_q4.toLowerCase() === "yes"
-                      ? "YES"
-                      : "NO"
+                  <strong>Question 4:</strong>{' '}
+                  {typeof submission.eligibility_q4 === 'string'
+                    ? submission.eligibility_q4.toLowerCase() === 'yes'
+                      ? 'YES'
+                      : 'NO'
                     : submission.eligibility_q4
-                      ? "YES"
-                      : "NO"}
+                      ? 'YES'
+                      : 'NO'}
                 </p>
                 <p>
-                  <strong>Firearms Possession Question:</strong>{" "}
-                  {toUpperCase(submission.firearms_q1 || "")}
+                  <strong>Firearms Possession Question:</strong>{' '}
+                  {toUpperCase(submission.firearms_q1 || '')}
                 </p>
               </CardContent>
             </Card>
@@ -752,13 +704,11 @@ const ReviewPage = () => {
                   <strong>Status:</strong> {toUpperCase(submission.status)}
                 </p>
                 <p>
-                  <strong>Submitted:</strong>{" "}
-                  {new Date(submission.created_at).toLocaleString()}
+                  <strong>Submitted:</strong> {new Date(submission.created_at).toLocaleString()}
                 </p>
                 {submission.comments && (
                   <p>
-                    <strong>Comments:</strong>{" "}
-                    {toUpperCase(submission.comments)}
+                    <strong>Comments:</strong> {toUpperCase(submission.comments)}
                   </p>
                 )}
               </CardContent>
@@ -812,21 +762,15 @@ const ReviewPage = () => {
               <TableBody>
                 {submissions?.map((submission) => (
                   <TableRow key={submission.id}>
-                    <TableCell>
-                      {new Date(submission.created_at).toLocaleDateString()}
-                    </TableCell>
+                    <TableCell>{new Date(submission.created_at).toLocaleDateString()}</TableCell>
                     <TableCell>{getEmployeeName(submission.user_id)}</TableCell>
+                    <TableCell>{TRANSACTION_TYPES[submission.transaction_type]?.title}</TableCell>
                     <TableCell>
-                      {TRANSACTION_TYPES[submission.transaction_type]?.title}
-                    </TableCell>
-                    <TableCell>
-                      {toUpperCase(submission.first_name)}{" "}
-                      {toUpperCase(submission.last_name)}
+                      {toUpperCase(submission.first_name)} {toUpperCase(submission.last_name)}
                     </TableCell>
 
                     <TableCell>
-                      {toUpperCase(submission.make)}{" "}
-                      {toUpperCase(submission.model)}
+                      {toUpperCase(submission.make)} {toUpperCase(submission.model)}
                     </TableCell>
                     {/* <TableCell>
                     <span
@@ -853,17 +797,15 @@ const ReviewPage = () => {
                           <AlertDialogHeader>
                             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                             <AlertDialogDescription>
-                              This action cannot be undone. This will
-                              permanently delete the submission.
+                              This action cannot be undone. This will permanently delete the
+                              submission.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
                             <AlertDialogAction
                               onClick={() => {
-                                const table =
-                                  TRANSACTION_TYPES[submission.transaction_type]
-                                    ?.table;
+                                const table = TRANSACTION_TYPES[submission.transaction_type]?.table;
                                 if (table) {
                                   deleteMutation.mutate({
                                     id: submission.id,

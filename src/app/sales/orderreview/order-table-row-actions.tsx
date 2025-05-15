@@ -1,9 +1,9 @@
 // src/app/sales/orderreview/order-table-row-actions.tsx
 
-"use client";
-import { DotsHorizontalIcon } from "@radix-ui/react-icons";
-import { Row } from "@tanstack/react-table";
-import { Button } from "@/components/ui/button";
+'use client';
+import { DotsHorizontalIcon } from '@radix-ui/react-icons';
+import { Row } from '@tanstack/react-table';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,9 +15,9 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Order } from "./columns";
-import { statuses } from "./data";
+} from '@/components/ui/dropdown-menu';
+import { Order } from './columns';
+import { statuses } from './data';
 
 interface OrderTableRowActionsProps<TData> {
   row: Row<TData>;
@@ -37,10 +37,7 @@ export function OrderTableRowActions<TData>({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          className="flex h-8 w-8 p-0 data-[state=open]:bg-muted"
-        >
+        <Button variant="ghost" className="flex h-8 w-8 p-0 data-[state=open]:bg-muted">
           <DotsHorizontalIcon className="h-4 w-4" />
           <span className="sr-only">Open menu</span>
         </Button>
@@ -69,9 +66,7 @@ export function OrderTableRowActions<TData>({
           </DropdownMenuSubContent>
         </DropdownMenuSub>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => setStatus(order.id, "")}>
-          Clear Status
-        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setStatus(order.id, '')}>Clear Status</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

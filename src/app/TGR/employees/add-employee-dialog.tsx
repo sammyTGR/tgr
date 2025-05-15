@@ -1,27 +1,22 @@
-import { useEffect, useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useEffect, useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Employee } from "./types";
-import { supabase } from "@/utils/supabase/client";
+} from '@/components/ui/select';
+import { Employee } from './types';
+import { supabase } from '@/utils/supabase/client';
 
 interface AddEmployeeDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (employee: Omit<Employee, "employee_id">) => void;
+  onAdd: (employee: Omit<Employee, 'employee_id'>) => void;
 }
 
 interface ScheduleEntry {
@@ -38,54 +33,46 @@ interface ReferenceOption {
 }
 
 const initialSchedule: ScheduleEntry[] = [
-  { day: "Sunday", start_time: "", end_time: "" },
-  { day: "Monday", start_time: "", end_time: "" },
-  { day: "Tuesday", start_time: "", end_time: "" },
-  { day: "Wednesday", start_time: "", end_time: "" },
-  { day: "Thursday", start_time: "", end_time: "" },
-  { day: "Friday", start_time: "", end_time: "" },
-  { day: "Saturday", start_time: "", end_time: "" },
+  { day: 'Sunday', start_time: '', end_time: '' },
+  { day: 'Monday', start_time: '', end_time: '' },
+  { day: 'Tuesday', start_time: '', end_time: '' },
+  { day: 'Wednesday', start_time: '', end_time: '' },
+  { day: 'Thursday', start_time: '', end_time: '' },
+  { day: 'Friday', start_time: '', end_time: '' },
+  { day: 'Saturday', start_time: '', end_time: '' },
 ];
 
-export default function AddEmployeeDialog({
-  isOpen,
-  onClose,
-  onAdd,
-}: AddEmployeeDialogProps) {
-  const [newEmployee, setNewEmployee] = useState<Omit<Employee, "employee_id">>(
-    {
-      name: "",
-      last_name: "",
-      lanid: "",
-      phone_number: "",
-      extension: null,
-      street_address: "",
-      city: "",
-      state: "",
-      zip: "",
-      department: "",
-      role: "",
-      position: "",
-      contact_info: "",
-      pay_type: null,
-      employee_number: null,
-      pay_rate: null,
-      hire_date: null,
-      birthday: null,
-      promotion_date: null,
-      status: "",
-      term_date: null,
-      newRole: null,
-      newPayType: null,
-      newPayRate: null,
-    }
-  );
+export default function AddEmployeeDialog({ isOpen, onClose, onAdd }: AddEmployeeDialogProps) {
+  const [newEmployee, setNewEmployee] = useState<Omit<Employee, 'employee_id'>>({
+    name: '',
+    last_name: '',
+    lanid: '',
+    phone_number: '',
+    extension: null,
+    street_address: '',
+    city: '',
+    state: '',
+    zip: '',
+    department: '',
+    role: '',
+    position: '',
+    contact_info: '',
+    pay_type: null,
+    employee_number: null,
+    pay_rate: null,
+    hire_date: null,
+    birthday: null,
+    promotion_date: null,
+    status: '',
+    term_date: null,
+    newRole: null,
+    newPayType: null,
+    newPayRate: null,
+  });
 
   const [schedule, setSchedule] = useState<ScheduleEntry[]>(initialSchedule);
   const [roles, setRoles] = useState<string[]>([]);
-  const [referenceOptions, setReferenceOptions] = useState<ReferenceOption[]>(
-    []
-  );
+  const [referenceOptions, setReferenceOptions] = useState<ReferenceOption[]>([]);
 
   useEffect(() => {
     fetchReferenceOptions();
@@ -93,12 +80,12 @@ export default function AddEmployeeDialog({
 
   const fetchReferenceOptions = async () => {
     const { data, error } = await supabase
-      .from("onboarding_references")
-      .select("*")
-      .order("display_order");
+      .from('onboarding_references')
+      .select('*')
+      .order('display_order');
 
     if (error) {
-      console.error("Error fetching reference options:", error);
+      console.error('Error fetching reference options:', error);
     } else {
       setReferenceOptions(data || []);
     }
@@ -114,10 +101,7 @@ export default function AddEmployeeDialog({
     const { name, value } = e.target;
     setNewEmployee((prev) => ({
       ...prev,
-      [name]:
-        name === "rank" || name === "pay_rate"
-          ? parseFloat(value) || null
-          : value,
+      [name]: name === 'rank' || name === 'pay_rate' ? parseFloat(value) || null : value,
     }));
   };
 
@@ -125,15 +109,9 @@ export default function AddEmployeeDialog({
     setNewEmployee((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleScheduleChange = (
-    index: number,
-    field: "start_time" | "end_time",
-    value: string
-  ) => {
+  const handleScheduleChange = (index: number, field: 'start_time' | 'end_time', value: string) => {
     setSchedule((prev) =>
-      prev.map((entry, i) =>
-        i === index ? { ...entry, [field]: value } : entry
-      )
+      prev.map((entry, i) => (i === index ? { ...entry, [field]: value } : entry))
     );
   };
 
@@ -145,17 +123,17 @@ export default function AddEmployeeDialog({
 
       // Add the employee
       const { data: insertedEmployee, error: employeeError } = await supabase
-        .from("employees")
+        .from('employees')
         .insert([newEmployee])
         .select();
 
       if (employeeError) {
-        console.error("Error adding employee:", employeeError);
+        console.error('Error adding employee:', employeeError);
         return;
       }
 
       if (!insertedEmployee || insertedEmployee.length === 0) {
-        console.error("No employee data returned after insert");
+        console.error('No employee data returned after insert');
         return;
       }
 
@@ -171,11 +149,11 @@ export default function AddEmployeeDialog({
       }));
 
       const { error: scheduleError } = await supabase
-        .from("reference_schedules")
+        .from('reference_schedules')
         .insert(scheduleEntries);
 
       if (scheduleError) {
-        console.error("Error adding schedule:", scheduleError);
+        console.error('Error adding schedule:', scheduleError);
         return;
       }
 
@@ -184,26 +162,26 @@ export default function AddEmployeeDialog({
 
       // Reset form and close dialog
       setNewEmployee({
-        name: "",
-        last_name: "",
-        lanid: "",
-        phone_number: "",
+        name: '',
+        last_name: '',
+        lanid: '',
+        phone_number: '',
         extension: null,
-        street_address: "",
-        city: "",
-        state: "",
-        zip: "",
-        department: "",
-        role: "",
-        position: "",
-        contact_info: "",
+        street_address: '',
+        city: '',
+        state: '',
+        zip: '',
+        department: '',
+        role: '',
+        position: '',
+        contact_info: '',
         pay_type: null,
         employee_number: null,
         pay_rate: null,
         hire_date: null,
         birthday: null,
         promotion_date: null,
-        status: "",
+        status: '',
         term_date: null,
         newRole: null,
         newPayType: null,
@@ -212,7 +190,7 @@ export default function AddEmployeeDialog({
       setSchedule(initialSchedule);
       onClose();
     } catch (error) {
-      console.error("Error in handleSubmit:", error);
+      console.error('Error in handleSubmit:', error);
     }
   };
 
@@ -261,7 +239,7 @@ export default function AddEmployeeDialog({
                 <Input
                   id="extension"
                   name="extension"
-                  value={newEmployee.extension || ""}
+                  value={newEmployee.extension || ''}
                   onChange={handleInputChange}
                 />
               </div>
@@ -308,16 +286,14 @@ export default function AddEmployeeDialog({
               <div className="flex flex-col space-y-2">
                 <Label htmlFor="department">Department</Label>
                 <Select
-                  onValueChange={(value) =>
-                    handleSelectChange("department", value)
-                  }
+                  onValueChange={(value) => handleSelectChange('department', value)}
                   value={newEmployee.department}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select department" />
                   </SelectTrigger>
                   <SelectContent>
-                    {getOptionsForField("department").map((option) => (
+                    {getOptionsForField('department').map((option) => (
                       <SelectItem key={option.id} value={option.option_value}>
                         {option.option_value}
                       </SelectItem>
@@ -328,14 +304,14 @@ export default function AddEmployeeDialog({
               <div className="flex flex-col space-y-2">
                 <Label htmlFor="role">Role</Label>
                 <Select
-                  onValueChange={(value) => handleSelectChange("role", value)}
+                  onValueChange={(value) => handleSelectChange('role', value)}
                   value={newEmployee.role}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
                   <SelectContent>
-                    {getOptionsForField("role").map((option) => (
+                    {getOptionsForField('role').map((option) => (
                       <SelectItem key={option.id} value={option.option_value}>
                         {option.option_value}
                       </SelectItem>
@@ -360,10 +336,8 @@ export default function AddEmployeeDialog({
               <div className="flex flex-col space-y-2">
                 <Label htmlFor="pay_type">Pay Type</Label>
                 <Select
-                  onValueChange={(value) =>
-                    handleSelectChange("pay_type", value)
-                  }
-                  value={newEmployee.pay_type || ""}
+                  onValueChange={(value) => handleSelectChange('pay_type', value)}
+                  value={newEmployee.pay_type || ''}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select pay type" />
@@ -379,7 +353,7 @@ export default function AddEmployeeDialog({
                 <Input
                   id="lanid"
                   name="lanid"
-                  value={newEmployee.lanid || ""}
+                  value={newEmployee.lanid || ''}
                   onChange={handleInputChange}
                 />
               </div>
@@ -389,7 +363,7 @@ export default function AddEmployeeDialog({
                   id="rank"
                   name="rank"
                   type="number"
-                  value={newEmployee.employee_number?.toString() || ""}
+                  value={newEmployee.employee_number?.toString() || ''}
                   onChange={handleInputChange}
                 />
               </div>
@@ -400,7 +374,7 @@ export default function AddEmployeeDialog({
                   name="pay_rate"
                   type="number"
                   step="0.01"
-                  value={newEmployee.pay_rate?.toString() || ""}
+                  value={newEmployee.pay_rate?.toString() || ''}
                   onChange={handleInputChange}
                 />
               </div>
@@ -411,7 +385,7 @@ export default function AddEmployeeDialog({
                   id="hire_date"
                   name="hire_date"
                   type="date"
-                  value={newEmployee.hire_date || ""}
+                  value={newEmployee.hire_date || ''}
                   onChange={handleInputChange}
                   required
                 />
@@ -424,7 +398,7 @@ export default function AddEmployeeDialog({
                   id="birthday"
                   name="birthday"
                   type="date"
-                  value={newEmployee.birthday || ""}
+                  value={newEmployee.birthday || ''}
                   onChange={handleInputChange}
                   required
                 />
@@ -435,7 +409,7 @@ export default function AddEmployeeDialog({
                   id="promotion_date"
                   name="promotion_date"
                   type="date"
-                  value={newEmployee.promotion_date || ""}
+                  value={newEmployee.promotion_date || ''}
                   onChange={handleInputChange}
                 />
               </div>
@@ -457,16 +431,12 @@ export default function AddEmployeeDialog({
                   <Input
                     type="time"
                     value={entry.start_time}
-                    onChange={(e) =>
-                      handleScheduleChange(index, "start_time", e.target.value)
-                    }
+                    onChange={(e) => handleScheduleChange(index, 'start_time', e.target.value)}
                   />
                   <Input
                     type="time"
                     value={entry.end_time}
-                    onChange={(e) =>
-                      handleScheduleChange(index, "end_time", e.target.value)
-                    }
+                    onChange={(e) => handleScheduleChange(index, 'end_time', e.target.value)}
                   />
                 </div>
               ))}

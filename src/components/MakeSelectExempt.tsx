@@ -1,16 +1,16 @@
-import React from "react";
-import { useQuery } from "@tanstack/react-query";
+import React from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import DOMPurify from "isomorphic-dompurify";
-import { UseFormSetValue } from "react-hook-form";
-import type { FormData } from "../app/TGR/dros/training/exempthandgun/page";
+} from '@/components/ui/select';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import DOMPurify from 'isomorphic-dompurify';
+import { UseFormSetValue } from 'react-hook-form';
+import type { FormData } from '../app/TGR/dros/training/exempthandgun/page';
 
 interface Manufacturer {
   value: string;
@@ -24,12 +24,7 @@ interface MakeSelectProps {
   isLoadingHandguns: boolean;
 }
 
-const MakeSelectExempt = ({
-  setValue,
-  value,
-  handgunData,
-  isLoadingHandguns,
-}: MakeSelectProps) => {
+const MakeSelectExempt = ({ setValue, value, handgunData, isLoadingHandguns }: MakeSelectProps) => {
   if (isLoadingHandguns) {
     return (
       <Select disabled>
@@ -54,8 +49,8 @@ const MakeSelectExempt = ({
     <Select
       value={value}
       onValueChange={(newValue) => {
-        setValue("make", newValue);
-        setValue("model", "");
+        setValue('make', newValue);
+        setValue('model', '');
       }}
     >
       <SelectTrigger className="w-full">

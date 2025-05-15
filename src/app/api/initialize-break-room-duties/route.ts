@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
-import { addWeeks, startOfWeek, format, addDays } from "date-fns";
+import { NextResponse } from 'next/server';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
+import { addWeeks, startOfWeek, format, addDays } from 'date-fns';
 
 export async function POST(request: Request) {
   const supabase = createRouteHandlerClient({ cookies });
@@ -11,36 +11,33 @@ export async function POST(request: Request) {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Get all sales employees
     const { data: salesEmployees, error: employeesError } = await supabase
-      .from("employees")
-      .select("employee_id, rank")
-      .eq("department", "Sales")
-      .order("rank");
+      .from('employees')
+      .select('employee_id, rank')
+      .eq('department', 'Sales')
+      .order('rank');
 
     if (employeesError) throw employeesError;
     if (!salesEmployees || salesEmployees.length === 0) {
-      return NextResponse.json(
-        { error: "No sales employees found" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'No sales employees found' }, { status: 400 });
     }
 
     // Start from the first week of 2025
-    let currentDate = new Date("2025-01-01");
+    let currentDate = new Date('2025-01-01');
     currentDate = startOfWeek(currentDate);
-    const endDate = new Date("2025-12-31");
+    const endDate = new Date('2025-12-31');
     let currentEmployeeIndex = 0;
     const duties = [];
     let skippedWeeks = 0;
 
     while (currentDate <= endDate) {
-      const weekStart = format(currentDate, "yyyy-MM-dd");
+      const weekStart = format(currentDate, 'yyyy-MM-dd');
       const friday = addDays(currentDate, 5); // Get Friday of current week
-      const dutyDate = format(friday, "yyyy-MM-dd");
+      const dutyDate = format(friday, 'yyyy-MM-dd');
 
       let employeeAssigned = false;
       let attemptsCount = 0;
@@ -51,11 +48,11 @@ export async function POST(request: Request) {
 
         // Check if employee is scheduled for this Friday
         const { data: schedules } = await supabase
-          .from("schedules")
-          .select("*")
-          .eq("employee_id", employee.employee_id)
-          .eq("schedule_date", dutyDate)
-          .in("status", ["scheduled", "added_day"]);
+          .from('schedules')
+          .select('*')
+          .eq('employee_id', employee.employee_id)
+          .eq('schedule_date', dutyDate)
+          .in('status', ['scheduled', 'added_day']);
 
         if (schedules && schedules.length > 0) {
           duties.push({
@@ -69,8 +66,7 @@ export async function POST(request: Request) {
           employeeAssigned = true;
         }
 
-        currentEmployeeIndex =
-          (currentEmployeeIndex + 1) % salesEmployees.length;
+        currentEmployeeIndex = (currentEmployeeIndex + 1) % salesEmployees.length;
         attemptsCount++;
       }
 
@@ -82,10 +78,7 @@ export async function POST(request: Request) {
     }
 
     if (duties.length > 0) {
-      const { data, error } = await supabase
-        .from("break_room_duty")
-        .insert(duties)
-        .select();
+      const { data, error } = await supabase.from('break_room_duty').insert(duties).select();
 
       if (error) throw error;
 
@@ -99,7 +92,7 @@ export async function POST(request: Request) {
       message: `No new duties created. Skipped ${skippedWeeks} weeks.`,
     });
   } catch (error: any) {
-    console.error("Error initializing break room duties:", error);
+    console.error('Error initializing break room duties:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

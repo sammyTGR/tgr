@@ -1,41 +1,41 @@
-"use client";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { supabase } from "@/utils/supabase/client";
-import { Order, createColumns } from "./columns";
-import { DataTable } from "./data-table";
-import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
-import { OrderTableToolbar } from "./order-table-toolbar";
+'use client';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { supabase } from '@/utils/supabase/client';
+import { Order, createColumns } from './columns';
+import { DataTable } from './data-table';
+import { TextGenerateEffect } from '@/components/ui/text-generate-effect';
+import { OrderTableToolbar } from './order-table-toolbar';
 import {
   useReactTable,
   getCoreRowModel,
   getPaginationRowModel,
   getFilteredRowModel,
   getSortedRowModel,
-} from "@tanstack/react-table";
-import RoleBasedWrapper from "@/components/RoleBasedWrapper";
-import { DataTableFacetedFilter } from "./data-table-faceted-filter";
-import { toast } from "sonner";
-import { useRole } from "@/context/RoleContext";
-import { statuses } from "./data";
-import { useSidebar } from "@/components/ui/sidebar";
+} from '@tanstack/react-table';
+import RoleBasedWrapper from '@/components/RoleBasedWrapper';
+import { DataTableFacetedFilter } from './data-table-faceted-filter';
+import { toast } from 'sonner';
+import { useRole } from '@/context/RoleContext';
+import { statuses } from './data';
+import { useSidebar } from '@/components/ui/sidebar';
 
-const title = "Review Submissions";
+const title = 'Review Submissions';
 
 export default function OrdersReviewPage() {
   const [data, setData] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<string[]>(["not_contacted"]); // Default filter
+  const [statusFilter, setStatusFilter] = useState<string[]>(['not_contacted']); // Default filter
   const { user } = useRole();
   const { state } = useSidebar();
 
   const fetchOrderData = useCallback(async () => {
     const { data, error } = await supabase
-      .from("orders")
-      .select("*, employee_email")
-      .order("created_at", { ascending: false });
+      .from('orders')
+      .select('*, employee_email')
+      .order('created_at', { ascending: false });
 
     if (error) {
-      console.error("Error fetching initial data:", error.message);
+      console.error('Error fetching initial data:', error.message);
       throw new Error(error.message);
     }
     return data as Order[];
@@ -48,7 +48,7 @@ export default function OrdersReviewPage() {
       setData(fetchedData);
       setLoading(false);
     } catch (error) {
-      console.error("Failed to fetch data:", error);
+      console.error('Failed to fetch data:', error);
       setLoading(false);
     }
   }, [fetchOrderData]);
@@ -60,8 +60,8 @@ export default function OrdersReviewPage() {
   const filteredData = useMemo(() => {
     return data.filter((order) => {
       // If the filter includes "not_contacted" and it's the only filter, exclude "contacted"
-      if (statusFilter.includes("not_contacted") && statusFilter.length === 1) {
-        return order.status !== "contacted";
+      if (statusFilter.includes('not_contacted') && statusFilter.length === 1) {
+        return order.status !== 'contacted';
       }
       return statusFilter.includes(order.status);
     });
@@ -69,10 +69,10 @@ export default function OrdersReviewPage() {
 
   const sendEmail = async (templateName: string, templateData: any) => {
     try {
-      const response = await fetch("/api/send_email", {
-        method: "POST",
+      const response = await fetch('/api/send_email', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           email: templateData.recipientEmail,
@@ -83,27 +83,27 @@ export default function OrdersReviewPage() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to send email");
+        throw new Error('Failed to send email');
       }
     } catch (error) {
-      console.error("Error sending email:", error);
+      console.error('Error sending email:', error);
       throw error;
     }
   };
 
   const getEmployeeName = async (employeeEmail: string) => {
     const { data, error } = await supabase
-      .from("employees")
-      .select("name")
-      .eq("contact_info", employeeEmail)
+      .from('employees')
+      .select('name')
+      .eq('contact_info', employeeEmail)
       .single();
 
     if (error) {
-      console.error("Error fetching employee name:", error);
-      return "Unknown Employee";
+      console.error('Error fetching employee name:', error);
+      return 'Unknown Employee';
     }
 
-    return data?.name || "Unknown Employee";
+    return data?.name || 'Unknown Employee';
   };
 
   const markAsContacted = async (orderId: number) => {
@@ -111,17 +111,15 @@ export default function OrdersReviewPage() {
     if (order) {
       try {
         const { error } = await supabase
-          .from("orders")
-          .update({ contacted: true, status: "contacted", is_read: true })
-          .eq("id", orderId);
+          .from('orders')
+          .update({ contacted: true, status: 'contacted', is_read: true })
+          .eq('id', orderId);
 
         if (error) throw error;
 
         setData((currentData) =>
           currentData.map((o) =>
-            o.id === orderId
-              ? { ...o, contacted: true, status: "contacted", is_read: true }
-              : o
+            o.id === orderId ? { ...o, contacted: true, status: 'contacted', is_read: true } : o
           )
         );
 
@@ -129,15 +127,15 @@ export default function OrdersReviewPage() {
         // console.log("Marking as contacted. User name:", userName);
 
         // Send email to the employee
-        const response = await fetch("/api/send_email", {
-          method: "POST",
+        const response = await fetch('/api/send_email', {
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
           },
           body: JSON.stringify({
             email: order.employee_email, // Use the new employee_email field
             subject: `${order.customer_name} Contacted for Special Order ${order.id}`,
-            templateName: "OrderCustomerContacted",
+            templateName: 'OrderCustomerContacted',
             templateData: {
               id: order.id,
               customerName: order.customer_name,
@@ -149,15 +147,13 @@ export default function OrdersReviewPage() {
         });
 
         if (!response.ok) {
-          throw new Error("Failed to send email");
+          throw new Error('Failed to send email');
         }
 
-        toast.success(
-          "Customer marked as contacted and email sent to employee."
-        );
+        toast.success('Customer marked as contacted and email sent to employee.');
       } catch (error) {
-        console.error("Error marking as contacted:", error);
-        toast.error("Failed to mark as contacted and send email notification.");
+        console.error('Error marking as contacted:', error);
+        toast.error('Failed to mark as contacted and send email notification.');
       }
     }
   };
@@ -167,32 +163,29 @@ export default function OrdersReviewPage() {
     if (order) {
       try {
         const { error } = await supabase
-          .from("orders")
+          .from('orders')
           .update({ status, is_read: true })
-          .eq("id", orderId);
+          .eq('id', orderId);
 
         if (error) throw error;
 
         setData((currentData) =>
-          currentData.map((o) =>
-            o.id === orderId ? { ...o, status, is_read: true } : o
-          )
+          currentData.map((o) => (o.id === orderId ? { ...o, status, is_read: true } : o))
         );
 
         const employeeName = await getEmployeeName(order.employee_email);
-        const statusLabel =
-          statuses.find((s) => s.value === status)?.label || status;
+        const statusLabel = statuses.find((s) => s.value === status)?.label || status;
 
         // Send email to the employee
-        const response = await fetch("/api/send_email", {
-          method: "POST",
+        const response = await fetch('/api/send_email', {
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
           },
           body: JSON.stringify({
             email: order.employee_email, // Use the new employee_email field
             subject: `Order Status Updated for ${order.customer_name}`,
-            templateName: "OrderSetStatus",
+            templateName: 'OrderSetStatus',
             templateData: {
               id: order.id,
               customerName: order.customer_name,
@@ -204,13 +197,13 @@ export default function OrdersReviewPage() {
         });
 
         if (!response.ok) {
-          throw new Error("Failed to send email");
+          throw new Error('Failed to send email');
         }
 
-        toast.success("Order status updated and email sent to employee.");
+        toast.success('Order status updated and email sent to employee.');
       } catch (error) {
-        console.error("Error updating status:", error);
-        toast.error("Failed to update status and send email notification.");
+        console.error('Error updating status:', error);
+        toast.error('Failed to update status and send email notification.');
       }
     }
   };
@@ -227,26 +220,20 @@ export default function OrdersReviewPage() {
 
   useEffect(() => {
     const OrdersTableSubscription = supabase
-      .channel("custom-all-orders-channel")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "orders" },
-        (payload) => {
-          if (payload.eventType === "INSERT") {
-            setData((currentData) => [payload.new as Order, ...currentData]);
-          } else if (payload.eventType === "UPDATE") {
-            setData((currentData) =>
-              currentData.map((order) =>
-                order.id === payload.new.id ? (payload.new as Order) : order
-              )
-            );
-          } else if (payload.eventType === "DELETE") {
-            setData((currentData) =>
-              currentData.filter((order) => order.id !== payload.old.id)
-            );
-          }
+      .channel('custom-all-orders-channel')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          setData((currentData) => [payload.new as Order, ...currentData]);
+        } else if (payload.eventType === 'UPDATE') {
+          setData((currentData) =>
+            currentData.map((order) =>
+              order.id === payload.new.id ? (payload.new as Order) : order
+            )
+          );
+        } else if (payload.eventType === 'DELETE') {
+          setData((currentData) => currentData.filter((order) => order.id !== payload.old.id));
         }
-      )
+      })
       .subscribe();
 
     return () => {
@@ -255,18 +242,18 @@ export default function OrdersReviewPage() {
   }, [fetchData]);
 
   const statusOptions = [
-    { label: "Ordered", value: "ordered" },
-    { label: "Back Ordered", value: "back_ordered" },
-    { label: "Needs Payment", value: "needs_payment" },
-    { label: "Arrived", value: "arrived" },
-    { label: "Cancelled", value: "cancelled" },
-    { label: "Complete", value: "complete" },
-    { label: "Contacted", value: "contacted" },
-    { label: "Tried To Contact", value: "try_contacted" },
+    { label: 'Ordered', value: 'ordered' },
+    { label: 'Back Ordered', value: 'back_ordered' },
+    { label: 'Needs Payment', value: 'needs_payment' },
+    { label: 'Arrived', value: 'arrived' },
+    { label: 'Cancelled', value: 'cancelled' },
+    { label: 'Complete', value: 'complete' },
+    { label: 'Contacted', value: 'contacted' },
+    { label: 'Tried To Contact', value: 'try_contacted' },
   ];
 
   return (
-    <RoleBasedWrapper allowedRoles={["admin", "ceo", "super admin", "dev"]}>
+    <RoleBasedWrapper allowedRoles={['admin', 'ceo', 'super admin', 'dev']}>
       <div
         className={`relative w-full ml-6 md:w-[calc(100vw-15rem)] md:ml-6 lg:w-[calc(100vw-15rem)] lg:ml-6 h-full overflow-hidden flex-1 transition-all duration-300`}
       >
@@ -280,7 +267,7 @@ export default function OrdersReviewPage() {
           </div>
           <div className="flex-1 flex flex-col space-y-4">
             <DataTableFacetedFilter
-              column={table.getColumn("status")}
+              column={table.getColumn('status')}
               title="Status"
               options={statusOptions}
               table={table}

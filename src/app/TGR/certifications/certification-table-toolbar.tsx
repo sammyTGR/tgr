@@ -1,13 +1,13 @@
 // src/app/TGR/certifications/certification-table-toolbar.tsx
-"use client";
+'use client';
 
-import { Cross2Icon } from "@radix-ui/react-icons";
-import { ColumnFiltersState, Table } from "@tanstack/react-table";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { DataTableFacetedFilter } from "./data-table-faceted-filter";
-import { statuses } from "./statuses";
-import { useState } from "react";
+import { Cross2Icon } from '@radix-ui/react-icons';
+import { ColumnFiltersState, Table } from '@tanstack/react-table';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { DataTableFacetedFilter } from './data-table-faceted-filter';
+import { statuses } from './statuses';
+import { useState } from 'react';
 
 interface CertificationTableToolbarProps<TData> {
   table: Table<TData>;
@@ -23,8 +23,8 @@ export function CertificationTableToolbar<TData>({
     certificate: string;
     action_status?: string[];
   }>({
-    name: "",
-    certificate: "",
+    name: '',
+    certificate: '',
     action_status: [],
   });
 
@@ -45,7 +45,7 @@ export function CertificationTableToolbar<TData>({
         if (Array.isArray(value)) {
           return value.length > 0;
         }
-        return value !== "";
+        return value !== '';
       })
       .map(([id, value]) => ({
         id,
@@ -65,15 +65,13 @@ export function CertificationTableToolbar<TData>({
         <Input
           placeholder="Filter By Name..."
           value={filterValues.name}
-          onChange={(event) => handleFilterChange("name", event.target.value)}
+          onChange={(event) => handleFilterChange('name', event.target.value)}
           className="h-8 w-[150px] lg:w-[250px]"
         />
         <Input
           placeholder="Filter By Certificate"
           value={filterValues.certificate}
-          onChange={(event) =>
-            handleFilterChange("certificate", event.target.value)
-          }
+          onChange={(event) => handleFilterChange('certificate', event.target.value)}
           className="h-8 w-[150px] lg:w-[250px]"
         />
         {/* {table.getColumn("action_status") && (
@@ -90,7 +88,7 @@ export function CertificationTableToolbar<TData>({
           <Button
             variant="ghost"
             onClick={() => {
-              setFilterValues({ name: "", certificate: "", action_status: [] });
+              setFilterValues({ name: '', certificate: '', action_status: [] });
               table.resetColumnFilters();
               onFilterChange([]);
             }}

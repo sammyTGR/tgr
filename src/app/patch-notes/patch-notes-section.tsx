@@ -1,15 +1,15 @@
-"use client";
+'use client';
 
-import { usePatchNotes } from "@/lib/hooks/usePatchNotes";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Button } from "@/components/ui/button";
-import { Edit, ChevronUp, ChevronDown } from "lucide-react";
-import { format } from "date-fns";
-import { useState } from "react";
-import RoleBasedWrapper from "@/components/RoleBasedWrapper";
-import { useRole } from "@/context/RoleContext";
+import { usePatchNotes } from '@/lib/hooks/usePatchNotes';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/ui/button';
+import { Edit, ChevronUp, ChevronDown } from 'lucide-react';
+import { format } from 'date-fns';
+import { useState } from 'react';
+import RoleBasedWrapper from '@/components/RoleBasedWrapper';
+import { useRole } from '@/context/RoleContext';
 
 interface PatchNote {
   id: string;
@@ -18,7 +18,7 @@ interface PatchNote {
   description: string;
   release_date: string;
   changes: {
-    type: "added" | "changed" | "fixed" | "removed";
+    type: 'added' | 'changed' | 'fixed' | 'removed';
     items: string[];
   }[];
 }
@@ -32,13 +32,11 @@ interface PatchNotesSectionProps {
 export function PatchNotesSection({
   onEdit,
   setDialogOpen,
-  className = "",
+  className = '',
 }: PatchNotesSectionProps) {
   const { data: patchNotes, isLoading } = usePatchNotes();
   const { role } = useRole();
-  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>(
-    {}
-  );
+  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
 
   if (isLoading) return <div>Loading...</div>;
 
@@ -66,7 +64,7 @@ export function PatchNotesSection({
     const isExpanded = expandedCards[id] ?? false;
 
     return (
-      <Card className={`relative ${isExpanded ? "h-auto" : "h-[200px]"}`}>
+      <Card className={`relative ${isExpanded ? 'h-auto' : 'h-[200px]'}`}>
         <CardHeader className="flex flex-row items-center justify-between">
           <div className="flex items-center gap-2">
             <CardTitle>{title}</CardTitle>
@@ -76,11 +74,7 @@ export function PatchNotesSection({
               onClick={() => toggleCardExpansion(id)}
               className="h-8 w-8 p-0"
             >
-              {isExpanded ? (
-                <ChevronUp className="h-4 w-4" />
-              ) : (
-                <ChevronDown className="h-4 w-4" />
-              )}
+              {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
             </Button>
           </div>
         </CardHeader>
@@ -88,8 +82,8 @@ export function PatchNotesSection({
           className={`
             ${
               isExpanded
-                ? "h-auto max-h-[500px] overflow-y-auto pr-4"
-                : "h-[100px] overflow-y-auto pr-4"
+                ? 'h-auto max-h-[500px] overflow-y-auto pr-4'
+                : 'h-[100px] overflow-y-auto pr-4'
             }
             space-y-2
           `}
@@ -109,27 +103,21 @@ export function PatchNotesSection({
               <Badge variant="secondary" className="ml-2">
                 v{note.version}
               </Badge>
-              {role === "dev" && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleEdit(note)}
-                >
+              {role === 'dev' && (
+                <Button variant="ghost" size="sm" onClick={() => handleEdit(note)}>
                   <Edit className="w-4 h-4" />
                 </Button>
               )}
             </div>
             <span className="text-sm text-muted-foreground">
-              {format(new Date(note.release_date), "MMM dd, yyyy")}
+              {format(new Date(note.release_date), 'MMM dd, yyyy')}
             </span>
           </div>
           <p className="mb-4">{note.description}</p>
           <ScrollArea className="h-full">
             {note.changes.map((change, index) => (
               <div key={index} className="mb-4">
-                <h3 className="font-semibold capitalize mb-2">
-                  {change.type}:
-                </h3>
+                <h3 className="font-semibold capitalize mb-2">{change.type}:</h3>
                 <ul className="list-disc list-inside space-y-1">
                   {change.items.map((item, i) => (
                     <li key={i}>{item}</li>

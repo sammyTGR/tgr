@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { createColumnHelper } from "@tanstack/react-table";
+import { createColumnHelper } from '@tanstack/react-table';
 import {
   QueryClient,
   QueryClientProvider,
@@ -8,7 +8,7 @@ import {
   useMutation,
   useQueryClient,
   UseMutationResult,
-} from "@tanstack/react-query";
+} from '@tanstack/react-query';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,69 +19,60 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { format, parseISO, startOfDay, endOfDay } from "date-fns";
-import DOMPurify from "dompurify";
-import dynamic from "next/dynamic";
-import * as XLSX from "xlsx";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { DataTableProfile } from "./contest/data-table-profile";
-import { unstable_cache } from "next/cache";
+} from '@/components/ui/alert-dialog';
+import { format, parseISO, startOfDay, endOfDay } from 'date-fns';
+import DOMPurify from 'dompurify';
+import dynamic from 'next/dynamic';
+import * as XLSX from 'xlsx';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { DataTableProfile } from './contest/data-table-profile';
+import { unstable_cache } from 'next/cache';
 // Component imports
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import RoleBasedWrapper from "@/components/RoleBasedWrapper";
-import SubmitAuditForm from "./submit/form";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import SupportNavMenu from "@/components/ui/SupportNavMenu";
-import { DataTable } from "@/components/ui/data-table";
-import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
-import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  CalendarIcon,
-  Pencil1Icon,
-  TrashIcon,
-  PlusIcon,
-} from "@radix-ui/react-icons";
-import { Calendar } from "@/components/ui/calendar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import RoleBasedWrapper from '@/components/RoleBasedWrapper';
+import SubmitAuditForm from './submit/form';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import SupportNavMenu from '@/components/ui/SupportNavMenu';
+import { DataTable } from '@/components/ui/data-table';
+import { TextGenerateEffect } from '@/components/ui/text-generate-effect';
+import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CalendarIcon, Pencil1Icon, TrashIcon, PlusIcon } from '@radix-ui/react-icons';
+import { Calendar } from '@/components/ui/calendar';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import LoadingIndicator from "@/components/LoadingIndicator";
-import { WeightedScoringCalculator } from "./contest/WeightedScoringCalculator";
-import { supabase } from "@/utils/supabase/client";
-import { toast } from "sonner";
-import { useMemo, useState, useRef } from "react";
-import { ModalStateProvider, useModalState } from "@/context/ModalStateContext";
-import AuditChart from "./AuditChart";
-import { useCallback } from "react";
+} from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import LoadingIndicator from '@/components/LoadingIndicator';
+import { WeightedScoringCalculator } from './contest/WeightedScoringCalculator';
+import { supabase } from '@/utils/supabase/client';
+import { toast } from 'sonner';
+import { useMemo, useState, useRef } from 'react';
+import { ModalStateProvider, useModalState } from '@/context/ModalStateContext';
+import AuditChart from './AuditChart';
+import { useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import EditAuditForm, { AuditData } from "./submit/edit-audit-form";
-import { HistoricalAuditChart } from "./HistoricalAuditChart";
-import type { ColumnDef } from "@tanstack/react-table";
-import type { CSSProperties } from "react";
-import { Textarea } from "@/components/ui/textarea";
-import { CategoryForm } from "./components/CategoryForm";
-import { ChevronUp } from "lucide-react";
-import { ChevronDown } from "lucide-react";
-import { CustomCalendarDashboard } from "@/components/ui/calendar";
+} from '@/components/ui/dialog';
+import EditAuditForm, { AuditData } from './submit/edit-audit-form';
+import { HistoricalAuditChart } from './HistoricalAuditChart';
+import type { ColumnDef } from '@tanstack/react-table';
+import type { CSSProperties } from 'react';
+import { Textarea } from '@/components/ui/textarea';
+import { CategoryForm } from './components/CategoryForm';
+import { ChevronUp } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
+import { CustomCalendarDashboard } from '@/components/ui/calendar';
 
 // Type definitions
 interface OptionType {
@@ -212,11 +203,7 @@ interface PageParams {
 }
 
 interface TableMeta<T> {
-  updateMutation: UseMutationResult<
-    any,
-    Error,
-    { auditId: string; data: Partial<Audit> }
-  >;
+  updateMutation: UseMutationResult<any, Error, { auditId: string; data: Partial<Audit> }>;
   deleteMutation: UseMutationResult<any, Error, string>;
 }
 
@@ -233,14 +220,14 @@ interface AuditCategory {
   updated_at?: string;
 }
 
-const MODAL_KEY = ["edit-modal-state"] as const;
-const AUDITS_KEY = ["audits"] as const;
-const DELETE_DIALOG_KEY = ["delete-dialog-state"] as const;
+const MODAL_KEY = ['edit-modal-state'] as const;
+const AUDITS_KEY = ['audits'] as const;
+const DELETE_DIALOG_KEY = ['delete-dialog-state'] as const;
 const CACHE_TAGS = {
-  EMPLOYEES: "employees",
-  AUDITS: "audits",
-  POINTS_CALCULATION: "points-calculation",
-  SALES_DATA: "sales-data",
+  EMPLOYEES: 'employees',
+  AUDITS: 'audits',
+  POINTS_CALCULATION: 'points-calculation',
+  SALES_DATA: 'sales-data',
 } as const;
 
 // Create Query Client with configuration
@@ -258,7 +245,7 @@ const queryClient = new QueryClient({
 // Lazy loaded components with proper types
 const LazyDataTable = dynamic<any>(
   () =>
-    import("@/components/ui/data-table").then((mod) => ({
+    import('@/components/ui/data-table').then((mod) => ({
       default: mod.DataTable,
     })),
   {
@@ -269,7 +256,7 @@ const LazyDataTable = dynamic<any>(
 
 const LazyDataTableProfile = dynamic<any>(
   () =>
-    import("./contest/data-table-profile").then((mod) => ({
+    import('./contest/data-table-profile').then((mod) => ({
       default: mod.DataTableProfile,
     })),
   {
@@ -282,26 +269,23 @@ const LazyDataTableProfile = dynamic<any>(
 const api = {
   fetchEmployees: async (): Promise<Employee[]> => {
     const { data, error } = await supabase
-      .from("employees")
-      .select("lanid,department,role,status,contact_info")
-      .eq("status", "active")
-      .order("lanid", { ascending: true });
+      .from('employees')
+      .select('lanid,department,role,status,contact_info')
+      .eq('status', 'active')
+      .order('lanid', { ascending: true });
 
     if (error) throw new Error(`Error fetching employees: ${error.message}`);
     return data || [];
   },
 
   fetchAudits: async (filters?: AuditFilters): Promise<Audit[]> => {
-    let query = supabase
-      .from("Auditsinput")
-      .select("*")
-      .order("audit_date", { ascending: false });
+    let query = supabase.from('Auditsinput').select('*').order('audit_date', { ascending: false });
 
     if (filters) {
-      if (filters.startDate) query = query.gte("audit_date", filters.startDate);
-      if (filters.endDate) query = query.lte("audit_date", filters.endDate);
-      if (filters.lanid) query = query.eq("salesreps", filters.lanid);
-      if (filters.auditType) query = query.eq("audit_type", filters.auditType);
+      if (filters.startDate) query = query.gte('audit_date', filters.startDate);
+      if (filters.endDate) query = query.lte('audit_date', filters.endDate);
+      if (filters.lanid) query = query.eq('salesreps', filters.lanid);
+      if (filters.auditType) query = query.eq('audit_type', filters.auditType);
     }
 
     const { data, error } = await query;
@@ -312,10 +296,10 @@ const api = {
 
   fetchHistoricalAuditData: async (lanid: string) => {
     const { data, error } = await supabase
-      .from("Auditsinput")
-      .select("*")
-      .eq("salesreps", lanid)
-      .order("audit_date", { ascending: true });
+      .from('Auditsinput')
+      .select('*')
+      .eq('salesreps', lanid)
+      .order('audit_date', { ascending: true });
 
     if (error) throw error;
     return data || [];
@@ -323,12 +307,11 @@ const api = {
 
   fetchPointsCalculation: async (): Promise<PointsCalculation[]> => {
     const { data, error } = await supabase
-      .from("points_calculation")
-      .select("*")
-      .order("category", { ascending: true });
+      .from('points_calculation')
+      .select('*')
+      .order('category', { ascending: true });
 
-    if (error)
-      throw new Error(`Error fetching points calculation: ${error.message}`);
+    if (error) throw new Error(`Error fetching points calculation: ${error.message}`);
     return data || [];
   },
 
@@ -339,14 +322,14 @@ const api = {
     showAllEmployees?: boolean
   ): Promise<SalesData[]> => {
     let query = supabase
-      .from("detailed_sales_data")
-      .select("*")
-      .gte("SoldDate", `${startDate}T00:00:00Z`) // Use UTC time
-      .lte("SoldDate", `${endDate}T23:59:59Z`) // Use UTC time
-      .eq("Desc", "Dros Fee");
+      .from('detailed_sales_data')
+      .select('*')
+      .gte('SoldDate', `${startDate}T00:00:00Z`) // Use UTC time
+      .lte('SoldDate', `${endDate}T23:59:59Z`) // Use UTC time
+      .eq('Desc', 'Dros Fee');
 
     if (!showAllEmployees && lanid) {
-      query = query.eq("Lanid", lanid);
+      query = query.eq('Lanid', lanid);
     }
 
     const { data, error } = await query;
@@ -359,23 +342,20 @@ const api = {
       })
       .map((sale) => ({
         ...sale,
-        SoldDate: format(new Date(sale.SoldDate), "yyyy-MM-dd HH:mm:ss"),
-        Date: format(new Date(sale.SoldDate), "yyyy-MM-dd"),
+        SoldDate: format(new Date(sale.SoldDate), 'yyyy-MM-dd HH:mm:ss'),
+        Date: format(new Date(sale.SoldDate), 'yyyy-MM-dd'),
         cancelled_dros: sale.cancelled_dros || 0,
       }));
   },
 
-  updateAudit: async (
-    auditId: string,
-    updateData: Partial<Audit>
-  ): Promise<Audit> => {
+  updateAudit: async (auditId: string, updateData: Partial<Audit>): Promise<Audit> => {
     const { data, error } = await supabase
-      .from("Auditsinput")
+      .from('Auditsinput')
       .update({
         ...updateData,
-        dros_cancel: updateData.dros_cancel ? "True" : "",
+        dros_cancel: updateData.dros_cancel ? 'True' : '',
       })
-      .eq("audits_id", auditId)
+      .eq('audits_id', auditId)
       .select()
       .single();
 
@@ -384,29 +364,24 @@ const api = {
   },
 
   deleteAudit: async (auditId: string): Promise<void> => {
-    const { error } = await supabase
-      .from("Auditsinput")
-      .delete()
-      .eq("audits_id", auditId);
+    const { error } = await supabase.from('Auditsinput').delete().eq('audits_id', auditId);
 
     if (error) throw new Error(`Error deleting audit: ${error.message}`);
   },
 
   fetchAuditCategories: async (): Promise<AuditCategory[]> => {
     const { data, error } = await supabase
-      .from("audit_categories")
-      .select("*")
-      .order("name", { ascending: true });
+      .from('audit_categories')
+      .select('*')
+      .order('name', { ascending: true });
 
     if (error) throw error;
     return data || [];
   },
 
-  createAuditCategory: async (
-    category: Omit<AuditCategory, "id">
-  ): Promise<AuditCategory> => {
+  createAuditCategory: async (category: Omit<AuditCategory, 'id'>): Promise<AuditCategory> => {
     const { data, error } = await supabase
-      .from("audit_categories")
+      .from('audit_categories')
       .insert([category])
       .select()
       .single();
@@ -420,9 +395,9 @@ const api = {
     category: Partial<AuditCategory>
   ): Promise<AuditCategory> => {
     const { data, error } = await supabase
-      .from("audit_categories")
+      .from('audit_categories')
       .update(category)
-      .eq("id", id)
+      .eq('id', id)
       .select()
       .single();
 
@@ -431,10 +406,7 @@ const api = {
   },
 
   deleteAuditCategory: async (id: string): Promise<void> => {
-    const { error } = await supabase
-      .from("audit_categories")
-      .delete()
-      .eq("id", id);
+    const { error } = await supabase.from('audit_categories').delete().eq('id', id);
 
     if (error) throw error;
   },
@@ -444,13 +416,13 @@ const useDeleteDialogState = () => {
   const queryClient = useQueryClient();
 
   const { data: deleteDialogState } = useQuery<DeleteDialogState>({
-    queryKey: ["delete-dialog-state"],
+    queryKey: ['delete-dialog-state'],
     queryFn: () => ({ isOpen: false, auditId: null }),
     staleTime: Infinity,
   });
 
   const setDeleteDialogState = (newState: DeleteDialogState) => {
-    queryClient.setQueryData(["delete-dialog-state"], newState);
+    queryClient.setQueryData(['delete-dialog-state'], newState);
   };
 
   return {
@@ -461,10 +433,10 @@ const useDeleteDialogState = () => {
 
 // Utility Functions
 const sanitizeHtml = (html: string | null | undefined): string => {
-  if (!html) return "";
+  if (!html) return '';
   return DOMPurify.sanitize(html, {
-    ALLOWED_TAGS: ["p", "b", "i", "em", "strong", "span", "div", "br"],
-    ALLOWED_ATTR: ["class", "style"],
+    ALLOWED_TAGS: ['p', 'b', 'i', 'em', 'strong', 'span', 'div', 'br'],
+    ALLOWED_ATTR: ['class', 'style'],
     ADD_TAGS: [], // Required to avoid type error
     ADD_ATTR: [], // Required to avoid type error
     USE_PROFILES: { html: true }, // Required to enable HTML sanitization
@@ -493,23 +465,19 @@ const calculateSummaryData = (
     .map((lanid): SummaryRowData | null => {
       if (!lanid) return null;
 
-      const employeeSalesData = salesData.filter(
-        (sale) => sale.Lanid === lanid
-      );
-      const employeeAuditData = auditData.filter(
-        (audit) => audit.salesreps === lanid
-      );
+      const employeeSalesData = salesData.filter((sale) => sale.Lanid === lanid);
+      const employeeAuditData = auditData.filter((audit) => audit.salesreps === lanid);
 
       const department = employeeDepartments.get(lanid);
-      const isOperations = department?.toString() === "Operations";
+      const isOperations = department?.toString() === 'Operations';
 
       try {
         const calculator = new WeightedScoringCalculator({
           salesData: employeeSalesData.map((sale) => ({
             ...sale,
-            Desc: sale.Desc || "",
-            SoldDate: format(new Date(sale.SoldDate), "yyyy-MM-dd HH:mm:ss"), // Format datetime
-            dros_cancel: sale.cancelled_dros?.toString() || "0",
+            Desc: sale.Desc || '',
+            SoldDate: format(new Date(sale.SoldDate), 'yyyy-MM-dd HH:mm:ss'), // Format datetime
+            dros_cancel: sale.cancelled_dros?.toString() || '0',
             Lanid: sale.Lanid,
             id: sale.id,
           })),
@@ -524,10 +492,9 @@ const calculateSummaryData = (
 
         return {
           ...calculator.metrics,
-          Department: department || "Unknown",
+          Department: department || 'Unknown',
           Lanid: lanid,
-          TotalWeightedMistakes:
-            calculator.metrics.TotalWeightedMistakes || null,
+          TotalWeightedMistakes: calculator.metrics.TotalWeightedMistakes || null,
         };
       } catch (error) {
         console.error(`Error calculating metrics for ${lanid}:`, error);
@@ -537,16 +504,16 @@ const calculateSummaryData = (
     .filter((data): data is SummaryRowData => {
       if (!data) return false;
       return (
-        "Lanid" in data &&
-        "Department" in data &&
-        "TotalDros" in data &&
-        "MinorMistakes" in data &&
-        "MajorMistakes" in data &&
-        "CancelledDros" in data &&
-        "WeightedErrorRate" in data &&
-        "Qualified" in data &&
-        "DisqualificationReason" in data &&
-        "TotalWeightedMistakes" in data
+        'Lanid' in data &&
+        'Department' in data &&
+        'TotalDros' in data &&
+        'MinorMistakes' in data &&
+        'MajorMistakes' in data &&
+        'CancelledDros' in data &&
+        'WeightedErrorRate' in data &&
+        'Qualified' in data &&
+        'DisqualificationReason' in data &&
+        'TotalWeightedMistakes' in data
       );
     });
 
@@ -559,13 +526,9 @@ const calculateSummaryData = (
     .filter((emp) => !emp.Qualified)
     .sort((a, b) => (a.WeightedErrorRate || 0) - (b.WeightedErrorRate || 0));
 
-  if (
-    showAllEmployees &&
-    qualifiedEmployees.length &&
-    unqualifiedEmployees.length
-  ) {
+  if (showAllEmployees && qualifiedEmployees.length && unqualifiedEmployees.length) {
     const divider: SummaryRowData = {
-      Lanid: "",
+      Lanid: '',
       TotalDros: null,
       MinorMistakes: null,
       MajorMistakes: null,
@@ -573,7 +536,7 @@ const calculateSummaryData = (
       WeightedErrorRate: null,
       TotalWeightedMistakes: null,
       Qualified: false,
-      DisqualificationReason: "",
+      DisqualificationReason: '',
       isDivider: true,
     };
     return [...qualifiedEmployees, divider, ...unqualifiedEmployees];
@@ -583,12 +546,10 @@ const calculateSummaryData = (
 };
 
 const formatDate = (date: Date): string => {
-  return format(date, "yyyy-MM-dd");
+  return format(date, 'yyyy-MM-dd');
 };
 
-const getMonthDateRange = (
-  date: Date
-): { startDate: string; endDate: string } => {
+const getMonthDateRange = (date: Date): { startDate: string; endDate: string } => {
   const startDate = new Date(date.getFullYear(), date.getMonth(), 1);
   const endDate = new Date(date.getFullYear(), date.getMonth() + 1, 0);
   return {
@@ -607,33 +568,31 @@ const exportToExcel = (
   const exportData = data
     .filter((row) => !row.isDivider)
     .map((row) => ({
-      "Sales Rep": sanitizeHtml(row.Lanid),
-      Department: sanitizeHtml(row.Department || ""),
-      "Total DROS": row.TotalDros ?? "",
-      "Minor Mistakes": row.MinorMistakes ?? "",
-      "Major Mistakes": row.MajorMistakes ?? "",
-      "Cancelled DROS": row.CancelledDros ?? "",
-      "Weighted Error Rate": row.WeightedErrorRate
-        ? `${row.WeightedErrorRate.toFixed(2)}%`
-        : "",
-      "Total Weighted Mistakes": row.TotalWeightedMistakes ?? "",
+      'Sales Rep': sanitizeHtml(row.Lanid),
+      Department: sanitizeHtml(row.Department || ''),
+      'Total DROS': row.TotalDros ?? '',
+      'Minor Mistakes': row.MinorMistakes ?? '',
+      'Major Mistakes': row.MajorMistakes ?? '',
+      'Cancelled DROS': row.CancelledDros ?? '',
+      'Weighted Error Rate': row.WeightedErrorRate ? `${row.WeightedErrorRate.toFixed(2)}%` : '',
+      'Total Weighted Mistakes': row.TotalWeightedMistakes ?? '',
       Status: sanitizeHtml(row.DisqualificationReason),
     }));
 
   const ws = XLSX.utils.json_to_sheet(exportData);
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Sales Contest Results");
+  XLSX.utils.book_append_sheet(wb, ws, 'Sales Contest Results');
 
   // Format headers
   const headerStyle = {
     font: { bold: true },
-    alignment: { horizontal: "center" },
-    fill: { fgColor: { rgb: "CCCCCC" } },
+    alignment: { horizontal: 'center' },
+    fill: { fgColor: { rgb: 'CCCCCC' } },
   };
 
-  const range = XLSX.utils.decode_range(ws["!ref"] || "A1");
+  const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
   for (let C = range.s.c; C <= range.e.c; ++C) {
-    const address = XLSX.utils.encode_col(C) + "1";
+    const address = XLSX.utils.encode_col(C) + '1';
     if (!ws[address]) continue;
     ws[address].s = headerStyle;
   }
@@ -647,14 +606,10 @@ const exportToExcel = (
     return widths;
   }, []);
 
-  ws["!cols"] = colWidths.map((width) => ({ width }));
+  ws['!cols'] = colWidths.map((width) => ({ width }));
 
-  const dateStr = format(selectedDate, "MMM_yyyy");
-  const suffix = showAllEmployees
-    ? "_all_employees"
-    : selectedLanid
-      ? `_${selectedLanid}`
-      : "";
+  const dateStr = format(selectedDate, 'MMM_yyyy');
+  const suffix = showAllEmployees ? '_all_employees' : selectedLanid ? `_${selectedLanid}` : '';
 
   XLSX.writeFile(wb, `Sales_Contest_Results_${dateStr}${suffix}.xlsx`);
 };
@@ -671,10 +626,7 @@ const openEditModal = async (audit: Audit): Promise<Partial<Audit> | null> => {
 };
 
 // Audit action handlers
-const handleEditAudit = async (
-  audit: Audit,
-  updateMutation: any
-): Promise<void> => {
+const handleEditAudit = async (audit: Audit, updateMutation: any): Promise<void> => {
   try {
     const updatedData = await openEditModal(audit);
     if (updatedData) {
@@ -682,13 +634,11 @@ const handleEditAudit = async (
         auditId: audit.audits_id,
         data: updatedData,
       });
-      toast.success("Audit updated successfully");
+      toast.success('Audit updated successfully');
     }
   } catch (error) {
     toast.error(
-      `Failed to edit audit: ${
-        error instanceof Error ? error.message : "Unknown error"
-      }`
+      `Failed to edit audit: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
   }
 };
@@ -696,14 +646,10 @@ const handleEditAudit = async (
 // Summary Table Columns
 const summaryColumns: ColumnDef<SummaryRowData>[] = [
   {
-    header: "Sales Rep",
-    accessorKey: "Lanid",
+    header: 'Sales Rep',
+    accessorKey: 'Lanid',
     cell: ({ row: { original } }) => (
-      <div
-        className={`text-left align-left ${
-          !original.Qualified ? "text-gray-400 italic" : ""
-        }`}
-      >
+      <div className={`text-left align-left ${!original.Qualified ? 'text-gray-400 italic' : ''}`}>
         {sanitizeHtml(original.Lanid)}
       </div>
     ),
@@ -722,81 +668,61 @@ const summaryColumns: ColumnDef<SummaryRowData>[] = [
   //   ),
   // },
   {
-    header: "Total DROS",
-    accessorKey: "TotalDros",
+    header: 'Total DROS',
+    accessorKey: 'TotalDros',
     cell: ({ row: { original } }) => (
-      <div
-        className={`text-left align-left ${
-          !original.Qualified ? "text-gray-400 italic" : ""
-        }`}
-      >
-        {original.TotalDros === null ? "" : original.TotalDros}
+      <div className={`text-left align-left ${!original.Qualified ? 'text-gray-400 italic' : ''}`}>
+        {original.TotalDros === null ? '' : original.TotalDros}
       </div>
     ),
   },
   {
-    header: "Minor Mistakes",
-    accessorKey: "MinorMistakes",
+    header: 'Minor Mistakes',
+    accessorKey: 'MinorMistakes',
     cell: ({ row: { original } }) => (
-      <div
-        className={`text-left align-left ${
-          !original.Qualified ? "text-gray-400 italic" : ""
-        }`}
-      >
-        {original.MinorMistakes === null ? "" : original.MinorMistakes}
+      <div className={`text-left align-left ${!original.Qualified ? 'text-gray-400 italic' : ''}`}>
+        {original.MinorMistakes === null ? '' : original.MinorMistakes}
       </div>
     ),
   },
   {
-    header: "Major Mistakes",
-    accessorKey: "MajorMistakes",
+    header: 'Major Mistakes',
+    accessorKey: 'MajorMistakes',
     cell: ({ row: { original } }) => (
-      <div
-        className={`text-left align-left ${
-          !original.Qualified ? "text-gray-400 italic" : ""
-        }`}
-      >
-        {original.MajorMistakes === null ? "" : original.MajorMistakes}
+      <div className={`text-left align-left ${!original.Qualified ? 'text-gray-400 italic' : ''}`}>
+        {original.MajorMistakes === null ? '' : original.MajorMistakes}
       </div>
     ),
   },
   {
-    header: "Cancelled DROS",
-    accessorKey: "CancelledDros",
+    header: 'Cancelled DROS',
+    accessorKey: 'CancelledDros',
     cell: ({ row: { original } }) => (
-      <div
-        className={`text-left align-left ${
-          !original.Qualified ? "text-gray-400 italic" : ""
-        }`}
-      >
-        {original.CancelledDros === null ? "" : original.CancelledDros}
+      <div className={`text-left align-left ${!original.Qualified ? 'text-gray-400 italic' : ''}`}>
+        {original.CancelledDros === null ? '' : original.CancelledDros}
       </div>
     ),
   },
   {
-    header: "Weighted Error Rate",
-    accessorKey: "WeightedErrorRate",
+    header: 'Weighted Error Rate',
+    accessorKey: 'WeightedErrorRate',
     cell: ({ row: { original } }) => (
-      <div
-        className={`text-left align-left ${
-          !original.Qualified ? "text-gray-400 italic" : ""
-        }`}
-      >
+      <div className={`text-left align-left ${!original.Qualified ? 'text-gray-400 italic' : ''}`}>
         {original.isDivider
-          ? ""
+          ? ''
           : original.WeightedErrorRate === null
-            ? ""
+            ? ''
             : `${original.WeightedErrorRate.toFixed(2)}%`}
       </div>
     ),
   },
   {
-    header: "Status",
-    accessorKey: "DisqualificationReason",
+    header: 'Status',
+    accessorKey: 'DisqualificationReason',
     cell: ({ row: { original } }) => (
       <div
         className={`text-left align-left ${
-          !original.Qualified ? "text-red-500" : "text-green-500"
+          !original.Qualified ? 'text-red-500' : 'text-green-500'
         }`}
         dangerouslySetInnerHTML={{
           __html: DOMPurify.sanitize(original.DisqualificationReason, {
@@ -814,92 +740,84 @@ const summaryColumns: ColumnDef<SummaryRowData>[] = [
 
 // Update to be a function that takes mutations as parameters
 const getAuditColumns = (
-  updateAuditMutation: UseMutationResult<
-    any,
-    Error,
-    { auditId: string; data: Partial<Audit> }
-  >,
+  updateAuditMutation: UseMutationResult<any, Error, { auditId: string; data: Partial<Audit> }>,
   deleteAuditMutation: UseMutationResult<any, Error, string>,
   handleDeleteAudit: (auditId: string) => Promise<void>,
   setModalState: (state: ModalState) => void
 ): ColumnDef<Audit>[] => [
   {
-    id: "dros_number",
-    header: "DROS Number",
-    accessorKey: "dros_number",
+    id: 'dros_number',
+    header: 'DROS Number',
+    accessorKey: 'dros_number',
     cell: ({ row }) => sanitizeHtml(row.original.dros_number),
   },
   {
-    id: "salesreps",
-    header: "Sales Rep",
-    accessorKey: "salesreps",
+    id: 'salesreps',
+    header: 'Sales Rep',
+    accessorKey: 'salesreps',
     cell: ({ row }) => sanitizeHtml(row.original.salesreps),
   },
   {
-    id: "audit_type",
-    header: "Audit Type",
-    accessorKey: "audit_type",
+    id: 'audit_type',
+    header: 'Audit Type',
+    accessorKey: 'audit_type',
     cell: ({ row }) => sanitizeHtml(row.original.audit_type),
   },
   {
-    id: "trans_date",
-    header: "Transaction Date",
-    accessorKey: "trans_date",
+    id: 'trans_date',
+    header: 'Transaction Date',
+    accessorKey: 'trans_date',
     cell: ({ row }) => {
       // Create date in UTC to avoid timezone shifts
-      const date = new Date(row.original.trans_date + "T12:00:00Z");
-      return format(date, "MM/dd/yyyy");
+      const date = new Date(row.original.trans_date + 'T12:00:00Z');
+      return format(date, 'MM/dd/yyyy');
     },
   },
   {
-    id: "audit_date",
-    header: "Audit Date",
-    accessorKey: "audit_date",
+    id: 'audit_date',
+    header: 'Audit Date',
+    accessorKey: 'audit_date',
     cell: ({ row }) => {
       // Create date in UTC to avoid timezone shifts
-      const date = new Date(row.original.audit_date + "T12:00:00Z");
-      return format(date, "MM/dd/yyyy");
+      const date = new Date(row.original.audit_date + 'T12:00:00Z');
+      return format(date, 'MM/dd/yyyy');
     },
   },
   {
-    id: "error_location",
-    header: "Error Location",
-    accessorKey: "error_location",
+    id: 'error_location',
+    header: 'Error Location',
+    accessorKey: 'error_location',
     cell: ({ row }) => sanitizeHtml(row.original.error_location),
   },
   {
-    id: "error_details",
-    header: "Error Details",
-    accessorKey: "error_details",
+    id: 'error_details',
+    header: 'Error Details',
+    accessorKey: 'error_details',
     cell: ({ row }) => (
-      <div className="max-w-md whitespace-normal">
-        {sanitizeHtml(row.original.error_details)}
-      </div>
+      <div className="max-w-md whitespace-normal">{sanitizeHtml(row.original.error_details)}</div>
     ),
   },
   {
-    id: "error_notes",
-    header: "Notes",
-    accessorKey: "error_notes",
+    id: 'error_notes',
+    header: 'Notes',
+    accessorKey: 'error_notes',
     cell: ({ row }) => (
-      <div className="max-w-md whitespace-normal">
-        {sanitizeHtml(row.original.error_notes)}
-      </div>
+      <div className="max-w-md whitespace-normal">{sanitizeHtml(row.original.error_notes)}</div>
     ),
   },
   {
-    id: "dros_cancel",
-    header: "DROS Cancel",
-    accessorKey: "dros_cancel",
+    id: 'dros_cancel',
+    header: 'DROS Cancel',
+    accessorKey: 'dros_cancel',
     cell: ({ row }) => {
       const value = row.original.dros_cancel;
       // Only show "True" if the value is explicitly "True", otherwise show empty string
-      return value === "Yes" ? "Yes" : "";
+      return value === 'Yes' ? 'Yes' : '';
     },
   },
   {
-    id: "actions",
-    header: "Actions",
+    id: 'actions',
+    header: 'Actions',
     cell: ({ row }) => <AuditActions row={row} />,
   },
 ];
@@ -907,43 +825,43 @@ const getAuditColumns = (
 // Profile Table Columns
 const profileTableColumns: ColumnDef<SummaryRowData>[] = [
   {
-    id: "TotalDros",
-    header: "Total DROS",
-    accessorKey: "TotalDros",
+    id: 'TotalDros',
+    header: 'Total DROS',
+    accessorKey: 'TotalDros',
     cell: ({ row }) => (
       <div className="text-center font-semibold text-lg">
-        {row.original.TotalDros === null ? "" : row.original.TotalDros}
+        {row.original.TotalDros === null ? '' : row.original.TotalDros}
       </div>
     ),
   },
   {
-    id: "MinorMistakes",
-    header: "Minor Mistakes",
-    accessorKey: "MinorMistakes",
+    id: 'MinorMistakes',
+    header: 'Minor Mistakes',
+    accessorKey: 'MinorMistakes',
     cell: ({ row }) => (
       <div className="text-center font-semibold text-lg">
-        {row.original.MinorMistakes === null ? "" : row.original.MinorMistakes}
+        {row.original.MinorMistakes === null ? '' : row.original.MinorMistakes}
       </div>
     ),
   },
   {
-    id: "MajorMistakes",
-    header: "Major Mistakes",
-    accessorKey: "MajorMistakes",
+    id: 'MajorMistakes',
+    header: 'Major Mistakes',
+    accessorKey: 'MajorMistakes',
     cell: ({ row }) => (
       <div className="text-center font-semibold text-lg">
-        {row.original.MajorMistakes === null ? "" : row.original.MajorMistakes}
+        {row.original.MajorMistakes === null ? '' : row.original.MajorMistakes}
       </div>
     ),
   },
   {
-    id: "WeightedErrorRate",
-    header: "Error Rate",
-    accessorKey: "WeightedErrorRate",
+    id: 'WeightedErrorRate',
+    header: 'Error Rate',
+    accessorKey: 'WeightedErrorRate',
     cell: ({ row }) => (
       <div className="text-center font-semibold text-lg">
         {row.original.WeightedErrorRate === null
-          ? ""
+          ? ''
           : `${row.original.WeightedErrorRate.toFixed(2)}%`}
       </div>
     ),
@@ -959,7 +877,7 @@ const tableOptions = {
   enableColumnResizing: true,
   enableAutoResetPage: true,
   manualPagination: false,
-  globalFilterFn: "contains",
+  globalFilterFn: 'contains',
   getRowId: (row: any) => row.audits_id || row.Lanid,
 };
 
@@ -972,17 +890,17 @@ const profileTableOptions = {
 
 // Custom Table Styles
 const tableStyles = {
-  table: "w-full border-collapse",
-  thead: "bg-gray-100",
-  th: "px-4 py-2 text-left font-semibold text-gray-600",
-  tr: "border-b border-gray-200 hover:bg-gray-50",
-  td: "px-4 py-2",
+  table: 'w-full border-collapse',
+  thead: 'bg-gray-100',
+  th: 'px-4 py-2 text-left font-semibold text-gray-600',
+  tr: 'border-b border-gray-200 hover:bg-gray-50',
+  td: 'px-4 py-2',
 } as const;
 
 const profileTableStyles = {
   ...tableStyles,
-  table: "w-full border-collapse text-center",
-  th: "px-4 py-2 text-center font-semibold text-gray-600",
+  table: 'w-full border-collapse text-center',
+  th: 'px-4 py-2 text-center font-semibold text-gray-600',
 } as const;
 // TanStack Query Hooks
 
@@ -991,19 +909,19 @@ const usePageParams = () => {
   const searchParams = useSearchParams();
   const pathname = usePathname();
 
-  const tab = searchParams.get("tab") || "submit";
-  const selectedLanid = searchParams.get("lanid") || null;
-  const showAllEmployees = searchParams.get("showAll") === "true";
-  const dateParam = searchParams.get("date");
+  const tab = searchParams.get('tab') || 'submit';
+  const selectedLanid = searchParams.get('lanid') || null;
+  const showAllEmployees = searchParams.get('showAll') === 'true';
+  const dateParam = searchParams.get('date');
   const selectedDate = dateParam ? new Date(dateParam) : null;
-  const searchText = searchParams.get("search") || "";
+  const searchText = searchParams.get('search') || '';
 
   const setParams = useCallback(
     (params: Partial<PageParams>) => {
       const current = new URLSearchParams(Array.from(searchParams.entries()));
 
       Object.entries(params).forEach(([key, value]) => {
-        if (value === null || value === undefined || value === "") {
+        if (value === null || value === undefined || value === '') {
           current.delete(key);
         } else {
           current.set(key, value.toString());
@@ -1011,7 +929,7 @@ const usePageParams = () => {
       });
 
       const search = current.toString();
-      const query = search ? `?${search}` : "";
+      const query = search ? `?${search}` : '';
       router.push(`${pathname}${query}`, { scroll: false });
     },
     [pathname, router, searchParams]
@@ -1046,7 +964,7 @@ const MetricCard = ({
       <CardContent className="p-4">
         <div className="text-center">
           <div className="font-semibold text-2xl">
-            {value !== null && value !== undefined ? formatter(value) : "-"}
+            {value !== null && value !== undefined ? formatter(value) : '-'}
           </div>
         </div>
       </CardContent>
@@ -1066,12 +984,7 @@ const MetricsSection = ({
   selectedLanid: string | null;
   selectedDate: Date | null;
 }) => {
-  if (
-    showAllEmployees ||
-    !selectedLanid ||
-    !selectedDate ||
-    !metricsData?.length
-  ) {
+  if (showAllEmployees || !selectedLanid || !selectedDate || !metricsData?.length) {
     return null;
   }
 
@@ -1079,29 +992,13 @@ const MetricsSection = ({
 
   return (
     <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
-      <MetricCard
-        title="Total # Of DROS"
-        value={metrics?.TotalDros}
-        accessor="TotalDros"
-      />
+      <MetricCard title="Total # Of DROS" value={metrics?.TotalDros} accessor="TotalDros" />
 
-      <MetricCard
-        title="Minor Mistakes"
-        value={metrics?.MinorMistakes}
-        accessor="MinorMistakes"
-      />
+      <MetricCard title="Minor Mistakes" value={metrics?.MinorMistakes} accessor="MinorMistakes" />
 
-      <MetricCard
-        title="Major Mistakes"
-        value={metrics?.MajorMistakes}
-        accessor="MajorMistakes"
-      />
+      <MetricCard title="Major Mistakes" value={metrics?.MajorMistakes} accessor="MajorMistakes" />
 
-      <MetricCard
-        title="Cancelled DROS"
-        value={metrics?.CancelledDros}
-        accessor="CancelledDros"
-      />
+      <MetricCard title="Cancelled DROS" value={metrics?.CancelledDros} accessor="CancelledDros" />
 
       <MetricCard
         title="Error Rate"
@@ -1122,14 +1019,13 @@ const calculateDailyMetrics = (
   selectedDate: Date
 ): SummaryRowData[] => {
   // Format the selected date to YYYY-MM-DD for comparison
-  const targetDateStr = format(selectedDate, "yyyy-MM-dd");
+  const targetDateStr = format(selectedDate, 'yyyy-MM-dd');
 
   // Filter sales data for the specific day and employee
   const dailySalesData = salesData.filter((sale) => {
     // Format the sale date to YYYY-MM-DD for comparison
-    const saleDateStr = format(new Date(sale.Date), "yyyy-MM-dd");
-    const matches =
-      saleDateStr === targetDateStr && sale.Lanid === selectedLanid;
+    const saleDateStr = format(new Date(sale.Date), 'yyyy-MM-dd');
+    const matches = saleDateStr === targetDateStr && sale.Lanid === selectedLanid;
 
     return matches;
   });
@@ -1137,24 +1033,21 @@ const calculateDailyMetrics = (
   // Filter audit data for the specific day and employee
   const dailyAuditData = auditData.filter((audit) => {
     // Format the audit date to YYYY-MM-DD for comparison
-    const auditDateStr = format(new Date(audit.audit_date), "yyyy-MM-dd");
-    const matches =
-      auditDateStr === targetDateStr && audit.salesreps === selectedLanid;
+    const auditDateStr = format(new Date(audit.audit_date), 'yyyy-MM-dd');
+    const matches = auditDateStr === targetDateStr && audit.salesreps === selectedLanid;
 
     return matches;
   });
 
-  const employeeDepartment = employeesData.find(
-    (emp) => emp.lanid === selectedLanid
-  )?.department;
+  const employeeDepartment = employeesData.find((emp) => emp.lanid === selectedLanid)?.department;
 
   try {
     const calculator = new WeightedScoringCalculator({
       salesData: dailySalesData.map((sale) => ({
         ...sale,
-        Desc: sale.Desc || "", // Use direct field name from DB
-        SoldDate: sale.SoldDate || "", // Use direct field name from DB
-        dros_cancel: sale.cancelled_dros?.toString() || "0",
+        Desc: sale.Desc || '', // Use direct field name from DB
+        SoldDate: sale.SoldDate || '', // Use direct field name from DB
+        dros_cancel: sale.cancelled_dros?.toString() || '0',
         Lanid: sale.Lanid,
         id: sale.id,
       })),
@@ -1163,13 +1056,13 @@ const calculateDailyMetrics = (
         id: audit.audits_id,
       })),
       pointsCalculation,
-      isOperations: employeeDepartment?.toString() === "Operations",
+      isOperations: employeeDepartment?.toString() === 'Operations',
       minimumDros: 0,
     });
 
     const metrics = {
       ...calculator.metrics,
-      Department: employeeDepartment || "Unknown",
+      Department: employeeDepartment || 'Unknown',
       Lanid: selectedLanid,
       TotalWeightedMistakes: calculator.metrics.TotalWeightedMistakes || 0,
     };
@@ -1179,20 +1072,19 @@ const calculateDailyMetrics = (
 
     return [metrics];
   } catch (error) {
-    console.error("Error calculating metrics:", error);
+    console.error('Error calculating metrics:', error);
     return [
       {
         Lanid: selectedLanid,
-        Department: employeeDepartment || "Unknown",
+        Department: employeeDepartment || 'Unknown',
         TotalDros: dailySalesData.length,
         MinorMistakes: 0,
         MajorMistakes: 0,
-        CancelledDros: dailySalesData.filter((sale) => sale.cancelled_dros > 0)
-          .length,
+        CancelledDros: dailySalesData.filter((sale) => sale.cancelled_dros > 0).length,
         WeightedErrorRate: 0,
         TotalWeightedMistakes: 0,
         Qualified: true,
-        DisqualificationReason: "",
+        DisqualificationReason: '',
       },
     ];
   }
@@ -1203,67 +1095,64 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
   const { selectedDate, selectedLanid, showAllEmployees } = pageParams;
   const queryClient = useQueryClient();
 
-  const getDateRangeFromTimeRange = useCallback(
-    (timeRange: string, date: Date | null) => {
-      if (!date) return null;
+  const getDateRangeFromTimeRange = useCallback((timeRange: string, date: Date | null) => {
+    if (!date) return null;
 
-      switch (timeRange) {
-        case "7d":
-          const sevenDaysAgo = new Date(date);
-          sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-          return {
-            startDate: format(sevenDaysAgo, "yyyy-MM-dd"),
-            endDate: format(date, "yyyy-MM-dd"),
-          };
-        case "30d":
-          const thirtyDaysAgo = new Date(date);
-          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-          return {
-            startDate: format(thirtyDaysAgo, "yyyy-MM-dd"),
-            endDate: format(date, "yyyy-MM-dd"),
-          };
-        case "90d":
-          const ninetyDaysAgo = new Date(date);
-          ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-          return {
-            startDate: format(ninetyDaysAgo, "yyyy-MM-dd"),
-            endDate: format(date, "yyyy-MM-dd"),
-          };
-        default:
-          // Default to current month view
-          const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
-          return {
-            startDate: format(startOfMonth, "yyyy-MM-dd"),
-            endDate: format(date, "yyyy-MM-dd"),
-          };
-      }
-    },
-    []
-  );
+    switch (timeRange) {
+      case '7d':
+        const sevenDaysAgo = new Date(date);
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        return {
+          startDate: format(sevenDaysAgo, 'yyyy-MM-dd'),
+          endDate: format(date, 'yyyy-MM-dd'),
+        };
+      case '30d':
+        const thirtyDaysAgo = new Date(date);
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        return {
+          startDate: format(thirtyDaysAgo, 'yyyy-MM-dd'),
+          endDate: format(date, 'yyyy-MM-dd'),
+        };
+      case '90d':
+        const ninetyDaysAgo = new Date(date);
+        ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+        return {
+          startDate: format(ninetyDaysAgo, 'yyyy-MM-dd'),
+          endDate: format(date, 'yyyy-MM-dd'),
+        };
+      default:
+        // Default to current month view
+        const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+        return {
+          startDate: format(startOfMonth, 'yyyy-MM-dd'),
+          endDate: format(date, 'yyyy-MM-dd'),
+        };
+    }
+  }, []);
 
   const timeRangeQuery = useQuery({
-    queryKey: ["timeRange"],
-    queryFn: () => "90d", // default value
+    queryKey: ['timeRange'],
+    queryFn: () => '90d', // default value
     staleTime: Infinity,
   });
 
   const reviewAuditsQuery = useQuery({
-    queryKey: ["audits", "review"],
+    queryKey: ['audits', 'review'],
     queryFn: () => api.fetchAudits(),
     staleTime: 0,
     refetchOnWindowFocus: true,
-    enabled: pageParams.tab === "review",
+    enabled: pageParams.tab === 'review',
   });
 
   // Base queries
   const employeesQuery = useQuery({
-    queryKey: ["employees"],
+    queryKey: ['employees'],
     queryFn: api.fetchEmployees,
     staleTime: Infinity,
   });
 
   const pointsCalculationQuery = useQuery({
-    queryKey: ["pointsCalculation"],
+    queryKey: ['pointsCalculation'],
     queryFn: api.fetchPointsCalculation,
     staleTime: Infinity,
   });
@@ -1273,25 +1162,21 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
     if (!selectedDate) return null;
 
     // Get first day of the selected month in UTC
-    const startDate = new Date(
-      Date.UTC(selectedDate.getFullYear(), selectedDate.getMonth(), 1)
-    );
+    const startDate = new Date(Date.UTC(selectedDate.getFullYear(), selectedDate.getMonth(), 1));
 
     // Use the actual selected date for end date in UTC
-    const endDate = new Date(
-      Date.UTC(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0)
-    );
+    const endDate = new Date(Date.UTC(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0));
 
     return {
-      startDate: format(startDate, "yyyy-MM-dd"),
-      endDate: format(endDate, "yyyy-MM-dd"),
+      startDate: format(startDate, 'yyyy-MM-dd'),
+      endDate: format(endDate, 'yyyy-MM-dd'),
     };
   }, [selectedDate]);
 
   // Queries
   const salesDataQuery = useQuery({
     queryKey: [
-      "salesData",
+      'salesData',
       dateRange?.startDate,
       dateRange?.endDate,
       selectedLanid,
@@ -1310,13 +1195,7 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
   });
 
   const contestAuditsQuery = useQuery({
-    queryKey: [
-      "audits",
-      "contest",
-      dateRange?.startDate,
-      dateRange?.endDate,
-      selectedLanid,
-    ],
+    queryKey: ['audits', 'contest', dateRange?.startDate, dateRange?.endDate, selectedLanid],
     queryFn: async () => {
       if (!dateRange) return [];
       return api.fetchAudits({
@@ -1325,11 +1204,11 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
         lanid: selectedLanid || undefined,
       });
     },
-    enabled: pageParams.tab === "contest" && !!dateRange, // Only run this query when on contest tab and dateRange exists
+    enabled: pageParams.tab === 'contest' && !!dateRange, // Only run this query when on contest tab and dateRange exists
   });
 
   const auditsData = useMemo(() => {
-    if (pageParams.tab === "review") {
+    if (pageParams.tab === 'review') {
       return reviewAuditsQuery.data;
     }
     return contestAuditsQuery.data;
@@ -1337,34 +1216,21 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
 
   // Use this for loading states
   const isLoadingAudits =
-    pageParams.tab === "review"
-      ? reviewAuditsQuery.isLoading
-      : contestAuditsQuery.isLoading;
+    pageParams.tab === 'review' ? reviewAuditsQuery.isLoading : contestAuditsQuery.isLoading;
 
   // Mutations
   const updateAuditMutation = useMutation({
-    mutationFn: async ({
-      auditId,
-      data,
-    }: {
-      auditId: string;
-      data: Partial<Audit>;
-    }) => {
-      const { error } = await supabase
-        .from("Auditsinput")
-        .update(data)
-        .eq("audits_id", auditId);
+    mutationFn: async ({ auditId, data }: { auditId: string; data: Partial<Audit> }) => {
+      const { error } = await supabase.from('Auditsinput').update(data).eq('audits_id', auditId);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["audits"] });
-      toast.success("Audit updated successfully");
+      queryClient.invalidateQueries({ queryKey: ['audits'] });
+      toast.success('Audit updated successfully');
     },
     onError: (error) => {
       toast.error(
-        `Failed to update audit: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`
+        `Failed to update audit: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
     },
   });
@@ -1372,67 +1238,61 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
   const deleteAuditMutation = useMutation({
     mutationFn: api.deleteAudit,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["audits"] });
-      toast.success("Audit deleted successfully");
+      queryClient.invalidateQueries({ queryKey: ['audits'] });
+      toast.success('Audit deleted successfully');
     },
     onError: (error) => {
       toast.error(
-        `Error deleting audit: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`
+        `Error deleting audit: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
     },
   });
 
   const salesDataMutation = useMutation({
     mutationFn: async (data: SalesData) => {
-      const { error } = await supabase.from("sales_data").upsert(data);
+      const { error } = await supabase.from('sales_data').upsert(data);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["salesData"] });
-      toast.success("Sales data updated successfully");
+      queryClient.invalidateQueries({ queryKey: ['salesData'] });
+      toast.success('Sales data updated successfully');
     },
     onError: (error) => {
       toast.error(
-        `Failed to update sales data: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`
+        `Failed to update sales data: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
     },
   });
 
   const auditMutation = useMutation({
     mutationFn: async (data: Audit) => {
-      const { error } = await supabase.from("Auditsinput").upsert(data);
+      const { error } = await supabase.from('Auditsinput').upsert(data);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["audits"] });
-      toast.success("Audit data updated successfully");
+      queryClient.invalidateQueries({ queryKey: ['audits'] });
+      toast.success('Audit data updated successfully');
     },
     onError: (error) => {
       toast.error(
-        `Failed to update audit data: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`
+        `Failed to update audit data: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
     },
   });
 
   const pointsCalculationMutation = useMutation({
     mutationFn: async (data: PointsCalculation) => {
-      const { error } = await supabase.from("points_calculation").upsert(data);
+      const { error } = await supabase.from('points_calculation').upsert(data);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["pointsCalculation"] });
-      toast.success("Points calculation updated successfully");
+      queryClient.invalidateQueries({ queryKey: ['pointsCalculation'] });
+      toast.success('Points calculation updated successfully');
     },
     onError: (error) => {
       toast.error(
         `Failed to update points calculation: ${
-          error instanceof Error ? error.message : "Unknown error"
+          error instanceof Error ? error.message : 'Unknown error'
         }`
       );
     },
@@ -1539,18 +1399,16 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
       }
 
       // Create a new date at the start of the day in UTC
-      const utcDate = new Date(
-        Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
-      );
+      const utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
 
       // Format the date in UTC
-      const formattedDate = format(utcDate, "yyyy-MM-dd");
+      const formattedDate = format(utcDate, 'yyyy-MM-dd');
 
       pageParams.setParams({ date: formattedDate });
 
       // Invalidate queries to force refresh
-      queryClient.invalidateQueries({ queryKey: ["salesData"] });
-      queryClient.invalidateQueries({ queryKey: ["audits"] });
+      queryClient.invalidateQueries({ queryKey: ['salesData'] });
+      queryClient.invalidateQueries({ queryKey: ['audits'] });
     },
     [pageParams.setParams, queryClient]
   );
@@ -1559,7 +1417,7 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
     (lanid: string) => {
       pageParams.setParams({
         lanid,
-        showAll: "false",
+        showAll: 'false',
       });
     },
     [pageParams.setParams]
@@ -1569,7 +1427,7 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
     (checked: boolean) => {
       // Always reset the query cache when toggling view
       queryClient.invalidateQueries({
-        queryKey: ["salesData"],
+        queryKey: ['salesData'],
       });
 
       pageParams.setParams({
@@ -1593,7 +1451,7 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
     if (selectedDate) {
       exportToExcel(summaryData, selectedDate, showAllEmployees, selectedLanid);
     } else {
-      toast.error("Please select a date before exporting");
+      toast.error('Please select a date before exporting');
     }
   }, [summaryData, selectedDate, showAllEmployees, selectedLanid]);
 
@@ -1613,14 +1471,14 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
 
   const handleTimeRangeChange = useCallback(
     (value: string) => {
-      queryClient.setQueryData(["timeRange"], value);
+      queryClient.setQueryData(['timeRange'], value);
     },
     [queryClient]
   );
 
   // Inside useAuditsPage hook, add these queries and mutations
   const categoriesQuery = useQuery({
-    queryKey: ["audit-categories"],
+    queryKey: ['audit-categories'],
     queryFn: api.fetchAuditCategories,
   });
 
@@ -1631,91 +1489,63 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
     mutationFn: api.createAuditCategory,
     onMutate: async (newCategory) => {
       // Cancel any outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ["audit-categories"] });
+      await queryClient.cancelQueries({ queryKey: ['audit-categories'] });
 
       // Snapshot the previous value
-      const previousCategories = queryClient.getQueryData<AuditCategory[]>([
-        "audit-categories",
-      ]);
+      const previousCategories = queryClient.getQueryData<AuditCategory[]>(['audit-categories']);
 
       // Optimistically update to the new value
-      queryClient.setQueryData<AuditCategory[]>(
-        ["audit-categories"],
-        (old = []) => {
-          return [...old, { ...newCategory, id: `temp-${Date.now()}` }];
-        }
-      );
+      queryClient.setQueryData<AuditCategory[]>(['audit-categories'], (old = []) => {
+        return [...old, { ...newCategory, id: `temp-${Date.now()}` }];
+      });
 
       return { previousCategories };
     },
     onError: (err, newCategory, context) => {
       // If the mutation fails, use the context to roll back
-      queryClient.setQueryData(
-        ["audit-categories"],
-        context?.previousCategories
-      );
+      queryClient.setQueryData(['audit-categories'], context?.previousCategories);
       toast.error(`Failed to create category: ${err.message}`);
     },
     onSuccess: (newCategory) => {
       // Update the cache with the actual server response
-      queryClient.setQueryData<AuditCategory[]>(
-        ["audit-categories"],
-        (old = []) => {
-          return [
-            ...old.filter((cat) => !cat.id.startsWith("temp-")),
-            newCategory,
-          ];
-        }
-      );
-      toast.success("Category created successfully");
+      queryClient.setQueryData<AuditCategory[]>(['audit-categories'], (old = []) => {
+        return [...old.filter((cat) => !cat.id.startsWith('temp-')), newCategory];
+      });
+      toast.success('Category created successfully');
       setIsAddDialogOpen(false);
     },
     onSettled: () => {
       // Always refetch after error or success to ensure cache consistency
-      queryClient.invalidateQueries({ queryKey: ["audit-categories"] });
+      queryClient.invalidateQueries({ queryKey: ['audit-categories'] });
     },
   });
 
   const updateCategoryMutation = useMutation({
-    mutationFn: ({
-      id,
-      data,
-    }: {
-      id: string;
-      data: Partial<AuditCategory>;
-    }) => {
+    mutationFn: ({ id, data }: { id: string; data: Partial<AuditCategory> }) => {
       return api.updateAuditCategory(id, data);
     },
     onMutate: async ({ id, data }) => {
       // Cancel any outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ["audit-categories"] });
+      await queryClient.cancelQueries({ queryKey: ['audit-categories'] });
 
       // Snapshot the previous value
-      const previousCategories = queryClient.getQueryData<AuditCategory[]>([
-        "audit-categories",
-      ]);
+      const previousCategories = queryClient.getQueryData<AuditCategory[]>(['audit-categories']);
 
       // Optimistically update to the new value
-      queryClient.setQueryData<AuditCategory[]>(
-        ["audit-categories"],
-        (old = []) => {
-          return old.map((cat) => (cat.id === id ? { ...cat, ...data } : cat));
-        }
-      );
+      queryClient.setQueryData<AuditCategory[]>(['audit-categories'], (old = []) => {
+        return old.map((cat) => (cat.id === id ? { ...cat, ...data } : cat));
+      });
 
       return { previousCategories };
     },
     onError: (err, { id }, context) => {
       // If the mutation fails, use the context to roll back
-      queryClient.setQueryData(
-        ["audit-categories"],
-        context?.previousCategories
-      );
+      queryClient.setQueryData(['audit-categories'], context?.previousCategories);
       toast.error(`Failed to update category: ${err.message}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["audit-categories"] });
-      toast.success("Category updated successfully");
+      queryClient.invalidateQueries({ queryKey: ['audit-categories'] });
+      toast.success('Category updated successfully');
     },
     onSettled: () => {
       // Always close the dialog after the mutation settles
@@ -1725,44 +1555,33 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
 
   const deleteCategoryMutation = useMutation({
     mutationFn: async (categoryId: string) => {
-      const { error } = await supabase
-        .from("audit_categories")
-        .delete()
-        .eq("id", categoryId);
+      const { error } = await supabase.from('audit_categories').delete().eq('id', categoryId);
 
       if (error) throw error;
       return categoryId;
     },
     onMutate: async (categoryId) => {
       // Cancel any outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ["audit-categories"] });
+      await queryClient.cancelQueries({ queryKey: ['audit-categories'] });
 
       // Snapshot the previous value
-      const previousCategories = queryClient.getQueryData<AuditCategory[]>([
-        "audit-categories",
-      ]);
+      const previousCategories = queryClient.getQueryData<AuditCategory[]>(['audit-categories']);
 
       // Optimistically update to the new value
-      queryClient.setQueryData<AuditCategory[]>(
-        ["audit-categories"],
-        (old = []) => {
-          return old.filter((category) => category.id !== categoryId);
-        }
-      );
+      queryClient.setQueryData<AuditCategory[]>(['audit-categories'], (old = []) => {
+        return old.filter((category) => category.id !== categoryId);
+      });
 
       return { previousCategories };
     },
     onError: (err, categoryId, context) => {
       // If the mutation fails, use the context to roll back
-      queryClient.setQueryData(
-        ["audit-categories"],
-        context?.previousCategories
-      );
+      queryClient.setQueryData(['audit-categories'], context?.previousCategories);
       toast.error(`Failed to delete category: ${err.message}`);
     },
     onSettled: () => {
       // Always refetch after error or success to ensure cache consistency
-      queryClient.invalidateQueries({ queryKey: ["audit-categories"] });
+      queryClient.invalidateQueries({ queryKey: ['audit-categories'] });
     },
   });
 
@@ -1833,19 +1652,19 @@ const useRealtimeSubscription = () => {
   const queryClient = useQueryClient();
 
   const subscription = useQuery({
-    queryKey: ["realtime-subscription"],
+    queryKey: ['realtime-subscription'],
     queryFn: () => {
       const channel = supabase
-        .channel("Auditsinput_changes")
+        .channel('Auditsinput_changes')
         .on(
-          "postgres_changes",
+          'postgres_changes',
           {
-            event: "*",
-            schema: "public",
-            table: "Auditsinput",
+            event: '*',
+            schema: 'public',
+            table: 'Auditsinput',
           },
           () => {
-            queryClient.invalidateQueries({ queryKey: ["audits"] });
+            queryClient.invalidateQueries({ queryKey: ['audits'] });
           }
         )
         .subscribe();
@@ -1881,7 +1700,7 @@ const AuditActions = ({ row }: { row: { original: Audit } }) => {
 
   // Get the current user
   const { data: user } = useQuery({
-    queryKey: ["user"],
+    queryKey: ['user'],
     queryFn: async () => {
       const {
         data: { user },
@@ -1892,15 +1711,13 @@ const AuditActions = ({ row }: { row: { original: Audit } }) => {
 
   // Use the fetchEmployees API and handle role checking
   const { data: employee, isLoading } = useQuery({
-    queryKey: ["employee"],
+    queryKey: ['employee'],
     queryFn: async () => {
       const employees = await api.fetchEmployees();
       if (!user?.email) return null;
 
       // Match against contact_info instead of lanid
-      return employees.find(
-        (emp) => emp.contact_info?.toLowerCase() === user.email?.toLowerCase()
-      );
+      return employees.find((emp) => emp.contact_info?.toLowerCase() === user.email?.toLowerCase());
     },
     enabled: !!user?.email,
   });
@@ -1908,8 +1725,8 @@ const AuditActions = ({ row }: { row: { original: Audit } }) => {
   const deleteMutation = useMutation({
     mutationFn: api.deleteAudit,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["audits"] });
-      toast.success("Audit deleted successfully");
+      queryClient.invalidateQueries({ queryKey: ['audits'] });
+      toast.success('Audit deleted successfully');
     },
   });
 
@@ -1917,9 +1734,8 @@ const AuditActions = ({ row }: { row: { original: Audit } }) => {
   // console.log("Auth User:", user?.email);
   // console.log("Employee Record:", employee);
 
-  const canEditRoles = ["auditor", "admin", "super admin", "dev"];
-  const userCanEdit =
-    employee?.role && canEditRoles.includes(employee.role.toLowerCase());
+  const canEditRoles = ['auditor', 'admin', 'super admin', 'dev'];
+  const userCanEdit = employee?.role && canEditRoles.includes(employee.role.toLowerCase());
 
   // console.log("Role Check:", {
   //   userRole: employee?.role,
@@ -1966,15 +1782,12 @@ const AuditActions = ({ row }: { row: { original: Audit } }) => {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Audit</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this audit? This action cannot be
-              undone.
+              Are you sure you want to delete this audit? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => deleteMutation.mutate(row.original.audits_id)}
-            >
+            <AlertDialogAction onClick={() => deleteMutation.mutate(row.original.audits_id)}>
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -1986,13 +1799,10 @@ const AuditActions = ({ row }: { row: { original: Audit } }) => {
 
 // Add this new query function
 const fetchHistoricalAuditData = async (lanid: string | null = null) => {
-  let query = supabase
-    .from("Auditsinput")
-    .select("*")
-    .order("audit_date", { ascending: true });
+  let query = supabase.from('Auditsinput').select('*').order('audit_date', { ascending: true });
 
   if (lanid) {
-    query = query.eq("salesreps", lanid);
+    query = query.eq('salesreps', lanid);
   }
 
   const { data, error } = await query;
@@ -2059,25 +1869,19 @@ function AuditsPage() {
 
   // Add edit mutation
   const editMutation = useMutation({
-    mutationFn: async ({
-      auditId,
-      data,
-    }: {
-      auditId: string;
-      data: Partial<Audit>;
-    }) => {
+    mutationFn: async ({ auditId, data }: { auditId: string; data: Partial<Audit> }) => {
       return api.updateAudit(auditId, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["audits"] });
+      queryClient.invalidateQueries({ queryKey: ['audits'] });
       setModalState({ isOpen: false, selectedAudit: null });
-      toast.success("Audit updated successfully");
+      toast.success('Audit updated successfully');
     },
   });
 
   // Add a separate query for historical data
   const historicalAuditsQuery = useQuery({
-    queryKey: ["historicalAudits", selectedLanid],
+    queryKey: ['historicalAudits', selectedLanid],
     queryFn: () => fetchHistoricalAuditData(selectedLanid),
     enabled: !!selectedLanid,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -2093,9 +1897,7 @@ function AuditsPage() {
           </CardHeader>
           <CardContent>
             <p>
-              {error instanceof Error
-                ? error.message
-                : "An error occurred while loading the page"}
+              {error instanceof Error ? error.message : 'An error occurred while loading the page'}
             </p>
             <Button className="mt-4" onClick={() => window.location.reload()}>
               Retry
@@ -2106,12 +1908,8 @@ function AuditsPage() {
     );
   }
 
-  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(
-    null
-  );
-  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>(
-    {}
-  );
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
 
   const toggleCardExpansion = (cardId: string) => {
     setExpandedCards((prev) => ({
@@ -2120,15 +1918,11 @@ function AuditsPage() {
     }));
   };
 
-  const ExpandableCard: React.FC<ExpandableCardProps> = ({
-    id,
-    title,
-    children,
-  }) => {
+  const ExpandableCard: React.FC<ExpandableCardProps> = ({ id, title, children }) => {
     const isExpanded = expandedCards[id];
 
     return (
-      <Card className={`relative ${isExpanded ? "h-auto" : "h-[200px]"}`}>
+      <Card className={`relative ${isExpanded ? 'h-auto' : 'h-[200px]'}`}>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>{title}</CardTitle>
           <Button
@@ -2137,16 +1931,12 @@ function AuditsPage() {
             onClick={() => toggleCardExpansion(id)}
             className="h-8 w-8 p-0"
           >
-            {isExpanded ? (
-              <ChevronUp className="h-4 w-4" />
-            ) : (
-              <ChevronDown className="h-4 w-4" />
-            )}
+            {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </Button>
         </CardHeader>
         <CardContent
           className={`
-          ${isExpanded ? "" : "h-[100px] overflow-y-auto pr-4"}
+          ${isExpanded ? '' : 'h-[100px] overflow-y-auto pr-4'}
           space-y-2
         `}
         >
@@ -2157,9 +1947,7 @@ function AuditsPage() {
   };
 
   return (
-    <RoleBasedWrapper
-      allowedRoles={["auditor", "admin", "ceo", "super admin", "dev"]}
-    >
+    <RoleBasedWrapper allowedRoles={['auditor', 'admin', 'ceo', 'super admin', 'dev']}>
       {isLoading && <LoadingIndicator />}
 
       <main className="grid flex-1 items-start my-4 mb-4 max-w-8xl gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
@@ -2219,15 +2007,15 @@ function AuditsPage() {
                             audit={modalState.selectedAudit}
                             handleSubmit={(data: Partial<AuditData>) => {
                               const auditData: Partial<Audit> = {
-                                dros_number: data.dros_number || "",
-                                salesreps: data.salesreps || "",
-                                trans_date: data.trans_date || "",
-                                audit_date: data.audit_date || "",
-                                dros_cancel: data.dros_cancel || "",
-                                audit_type: data.audit_type || "",
-                                error_location: data.error_location || "",
-                                error_details: data.error_details || "",
-                                error_notes: data.error_notes || "",
+                                dros_number: data.dros_number || '',
+                                salesreps: data.salesreps || '',
+                                trans_date: data.trans_date || '',
+                                audit_date: data.audit_date || '',
+                                dros_cancel: data.dros_cancel || '',
+                                audit_type: data.audit_type || '',
+                                error_location: data.error_location || '',
+                                error_details: data.error_details || '',
+                                error_notes: data.error_notes || '',
                               };
 
                               editMutation.mutate({
@@ -2266,7 +2054,7 @@ function AuditsPage() {
                 <CardContent>
                   <div className="w-full">
                     <Select
-                      value={selectedLanid || ""}
+                      value={selectedLanid || ''}
                       onValueChange={handleEmployeeChange}
                       disabled={showAllEmployees}
                     >
@@ -2282,9 +2070,7 @@ function AuditsPage() {
                         />
                         {employeesQuery.data
                           ?.filter((emp) =>
-                            emp.lanid
-                              ?.toLowerCase()
-                              .includes(searchText.toLowerCase())
+                            emp.lanid?.toLowerCase().includes(searchText.toLowerCase())
                           )
                           .map((emp) => (
                             <SelectItem key={emp.lanid} value={emp.lanid}>
@@ -2301,9 +2087,7 @@ function AuditsPage() {
                       onCheckedChange={handleShowAllChange}
                     />
                     <Label htmlFor="show-all">
-                      {showAllEmployees
-                        ? "Show Individual Employee"
-                        : "Show All Employees"}
+                      {showAllEmployees ? 'Show Individual Employee' : 'Show All Employees'}
                     </Label>
                   </div>
                 </CardContent>
@@ -2317,15 +2101,8 @@ function AuditsPage() {
                 <CardContent>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="w-full pl-3 text-left font-normal mb-2"
-                      >
-                        {selectedDate ? (
-                          format(selectedDate, "PPP")
-                        ) : (
-                          <span>Pick a date</span>
-                        )}
+                      <Button variant="outline" className="w-full pl-3 text-left font-normal mb-2">
+                        {selectedDate ? format(selectedDate, 'PPP') : <span>Pick a date</span>}
                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                       </Button>
                     </PopoverTrigger>
@@ -2342,18 +2119,14 @@ function AuditsPage() {
 
               <Card className="mt-4">
                 <CardHeader>
-                  <CardTitle className="text-2xl font-bold">
-                    Mistake Definitions
-                  </CardTitle>
+                  <CardTitle className="text-2xl font-bold">Mistake Definitions</CardTitle>
                 </CardHeader>
                 <CardContent className="p-4 space-y-4">
                   <div>
-                    <h3 className="font-semibold text-lg text-primary mb-2">
-                      Minor Mistakes
-                    </h3>
+                    <h3 className="font-semibold text-lg text-primary mb-2">Minor Mistakes</h3>
                     <p className="text-sm text-muted-foreground">
-                      Correctable mistakes that can be resolved during pickup
-                      without requiring the customer to return.
+                      Correctable mistakes that can be resolved during pickup without requiring the
+                      customer to return.
                     </p>
                   </div>
                 </CardContent>
@@ -2361,18 +2134,14 @@ function AuditsPage() {
 
               <Card className="mt-4">
                 <CardHeader>
-                  <CardTitle className="text-2xl font-bold">
-                    Mistake Definitions
-                  </CardTitle>
+                  <CardTitle className="text-2xl font-bold">Mistake Definitions</CardTitle>
                 </CardHeader>
                 <CardContent className="p-4 space-y-4">
                   <div>
-                    <h3 className="font-semibold text-lg text-primary mb-2">
-                      Major Mistakes
-                    </h3>
+                    <h3 className="font-semibold text-lg text-primary mb-2">Major Mistakes</h3>
                     <p className="text-sm text-muted-foreground">
-                      Serious errors that require the customer to make an
-                      additional trip back after pickup to resolve the issue.
+                      Serious errors that require the customer to make an additional trip back after
+                      pickup to resolve the issue.
                     </p>
                   </div>
                 </CardContent>
@@ -2385,18 +2154,10 @@ function AuditsPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-col gap-2">
-                    <Button
-                      variant="destructive"
-                      className="w-full"
-                      onClick={handleReset}
-                    >
+                    <Button variant="destructive" className="w-full" onClick={handleReset}>
                       Clear All Selections
                     </Button>
-                    <Button
-                      onClick={handleExport}
-                      className="w-full"
-                      disabled={!selectedDate}
-                    >
+                    <Button onClick={handleExport} className="w-full" disabled={!selectedDate}>
                       Export to Excel
                     </Button>
                   </div>
@@ -2439,9 +2200,7 @@ function AuditsPage() {
             {selectedDate && (
               <AuditChart
                 data={contestAuditsQuery.data || []}
-                isLoading={
-                  contestAuditsQuery.isLoading || salesDataQuery.isLoading
-                }
+                isLoading={contestAuditsQuery.isLoading || salesDataQuery.isLoading}
                 showTimeRangeSelector={false} // This will hide the time range selector
               />
             )}
@@ -2466,10 +2225,7 @@ function AuditsPage() {
               <CardHeader>
                 <div className="flex justify-between items-center">
                   <CardTitle>Auditing Guidelines</CardTitle>
-                  <Dialog
-                    open={isAddDialogOpen}
-                    onOpenChange={(open) => setIsAddDialogOpen(open)}
-                  >
+                  <Dialog open={isAddDialogOpen} onOpenChange={(open) => setIsAddDialogOpen(open)}>
                     <DialogTrigger asChild>
                       <Button onClick={() => setIsAddDialogOpen(true)}>
                         <PlusIcon className="h-4 w-4 mr-2" />
@@ -2497,17 +2253,12 @@ function AuditsPage() {
                     <LoadingIndicator />
                   ) : categoriesQuery.data?.length === 0 ? (
                     <div className="text-center text-muted-foreground py-8">
-                      No categories found. Add your first category to get
-                      started.
+                      No categories found. Add your first category to get started.
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 gap-6 md:grid-cols-3 lg:grid-cols-4">
                       {categoriesQuery.data?.map((category) => (
-                        <ExpandableCard
-                          key={category.id}
-                          id={category.id}
-                          title={category.name}
-                        >
+                        <ExpandableCard key={category.id} id={category.id} title={category.name}>
                           <div className="flex justify-end gap-2 mb-4">
                             <Dialog
                               open={editingCategoryId === category.id}
@@ -2519,9 +2270,7 @@ function AuditsPage() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() =>
-                                    setEditingCategoryId(category.id)
-                                  }
+                                  onClick={() => setEditingCategoryId(category.id)}
                                 >
                                   <Pencil1Icon className="h-4 w-4" />
                                 </Button>
@@ -2540,9 +2289,7 @@ function AuditsPage() {
                                     setEditingCategoryId(null); // Close dialog after successful update
                                   }}
                                   onCancel={() => setEditingCategoryId(null)}
-                                  isSubmitting={
-                                    updateCategoryMutation.isPending
-                                  }
+                                  isSubmitting={updateCategoryMutation.isPending}
                                 />
                               </DialogContent>
                             </Dialog>
@@ -2555,12 +2302,10 @@ function AuditsPage() {
                               </AlertDialogTrigger>
                               <AlertDialogContent>
                                 <AlertDialogHeader>
-                                  <AlertDialogTitle>
-                                    Delete Category
-                                  </AlertDialogTitle>
+                                  <AlertDialogTitle>Delete Category</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    Are you sure you want to delete this
-                                    category? This action cannot be undone.
+                                    Are you sure you want to delete this category? This action
+                                    cannot be undone.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
@@ -2568,12 +2313,8 @@ function AuditsPage() {
                                   <AlertDialogAction
                                     onClick={async () => {
                                       try {
-                                        await deleteCategoryMutation.mutateAsync(
-                                          category.id
-                                        );
-                                        toast.success(
-                                          "Category deleted successfully"
-                                        );
+                                        await deleteCategoryMutation.mutateAsync(category.id);
+                                        toast.success('Category deleted successfully');
                                       } catch (error) {
                                         // Error will be handled by onError callback
                                       }
@@ -2606,43 +2347,43 @@ function AuditsPage() {
                             dangerouslySetInnerHTML={{
                               __html: DOMPurify.sanitize(category.guidelines, {
                                 ALLOWED_TAGS: [
-                                  "p",
-                                  "br",
-                                  "strong",
-                                  "em",
-                                  "u",
-                                  "h1",
-                                  "h2",
-                                  "h3",
-                                  "h4",
-                                  "h5",
-                                  "h6",
-                                  "ul",
-                                  "ol",
-                                  "li",
-                                  "blockquote",
-                                  "code",
-                                  "pre",
-                                  "div",
-                                  "span",
-                                  "a",
-                                  "img",
-                                  "table",
-                                  "thead",
-                                  "tbody",
-                                  "tr",
-                                  "th",
-                                  "td",
+                                  'p',
+                                  'br',
+                                  'strong',
+                                  'em',
+                                  'u',
+                                  'h1',
+                                  'h2',
+                                  'h3',
+                                  'h4',
+                                  'h5',
+                                  'h6',
+                                  'ul',
+                                  'ol',
+                                  'li',
+                                  'blockquote',
+                                  'code',
+                                  'pre',
+                                  'div',
+                                  'span',
+                                  'a',
+                                  'img',
+                                  'table',
+                                  'thead',
+                                  'tbody',
+                                  'tr',
+                                  'th',
+                                  'td',
                                 ],
                                 ALLOWED_ATTR: [
-                                  "href",
-                                  "src",
-                                  "class",
-                                  "style",
-                                  "target",
-                                  "rel",
-                                  "data-type",
-                                  "data-align",
+                                  'href',
+                                  'src',
+                                  'class',
+                                  'style',
+                                  'target',
+                                  'rel',
+                                  'data-type',
+                                  'data-align',
                                 ],
                               }),
                             }}

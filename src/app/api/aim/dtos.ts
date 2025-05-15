@@ -1,4 +1,4 @@
-import { IReturn } from "@servicestack/client";
+import { IReturn } from '@servicestack/client';
 
 export interface SearchInventoryApiResult {
   Pk: number;
@@ -16,9 +16,7 @@ export interface SearchInventoryApiResult {
   Discontinued?: boolean;
 }
 
-export class SearchInventoryRequest
-  implements IReturn<SearchInventoryResponse>
-{
+export class SearchInventoryRequest implements IReturn<SearchInventoryResponse> {
   ApiKey?: string;
   AppId?: string;
   SearchStr?: string;
@@ -45,7 +43,7 @@ export class SearchInventoryRequest
   }
 
   getTypeName() {
-    return "SearchInventory";
+    return 'SearchInventory';
   }
   createResponse() {
     return new SearchInventoryResponse();

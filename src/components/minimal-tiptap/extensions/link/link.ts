@@ -1,8 +1,8 @@
-import { mergeAttributes } from "@tiptap/react";
-import TiptapLink from "@tiptap/extension-link";
-import type { EditorView } from "@tiptap/pm/view";
-import { getMarkRange } from "@tiptap/react";
-import { Plugin, TextSelection } from "@tiptap/pm/state";
+import { mergeAttributes } from '@tiptap/react';
+import TiptapLink from '@tiptap/extension-link';
+import type { EditorView } from '@tiptap/pm/view';
+import { getMarkRange } from '@tiptap/react';
+import { Plugin, TextSelection } from '@tiptap/pm/state';
 
 export const Link = TiptapLink.extend({
   /*
@@ -25,11 +25,7 @@ export const Link = TiptapLink.extend({
   },
 
   renderHTML({ HTMLAttributes }) {
-    return [
-      "a",
-      mergeAttributes(this.options.HTMLAttributes, HTMLAttributes),
-      0,
-    ];
+    return ['a', mergeAttributes(this.options.HTMLAttributes, HTMLAttributes), 0];
   },
 
   addOptions() {
@@ -37,7 +33,7 @@ export const Link = TiptapLink.extend({
       ...this.parent?.(),
       openOnClick: false,
       HTMLAttributes: {
-        class: "link",
+        class: 'link',
       },
     };
   },
@@ -56,7 +52,7 @@ export const Link = TiptapLink.extend({
              * Handles the 'Escape' key press when there's a selection within the link.
              * This will move the cursor to the end of the link.
              */
-            if (event.key === "Escape" && selection.empty !== true) {
+            if (event.key === 'Escape' && selection.empty !== true) {
               editor.commands.focus(selection.to, { scrollIntoView: false });
             }
 
@@ -84,9 +80,7 @@ export const Link = TiptapLink.extend({
 
             const $start = doc.resolve(start);
             const $end = doc.resolve(end);
-            const transaction = tr.setSelection(
-              new TextSelection($start, $end)
-            );
+            const transaction = tr.setSelection(new TextSelection($start, $end));
 
             view.dispatch(transaction);
           },

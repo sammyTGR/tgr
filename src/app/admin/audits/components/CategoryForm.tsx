@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { Button } from "@/components/ui/button";
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { Button } from '@/components/ui/button';
 import {
   Form,
   FormControl,
@@ -11,14 +11,14 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { MinimalTiptapEditor } from "@/components/minimal-tiptap";
-import { Content } from "@tiptap/react";
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { MinimalTiptapEditor } from '@/components/minimal-tiptap';
+import { Content } from '@tiptap/react';
 
 const formSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  guidelines: z.string().min(1, "Guidelines are required"),
+  name: z.string().min(2, 'Name must be at least 2 characters'),
+  guidelines: z.string().min(1, 'Guidelines are required'),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -34,17 +34,12 @@ interface CategoryFormProps {
   isSubmitting: boolean;
 }
 
-export function CategoryForm({
-  category,
-  onSubmit,
-  onCancel,
-  isSubmitting,
-}: CategoryFormProps) {
+export function CategoryForm({ category, onSubmit, onCancel, isSubmitting }: CategoryFormProps) {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: category?.name || "",
-      guidelines: category?.guidelines || "",
+      name: category?.name || '',
+      guidelines: category?.guidelines || '',
     },
   });
 
@@ -53,7 +48,7 @@ export function CategoryForm({
       await onSubmit(data);
       form.reset(); // Reset form after successful submission
     } catch (error) {
-      console.error("Form submission error:", error);
+      console.error('Form submission error:', error);
     }
   };
 
@@ -63,7 +58,7 @@ export function CategoryForm({
   };
 
   const handleEditorUpdate = (content: Content) => {
-    form.setValue("guidelines", JSON.stringify(content));
+    form.setValue('guidelines', JSON.stringify(content));
   };
 
   return (
@@ -109,7 +104,7 @@ export function CategoryForm({
             Cancel
           </Button>
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Saving..." : category ? "Update" : "Create"}
+            {isSubmitting ? 'Saving...' : category ? 'Update' : 'Create'}
           </Button>
         </div>
       </form>

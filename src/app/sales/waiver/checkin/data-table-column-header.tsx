@@ -1,7 +1,7 @@
 // src/app/sales/waiver/checkin/data-table-column-header.tsx
 
-import { Column } from "@tanstack/react-table";
-import { cn } from "@/lib/utils";
+import { Column } from '@tanstack/react-table';
+import { cn } from '@/lib/utils';
 
 interface DataTableColumnHeaderProps<TData, TValue> {
   column: Column<TData, TValue>;

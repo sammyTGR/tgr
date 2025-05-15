@@ -1,12 +1,12 @@
-"use client";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { supabase } from "../../../../utils/supabase/client";
-import createColumns, { AuditData, createColumns as columns } from "./columns";
-import { DataTable } from "@/components/ui/data-table";
-import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
-import RoleBasedWrapper from "@/components/RoleBasedWrapper";
+'use client';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { supabase } from '../../../../utils/supabase/client';
+import createColumns, { AuditData, createColumns as columns } from './columns';
+import { DataTable } from '@/components/ui/data-table';
+import { TextGenerateEffect } from '@/components/ui/text-generate-effect';
+import RoleBasedWrapper from '@/components/RoleBasedWrapper';
 
-const words = "Audits";
+const words = 'Audits';
 
 export default function AuditReview() {
   const [data, setData] = useState<AuditData[]>([]);
@@ -14,9 +14,9 @@ export default function AuditReview() {
 
   const fetchAuditData = useCallback(async () => {
     const { data, error } = await supabase
-      .from("Auditsinput")
-      .select("*")
-      .order("audit_date", { ascending: false }); // Ensure sorting is handled by Supabase
+      .from('Auditsinput')
+      .select('*')
+      .order('audit_date', { ascending: false }); // Ensure sorting is handled by Supabase
 
     if (error) {
       //console.("Error fetching initial data:", error.message);
@@ -38,10 +38,7 @@ export default function AuditReview() {
     }
   }, [fetchAuditData]);
 
-  const columns = useMemo(
-    () => createColumns(fetchAuditData),
-    [fetchAuditData]
-  );
+  const columns = useMemo(() => createColumns(fetchAuditData), [fetchAuditData]);
 
   useEffect(() => {
     fetchData();
@@ -49,22 +46,18 @@ export default function AuditReview() {
 
   useEffect(() => {
     const AuditTableSubscription = supabase
-      .channel("custom-all-audits-channel")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "Auditsinput" },
-        (payload) => {
-          // console.log("Real-time change received:", payload);
-          if (payload.new) {
-            setData((currentData) => [
-              payload.new as AuditData, // Insert the new data at the beginning
-              ...currentData,
-            ]);
-          } else {
-            fetchData(); // Refetch for other types of updates
-          }
+      .channel('custom-all-audits-channel')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'Auditsinput' }, (payload) => {
+        // console.log("Real-time change received:", payload);
+        if (payload.new) {
+          setData((currentData) => [
+            payload.new as AuditData, // Insert the new data at the beginning
+            ...currentData,
+          ]);
+        } else {
+          fetchData(); // Refetch for other types of updates
         }
-      )
+      })
       .subscribe();
     // Cleanup function for the useEffect
     return () => {
@@ -73,9 +66,7 @@ export default function AuditReview() {
   }, [fetchData]);
 
   return (
-    <RoleBasedWrapper
-      allowedRoles={["auditor", "admin", "ceo", "super admin", "dev"]}
-    >
+    <RoleBasedWrapper allowedRoles={['auditor', 'admin', 'ceo', 'super admin', 'dev']}>
       <>
         <div className="h-screen flex flex-col">
           <section className="flex-1 flex flex-col space-y-4 p-4">
@@ -89,11 +80,7 @@ export default function AuditReview() {
             <div className="flex-1 flex flex-col space-y-4">
               <div className="rounded-md border flex-1 flex flex-col">
                 <div className="relative w-full h-full overflow-auto flex-1">
-                  {loading ? (
-                    <p></p>
-                  ) : (
-                    <DataTable columns={columns} data={data} />
-                  )}
+                  {loading ? <p></p> : <DataTable columns={columns} data={data} />}
                 </div>
               </div>
             </div>

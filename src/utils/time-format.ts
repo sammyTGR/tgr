@@ -1,10 +1,10 @@
-import { parseISO, format as formatDate } from "date-fns";
-import { formatInTimeZone, toZonedTime } from "date-fns-tz";
+import { parseISO, format as formatDate } from 'date-fns';
+import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
 
-const timeZone = "America/Los_Angeles";
+const timeZone = 'America/Los_Angeles';
 
 export const formatTime = (time: string | null): string => {
-  if (!time) return "";
+  if (!time) return '';
   try {
     // Ensure time is in HH:mm:ss format
     const normalizedTime = time.length === 5 ? `${time}:00` : time;
@@ -13,9 +13,9 @@ export const formatTime = (time: string | null): string => {
     // Convert to LA timezone
     const zonedDate = toZonedTime(date, timeZone);
     // Format with AM/PM
-    return formatInTimeZone(zonedDate, timeZone, "h:mm a");
+    return formatInTimeZone(zonedDate, timeZone, 'h:mm a');
   } catch (error) {
-    console.error("Error formatting time:", error, "for time value:", time);
-    return "";
+    console.error('Error formatting time:', error, 'for time value:', time);
+    return '';
   }
 };

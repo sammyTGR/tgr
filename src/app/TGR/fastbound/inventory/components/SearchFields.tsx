@@ -1,13 +1,13 @@
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { SearchParams } from "../types";
+} from '@/components/ui/select';
+import { SearchParams } from '../types';
 
 interface SearchFieldsProps {
   searchParams: (SearchParams & { searchTriggered: boolean }) | undefined;
@@ -27,15 +27,15 @@ export function SearchFields({
   locations = [],
 }: SearchFieldsProps) {
   const fields = [
-    "search",
-    "itemNumber",
-    "serial",
-    "manufacturer",
-    "model",
-    "type",
-    "caliber",
-    "location",
-    "condition",
+    'search',
+    'itemNumber',
+    'serial',
+    'manufacturer',
+    'model',
+    'type',
+    'caliber',
+    'location',
+    'condition',
   ];
 
   return (
@@ -44,52 +44,47 @@ export function SearchFields({
         {fields.map((field) => (
           <div key={field}>
             <Label htmlFor={field}>
-              {field.charAt(0).toUpperCase() +
-                field.slice(1).replace(/([A-Z])/g, " $1")}
+              {field.charAt(0).toUpperCase() + field.slice(1).replace(/([A-Z])/g, ' $1')}
             </Label>
-            {field === "manufacturer" ||
-            field === "caliber" ||
-            field === "location" ||
-            field === "type" ||
-            field === "condition" ? (
+            {field === 'manufacturer' ||
+            field === 'caliber' ||
+            field === 'location' ||
+            field === 'type' ||
+            field === 'condition' ? (
               <Select
                 onValueChange={(value) => onSelectChange(field, value)}
-                value={
-                  searchParams?.[field as keyof SearchParams]?.toString() ?? ""
-                }
+                value={searchParams?.[field as keyof SearchParams]?.toString() ?? ''}
               >
                 <SelectTrigger>
                   <SelectValue placeholder={`Select ${field}`} />
                 </SelectTrigger>
                 <SelectContent>
-                  {field === "manufacturer" &&
+                  {field === 'manufacturer' &&
                     manufacturers?.map((item) => (
                       <SelectItem key={item} value={item}>
                         {item}
                       </SelectItem>
                     ))}
-                  {field === "caliber" &&
+                  {field === 'caliber' &&
                     calibers?.map((item) => (
                       <SelectItem key={item} value={item}>
                         {item}
                       </SelectItem>
                     ))}
-                  {field === "location" &&
+                  {field === 'location' &&
                     locations?.map((item) => (
                       <SelectItem key={item} value={item}>
                         {item}
                       </SelectItem>
                     ))}
-                  {field === "type" &&
-                    ["Pistol", "Revolver", "Rifle", "Shotgun", "Other"].map(
-                      (item) => (
-                        <SelectItem key={item} value={item}>
-                          {item}
-                        </SelectItem>
-                      )
-                    )}
-                  {field === "condition" &&
-                    ["New", "Used"].map((item) => (
+                  {field === 'type' &&
+                    ['Pistol', 'Revolver', 'Rifle', 'Shotgun', 'Other'].map((item) => (
+                      <SelectItem key={item} value={item}>
+                        {item}
+                      </SelectItem>
+                    ))}
+                  {field === 'condition' &&
+                    ['New', 'Used'].map((item) => (
                       <SelectItem key={item} value={item}>
                         {item}
                       </SelectItem>
@@ -100,9 +95,7 @@ export function SearchFields({
               <Input
                 id={field}
                 name={field}
-                value={
-                  searchParams?.[field as keyof SearchParams]?.toString() ?? ""
-                }
+                value={searchParams?.[field as keyof SearchParams]?.toString() ?? ''}
                 onChange={onInputChange}
               />
             )}
@@ -116,8 +109,8 @@ export function SearchFields({
           <div>
             <Label htmlFor="disposedStatus">Disposed Items</Label>
             <Select
-              onValueChange={(value) => onSelectChange("disposedStatus", value)}
-              value={searchParams?.disposedStatus || "1"}
+              onValueChange={(value) => onSelectChange('disposedStatus', value)}
+              value={searchParams?.disposedStatus || '1'}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select disposed status" />
@@ -133,8 +126,8 @@ export function SearchFields({
           <div>
             <Label htmlFor="deletedStatus">Deleted Items</Label>
             <Select
-              onValueChange={(value) => onSelectChange("deletedStatus", value)}
-              value={searchParams?.deletedStatus || "1"}
+              onValueChange={(value) => onSelectChange('deletedStatus', value)}
+              value={searchParams?.deletedStatus || '1'}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select deleted status" />
@@ -150,10 +143,8 @@ export function SearchFields({
           <div>
             <Label htmlFor="doNotDisposeStatus">Do Not Dispose Items</Label>
             <Select
-              onValueChange={(value) =>
-                onSelectChange("doNotDisposeStatus", value)
-              }
-              value={searchParams?.doNotDisposeStatus || "1"}
+              onValueChange={(value) => onSelectChange('doNotDisposeStatus', value)}
+              value={searchParams?.doNotDisposeStatus || '1'}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select do not dispose status" />
@@ -172,7 +163,7 @@ export function SearchFields({
               type="date"
               id="inventoryAsOf"
               name="inventoryAsOf"
-              value={searchParams?.inventoryAsOf || ""}
+              value={searchParams?.inventoryAsOf || ''}
               onChange={onInputChange}
             />
           </div>

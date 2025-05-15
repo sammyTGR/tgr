@@ -1,5 +1,5 @@
-import { FC, useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
+import { FC, useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -7,10 +7,10 @@ import {
   DialogTitle,
   DialogFooter,
   DialogDescription,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { TimesheetReport } from "./TimesheetTable";
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { TimesheetReport } from './TimesheetTable';
 
 interface ReconcileDialogFormProps {
   row: TimesheetReport;
@@ -25,14 +25,14 @@ export const ReconcileDialogForm: FC<ReconcileDialogFormProps> = ({
   onClose,
   isOpen,
 }) => {
-  const [difference, setDifference] = useState("00:00");
-  const [hoursToReconcile, setHoursToReconcile] = useState("0.00");
+  const [difference, setDifference] = useState('00:00');
+  const [hoursToReconcile, setHoursToReconcile] = useState('0.00');
   const [canReconcile, setCanReconcile] = useState(false);
 
   useEffect(() => {
     const scheduledMinutes = (row.scheduled_hours ?? 0) * 60;
-    const [workedHours, workedMinutes] = (row.calculated_total_hours || "00:00")
-      .split(":")
+    const [workedHours, workedMinutes] = (row.calculated_total_hours || '00:00')
+      .split(':')
       .map(Number);
     const totalWorkedMinutes = workedHours * 60 + workedMinutes;
 
@@ -42,7 +42,7 @@ export const ReconcileDialogForm: FC<ReconcileDialogFormProps> = ({
 
     const formattedDiff = `${diffHours
       .toString()
-      .padStart(2, "0")}:${remainingMinutes.toString().padStart(2, "0")}`;
+      .padStart(2, '0')}:${remainingMinutes.toString().padStart(2, '0')}`;
     const diffInHours = (diffMinutes / 60).toFixed(2);
 
     setDifference(formattedDiff);
@@ -71,8 +71,7 @@ export const ReconcileDialogForm: FC<ReconcileDialogFormProps> = ({
         <DialogHeader>
           <DialogTitle>Reconcile Hours</DialogTitle>
           <DialogDescription>
-            Adjust the hours to reconcile the difference between scheduled and
-            worked hours.
+            Adjust the hours to reconcile the difference between scheduled and worked hours.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -82,7 +81,7 @@ export const ReconcileDialogForm: FC<ReconcileDialogFormProps> = ({
             </Label>
             <Input
               id="scheduled"
-              value={row.scheduled_hours?.toFixed(2) || "N/A"}
+              value={row.scheduled_hours?.toFixed(2) || 'N/A'}
               readOnly
               className="col-span-3"
             />
@@ -93,7 +92,7 @@ export const ReconcileDialogForm: FC<ReconcileDialogFormProps> = ({
             </Label>
             <Input
               id="total"
-              value={row.calculated_total_hours || "00:00"}
+              value={row.calculated_total_hours || '00:00'}
               readOnly
               className="col-span-3"
             />
@@ -102,12 +101,7 @@ export const ReconcileDialogForm: FC<ReconcileDialogFormProps> = ({
             <Label htmlFor="difference" className="text-right">
               Difference
             </Label>
-            <Input
-              id="difference"
-              value={difference}
-              readOnly
-              className="col-span-3"
-            />
+            <Input id="difference" value={difference} readOnly className="col-span-3" />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="available" className="text-right">
@@ -115,7 +109,7 @@ export const ReconcileDialogForm: FC<ReconcileDialogFormProps> = ({
             </Label>
             <Input
               id="available"
-              value={row.available_sick_time?.toFixed(2) || "N/A"}
+              value={row.available_sick_time?.toFixed(2) || 'N/A'}
               readOnly
               className="col-span-3"
             />

@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import React, { Suspense } from "react";
-import { useEffect, useCallback } from "react";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
+import React, { Suspense } from 'react';
+import { useEffect, useCallback } from 'react';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 import {
   ChatBubbleIcon,
   HomeIcon,
@@ -16,17 +16,17 @@ import {
   Pencil2Icon,
   DashboardIcon,
   QuestionMarkIcon,
-} from "@radix-ui/react-icons";
+} from '@radix-ui/react-icons';
 import {
   NavigationMenuContent,
   NavigationMenuItem,
   NavigationMenuLink,
   NavigationMenuTrigger,
-} from "@/components/ui/navigation-menu";
-import { cn } from "@/lib/utils";
-import { supabase } from "@/utils/supabase/client";
-import RoleBasedWrapper from "@/components/RoleBasedWrapper";
-import { useRouter } from "next/navigation";
+} from '@/components/ui/navigation-menu';
+import { cn } from '@/lib/utils';
+import { supabase } from '@/utils/supabase/client';
+import RoleBasedWrapper from '@/components/RoleBasedWrapper';
+import { useRouter } from 'next/navigation';
 import {
   DropdownMenuTrigger,
   DropdownMenuContent,
@@ -37,14 +37,14 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuPortal,
   DropdownMenuSubContent,
-} from "@/components/ui/dropdown-menu";
-import { useTheme } from "next-themes";
-import dynamic from "next/dynamic";
-import LoadingIndicator from "@/components/LoadingIndicator";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { usePathname, useSearchParams } from "next/navigation";
-import { Session, User } from "@supabase/supabase-js";
-import { QueryClient } from "@tanstack/react-query";
+} from '@/components/ui/dropdown-menu';
+import { useTheme } from 'next-themes';
+import dynamic from 'next/dynamic';
+import LoadingIndicator from '@/components/LoadingIndicator';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { usePathname, useSearchParams } from 'next/navigation';
+import { Session, User } from '@supabase/supabase-js';
+import { QueryClient } from '@tanstack/react-query';
 
 interface HeaderDev {
   totalUnreadCount: number;
@@ -76,7 +76,7 @@ interface UnreadTimeOffResponse {
 
 const LazyNavigationMenu = dynamic(
   () =>
-    import("@/components/ui/navigation-menu").then((module) => ({
+    import('@/components/ui/navigation-menu').then((module) => ({
       default: module.NavigationMenu,
     })),
   {
@@ -86,7 +86,7 @@ const LazyNavigationMenu = dynamic(
 
 const LazyNavigationMenuList = dynamic(
   () =>
-    import("@/components/ui/navigation-menu").then((module) => ({
+    import('@/components/ui/navigation-menu').then((module) => ({
       default: module.NavigationMenuList,
     })),
   {
@@ -96,7 +96,7 @@ const LazyNavigationMenuList = dynamic(
 
 const LazyDropdownMenu = dynamic(
   () =>
-    import("@/components/ui/dropdown-menu").then((module) => ({
+    import('@/components/ui/dropdown-menu').then((module) => ({
       default: module.DropdownMenu,
     })),
   {
@@ -106,235 +106,235 @@ const LazyDropdownMenu = dynamic(
 
 const auditComponents = [
   {
-    title: "Submit & Review Audits",
-    href: "/admin/audits",
-    description: "Enter Audits & Review Existing Ones",
+    title: 'Submit & Review Audits',
+    href: '/admin/audits',
+    description: 'Enter Audits & Review Existing Ones',
   },
   {
-    title: "DROS Guidance",
-    href: "/TGR/dros/guide",
+    title: 'DROS Guidance',
+    href: '/TGR/dros/guide',
     description: "Sometimes We All Need A Lil' Help",
   },
 ];
 
 const schedComponents = [
   {
-    title: "Team Calendar",
-    href: "/TGR/crew/calendar",
-    description: "Schedules & Time Off Requests",
+    title: 'Team Calendar',
+    href: '/TGR/crew/calendar',
+    description: 'Schedules & Time Off Requests',
   },
   {
-    title: "Review Time Off Requests",
-    href: "/admin/timeoffreview",
-    description: "View All Requests For Time Off",
+    title: 'Review Time Off Requests',
+    href: '/admin/timeoffreview',
+    description: 'View All Requests For Time Off',
   },
   {
-    title: "Staff Profiles",
-    href: "/admin/dashboard",
-    description: "All Profiles",
+    title: 'Staff Profiles',
+    href: '/admin/dashboard',
+    description: 'All Profiles',
   },
   {
-    title: "Create | Manage Schedules",
-    href: "/admin/schedules",
-    description: "Manage Schedules & Timesheets",
+    title: 'Create | Manage Schedules',
+    href: '/admin/schedules',
+    description: 'Manage Schedules & Timesheets',
   },
 ];
 
 const sopComps = [
   {
-    title: "TGR SOPs",
-    href: "/TGR/sop",
-    description: "SOPs For Front Of The House",
+    title: 'TGR SOPs',
+    href: '/TGR/sop',
+    description: 'SOPs For Front Of The House',
   },
   {
-    title: "Admin SOPs",
-    href: "/admin/sop",
-    description: "SOPs For Back Of The House",
+    title: 'Admin SOPs',
+    href: '/admin/sop',
+    description: 'SOPs For Back Of The House',
   },
 ];
 
 const manageComps = [
   {
-    title: "Staff Profiles",
-    href: "/admin/dashboard",
-    description: "All Profiles",
+    title: 'Staff Profiles',
+    href: '/admin/dashboard',
+    description: 'All Profiles',
   },
 
   {
-    title: "Monthly Contest",
-    href: "/admin/audits/contest",
-    description: "Monthly Sales Contest",
+    title: 'Monthly Contest',
+    href: '/admin/audits/contest',
+    description: 'Monthly Sales Contest',
   },
   {
-    title: "Weekly Meetings",
-    href: "/admin/meetings",
-    description: "Update & Meet Weekly",
+    title: 'Weekly Meetings',
+    href: '/admin/meetings',
+    description: 'Update & Meet Weekly',
   },
   {
-    title: "Sales Report",
-    href: "/admin/reports/sales",
-    description: "View Daily Sales",
+    title: 'Sales Report',
+    href: '/admin/reports/sales',
+    description: 'View Daily Sales',
   },
   {
-    title: "Download Reports",
-    href: "/admin/reports/download",
-    description: "Download Various Reports",
+    title: 'Download Reports',
+    href: '/admin/reports/download',
+    description: 'Download Various Reports',
   },
   {
-    title: "Manage Staff Data",
-    href: "/TGR/employees",
-    description: "Set All Staff Details",
+    title: 'Manage Staff Data',
+    href: '/TGR/employees',
+    description: 'Set All Staff Details',
   },
   {
-    title: "Audit Management",
-    href: "/admin/audits",
-    description: "Testing Audits",
+    title: 'Audit Management',
+    href: '/admin/audits',
+    description: 'Testing Audits',
   },
   {
-    title: "Upload Files",
-    href: "/admin/upload",
-    description: "Uploadthing",
+    title: 'Upload Files',
+    href: '/admin/upload',
+    description: 'Uploadthing',
   },
   {
-    title: "Reports Dashboard",
-    href: "/admin/reports/dashboard",
-    description: "Daily Dashboard",
+    title: 'Reports Dashboard',
+    href: '/admin/reports/dashboard',
+    description: 'Daily Dashboard',
   },
   {
-    title: "Onboarding",
-    href: "/admin/onboarding",
-    description: "New Member Onboarding",
+    title: 'Onboarding',
+    href: '/admin/onboarding',
+    description: 'New Member Onboarding',
   },
   {
-    title: "Products & Pricing",
-    href: "/pricing",
-    description: "All Products & Subscriptions",
+    title: 'Products & Pricing',
+    href: '/pricing',
+    description: 'All Products & Subscriptions',
   },
   {
-    title: "Classes Schedule",
-    href: "/public/classes",
-    description: "Class Scheduling Page",
+    title: 'Classes Schedule',
+    href: '/public/classes',
+    description: 'Class Scheduling Page',
   },
   {
-    title: "Fastbound Acquisitions",
-    href: "/TGR/fastbound/acquisitions",
-    description: "Acquisitions",
+    title: 'Fastbound Acquisitions',
+    href: '/TGR/fastbound/acquisitions',
+    description: 'Acquisitions',
   },
   {
-    title: "Fastbound Inventory",
-    href: "/TGR/fastbound/inventory",
-    description: "Inventory",
+    title: 'Fastbound Inventory',
+    href: '/TGR/fastbound/inventory',
+    description: 'Inventory',
   },
   {
-    title: "Newsletter",
-    href: "/public/subscribe",
-    description: "Subscribe To Our Email List",
+    title: 'Newsletter',
+    href: '/public/subscribe',
+    description: 'Subscribe To Our Email List',
   },
   {
-    title: "AIM Inventory",
-    href: "/aim",
-    description: "Search Inventory",
+    title: 'AIM Inventory',
+    href: '/aim',
+    description: 'Search Inventory',
   },
   {
-    title: "Franchising",
-    href: "/franchise/about",
-    description: "Joining TGR",
+    title: 'Franchising',
+    href: '/franchise/about',
+    description: 'Joining TGR',
   },
   {
-    title: "Banned Firearms",
-    href: "/TGR/dros/banned",
-    description: "Banned Firearms",
+    title: 'Banned Firearms',
+    href: '/TGR/dros/banned',
+    description: 'Banned Firearms',
   },
   {
-    title: "Patch Notes",
-    href: "/patch-notes",
-    description: "Patch Notes",
+    title: 'Patch Notes',
+    href: '/patch-notes',
+    description: 'Patch Notes',
   },
 ];
 
 const fbComps = [
   {
-    title: "Inventory",
-    href: "/TGR/fastbound/inventory",
-    description: "Inventory",
+    title: 'Inventory',
+    href: '/TGR/fastbound/inventory',
+    description: 'Inventory',
   },
   {
-    title: "Acquisitions",
-    href: "/TGR/fastbound/acquisitions",
-    description: "Acquisitions",
+    title: 'Acquisitions',
+    href: '/TGR/fastbound/acquisitions',
+    description: 'Acquisitions',
   },
 ];
 
 const comboComps = [
   {
-    title: "Safety Waiver",
-    href: "/public/waiver",
-    description: "Submit A Safety Waiver",
+    title: 'Safety Waiver',
+    href: '/public/waiver',
+    description: 'Submit A Safety Waiver',
   },
   {
-    title: "Review Waivers",
-    href: "/sales/waiver/checkin",
-    description: "Review Waivers & Check-Ins",
+    title: 'Review Waivers',
+    href: '/sales/waiver/checkin',
+    description: 'Review Waivers & Check-Ins',
   },
   {
-    title: "View Certifications",
-    href: "/TGR/certifications",
-    description: "View All Certifications",
+    title: 'View Certifications',
+    href: '/TGR/certifications',
+    description: 'View All Certifications',
   },
   {
-    title: "Range Walks & Repairs",
-    href: "/TGR/crew/range",
-    description: "Daily Range Walks & Repairs",
+    title: 'Range Walks & Repairs',
+    href: '/TGR/crew/range',
+    description: 'Daily Range Walks & Repairs',
   },
   {
-    title: "Submit Special Orders",
-    href: "/sales/orders",
-    description: "Submit Requests For Customers",
+    title: 'Submit Special Orders',
+    href: '/sales/orders',
+    description: 'Submit Requests For Customers',
   },
   {
-    title: "Special Orders Report",
-    href: "/sales/orderreview",
-    description: "View Submitted Orders",
+    title: 'Special Orders Report',
+    href: '/sales/orderreview',
+    description: 'View Submitted Orders',
   },
   {
-    title: "Gunsmithing",
-    href: "/TGR/gunsmithing",
-    description: "Weekly Gunsmithing Maintenance",
+    title: 'Gunsmithing',
+    href: '/TGR/gunsmithing',
+    description: 'Weekly Gunsmithing Maintenance',
   },
   {
-    title: "Rental Firearms Checklist",
-    href: "/TGR/rentals/checklist",
-    description: "Rental Inventory Check",
+    title: 'Rental Firearms Checklist',
+    href: '/TGR/rentals/checklist',
+    description: 'Rental Inventory Check',
   },
   {
-    title: "Submit Daily Deposits",
-    href: "/TGR/deposits",
-    description: "Daily Deposits",
+    title: 'Submit Daily Deposits',
+    href: '/TGR/deposits',
+    description: 'Daily Deposits',
   },
   {
-    title: "DROS Training",
-    href: "/TGR/dros/training/",
-    description: "DROS Simulation",
+    title: 'DROS Training',
+    href: '/TGR/dros/training/',
+    description: 'DROS Simulation',
   },
   {
-    title: "Bulletin Board",
-    href: "/TGR/crew/bulletin",
-    description: "Bulletin Board",
+    title: 'Bulletin Board',
+    href: '/TGR/crew/bulletin',
+    description: 'Bulletin Board',
   },
 ];
 
 // Auth state subscription query
 const useAuthStateSubscription = (queryClient: QueryClient) => {
   return useQuery({
-    queryKey: ["authStateSubscription"],
+    queryKey: ['authStateSubscription'],
     queryFn: async () => {
       const subscription = supabase.auth.onAuthStateChange((event, session) => {
-        if (event === "SIGNED_IN") {
-          queryClient.invalidateQueries({ queryKey: ["userRole"] });
-          queryClient.invalidateQueries({ queryKey: ["currentUser"] });
-        } else if (event === "SIGNED_OUT") {
+        if (event === 'SIGNED_IN') {
+          queryClient.invalidateQueries({ queryKey: ['userRole'] });
+          queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+        } else if (event === 'SIGNED_OUT') {
           queryClient.clear();
-          window.location.href = "/";
+          window.location.href = '/';
         }
       });
 
@@ -346,22 +346,15 @@ const useAuthStateSubscription = (queryClient: QueryClient) => {
 };
 
 // Orders subscription query
-const useOrdersSubscription = (
-  currentUser: User | null,
-  queryClient: QueryClient
-) => {
+const useOrdersSubscription = (currentUser: User | null, queryClient: QueryClient) => {
   return useQuery({
-    queryKey: ["ordersSubscription"],
+    queryKey: ['ordersSubscription'],
     queryFn: async () => {
       const channel = supabase
-        .channel("orders")
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "orders" },
-          () => {
-            queryClient.invalidateQueries({ queryKey: ["unreadOrders"] });
-          }
-        )
+        .channel('orders')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+          queryClient.invalidateQueries({ queryKey: ['unreadOrders'] });
+        })
         .subscribe();
 
       return () => {
@@ -375,20 +368,17 @@ const useOrdersSubscription = (
 };
 
 // Time off requests subscription query
-const useTimeOffSubscription = (
-  currentUser: User | null,
-  queryClient: QueryClient
-) => {
+const useTimeOffSubscription = (currentUser: User | null, queryClient: QueryClient) => {
   return useQuery({
-    queryKey: ["timeOffSubscription"],
+    queryKey: ['timeOffSubscription'],
     queryFn: async () => {
       const channel = supabase
-        .channel("time_off_requests")
+        .channel('time_off_requests')
         .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "time_off_requests" },
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'time_off_requests' },
           () => {
-            queryClient.invalidateQueries({ queryKey: ["unreadTimeOff"] });
+            queryClient.invalidateQueries({ queryKey: ['unreadTimeOff'] });
           }
         )
         .subscribe();
@@ -412,7 +402,7 @@ const HeaderDev = React.memo(() => {
 
   // Add new queries to replace the state
   const { data: currentUser } = useQuery({
-    queryKey: ["currentUser"],
+    queryKey: ['currentUser'],
     queryFn: async () => {
       const {
         data: { user },
@@ -424,23 +414,20 @@ const HeaderDev = React.memo(() => {
 
   // Navigation query
   const { isLoading: isNavigating } = useQuery({
-    queryKey: ["navigation", pathname, searchParams],
-    queryFn: () =>
-      Promise.resolve(
-        new Promise((resolve) => setTimeout(() => resolve(null), 100))
-      ),
+    queryKey: ['navigation', pathname, searchParams],
+    queryFn: () => Promise.resolve(new Promise((resolve) => setTimeout(() => resolve(null), 100))),
     staleTime: 0,
     refetchInterval: 0,
   });
 
   // User role query
   const { data: userData, refetch: refetchUserRole } = useQuery<UserData>({
-    queryKey: ["userRole"],
+    queryKey: ['userRole'],
     queryFn: async () => {
-      const response = await fetch("/api/getUserRole");
+      const response = await fetch('/api/getUserRole');
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || "Failed to fetch user role");
+        throw new Error(error.error || 'Failed to fetch user role');
       }
       return response.json();
     },
@@ -452,13 +439,13 @@ const HeaderDev = React.memo(() => {
 
   // Employee query
   const { data: employeeData, isLoading: isEmployeeLoading } = useQuery({
-    queryKey: ["employee", currentUser?.id],
+    queryKey: ['employee', currentUser?.id],
     queryFn: async () => {
       if (!currentUser?.id) return null;
       const { data, error } = await supabase
-        .from("employees")
-        .select("*")
-        .eq("user_uuid", currentUser.id)
+        .from('employees')
+        .select('*')
+        .eq('user_uuid', currentUser.id)
         .single();
 
       if (error) throw error;
@@ -469,10 +456,10 @@ const HeaderDev = React.memo(() => {
 
   // Unread counts queries with proper refetchInterval
   const { data: unreadOrdersData = { unreadOrderCount: 0 } } = useQuery({
-    queryKey: ["unreadOrders"],
+    queryKey: ['unreadOrders'],
     queryFn: async () => {
-      const response = await fetch("/api/useUnreadOrders");
-      if (!response.ok) throw new Error("Failed to fetch unread orders");
+      const response = await fetch('/api/useUnreadOrders');
+      if (!response.ok) throw new Error('Failed to fetch unread orders');
       return response.json();
     },
     enabled: !!currentUser,
@@ -480,11 +467,10 @@ const HeaderDev = React.memo(() => {
   });
 
   const { data: unreadTimeOffData = { unreadTimeOffCount: 0 } } = useQuery({
-    queryKey: ["unreadTimeOff"],
+    queryKey: ['unreadTimeOff'],
     queryFn: async () => {
-      const response = await fetch("/api/useUnreadTimeOffRequests");
-      if (!response.ok)
-        throw new Error("Failed to fetch unread time-off requests");
+      const response = await fetch('/api/useUnreadTimeOffRequests');
+      if (!response.ok) throw new Error('Failed to fetch unread time-off requests');
       return response.json();
     },
     enabled: !!currentUser,
@@ -505,18 +491,18 @@ const HeaderDev = React.memo(() => {
   };
 
   const handleChatClick = () => {
-    router.push("/messages");
+    router.push('/messages');
   };
 
   const handleSupportClick = () => {
-    router.push("/support");
+    router.push('/support');
   };
 
   const aimComps = [
     {
-      title: "AIM",
-      href: "/aim",
-      description: "API Testing",
+      title: 'AIM',
+      href: '/aim',
+      description: 'API Testing',
     },
   ];
 
@@ -529,16 +515,16 @@ const HeaderDev = React.memo(() => {
       router.push(`/TGR/crew/profile/${employeeData.employee_id}`);
     } else {
       // Handle the case where employee data is not available
-      console.error("Employee data not found");
+      console.error('Employee data not found');
     }
   };
 
   const handleHomeClick = () => {
-    router.push("/");
+    router.push('/');
   };
 
   return (
-    <RoleBasedWrapper allowedRoles={["dev"]}>
+    <RoleBasedWrapper allowedRoles={['dev']}>
       {isNavigating && <LoadingIndicator />}
       <header className="flex justify-between items-center p-1">
         <Suspense fallback={<div>Loading navigation...</div>}>
@@ -549,11 +535,7 @@ const HeaderDev = React.memo(() => {
                 <NavigationMenuContent>
                   <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
                     {auditComponents.map((component) => (
-                      <ListItem
-                        key={component.title}
-                        title={component.title}
-                        href={component.href}
-                      >
+                      <ListItem key={component.title} title={component.title} href={component.href}>
                         {component.description}
                       </ListItem>
                     ))}
@@ -565,11 +547,7 @@ const HeaderDev = React.memo(() => {
                 <NavigationMenuContent>
                   <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
                     {schedComponents.map((sched) => (
-                      <ListItem
-                        key={sched.title}
-                        title={sched.title}
-                        href={sched.href}
-                      >
+                      <ListItem key={sched.title} title={sched.title} href={sched.href}>
                         {sched.description}
                       </ListItem>
                     ))}
@@ -581,11 +559,7 @@ const HeaderDev = React.memo(() => {
                 <NavigationMenuContent>
                   <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-3 lg:w-[600px]">
                     {comboComps.map((component) => (
-                      <ListItem
-                        key={component.title}
-                        title={component.title}
-                        href={component.href}
-                      >
+                      <ListItem key={component.title} title={component.title} href={component.href}>
                         {component.description}
                       </ListItem>
                     ))}
@@ -597,11 +571,7 @@ const HeaderDev = React.memo(() => {
                 <NavigationMenuContent>
                   <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
                     {fbComps.map((component) => (
-                      <ListItem
-                        key={component.title}
-                        title={component.title}
-                        href={component.href}
-                      >
+                      <ListItem key={component.title} title={component.title} href={component.href}>
                         {component.description}
                       </ListItem>
                     ))}
@@ -613,11 +583,7 @@ const HeaderDev = React.memo(() => {
                 <NavigationMenuContent>
                   <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-3 lg:w-[600px]">
                     {manageComps.map((component) => (
-                      <ListItem
-                        key={component.title}
-                        title={component.title}
-                        href={component.href}
-                      >
+                      <ListItem key={component.title} title={component.title} href={component.href}>
                         {component.description}
                       </ListItem>
                     ))}
@@ -629,11 +595,7 @@ const HeaderDev = React.memo(() => {
                 <NavigationMenuContent>
                   <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
                     {sopComps.map((component) => (
-                      <ListItem
-                        key={component.title}
-                        title={component.title}
-                        href={component.href}
-                      >
+                      <ListItem key={component.title} title={component.title} href={component.href}>
                         {component.description}
                       </ListItem>
                     ))}
@@ -645,11 +607,7 @@ const HeaderDev = React.memo(() => {
                 <NavigationMenuContent>
                   <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
                     {aimComps.map((component) => (
-                      <ListItem
-                        key={component.title}
-                        title={component.title}
-                        href={component.href}
-                      >
+                      <ListItem key={component.title} title={component.title} href={component.href}>
                         {component.description}
                       </ListItem>
                     ))}
@@ -694,14 +652,10 @@ const HeaderDev = React.memo(() => {
               </Link>
 
               <div className="flex items-center space-x-1">
-                <Suspense fallback={"Loading..."}>
+                <Suspense fallback={'Loading...'}>
                   <LazyDropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="mr-2 relative"
-                      >
+                      <Button variant="ghost" size="icon" className="mr-2 relative">
                         <PersonIcon />
                       </Button>
                     </DropdownMenuTrigger>
@@ -711,25 +665,19 @@ const HeaderDev = React.memo(() => {
                       <DropdownMenuItem
                         className="cursor-pointer"
                         onSelect={handleProfileClick}
-                        disabled={
-                          isEmployeeLoading || !employeeData?.employee_id
-                        }
+                        disabled={isEmployeeLoading || !employeeData?.employee_id}
                       >
                         <PersonIcon className="mr-2 h-4 w-4" />
-                        {isEmployeeLoading ? "Loading..." : "Profile"}
+                        {isEmployeeLoading ? 'Loading...' : 'Profile'}
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
 
-                      <DropdownMenuItem
-                        onSelect={() => handleLinkClick("/admin/domains")}
-                      >
+                      <DropdownMenuItem onSelect={() => handleLinkClick('/admin/domains')}>
                         <Pencil2Icon className="mr-2 h-4 w-4" />
                         <span>Manage Domains</span>
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onSelect={() =>
-                          handleLinkClick("/admin/reports/dashboard")
-                        }
+                        onSelect={() => handleLinkClick('/admin/reports/dashboard')}
                       >
                         <DashboardIcon className="mr-2 h-4 w-4" />
                         <span>Admin Dashboard</span>
@@ -749,11 +697,11 @@ const HeaderDev = React.memo(() => {
                         </DropdownMenuSubTrigger>
                         <DropdownMenuPortal>
                           <DropdownMenuSubContent>
-                            <DropdownMenuItem onClick={() => setTheme("light")}>
+                            <DropdownMenuItem onClick={() => setTheme('light')}>
                               <SunIcon className="mr-2 h-4 w-4" />
                               <span>Light</span>
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setTheme("dark")}>
+                            <DropdownMenuItem onClick={() => setTheme('dark')}>
                               <MoonIcon className="mr-2 h-4 w-4" />
                               <span>Dark</span>
                             </DropdownMenuItem>
@@ -762,9 +710,7 @@ const HeaderDev = React.memo(() => {
                       </DropdownMenuSub>
                       <DropdownMenuSeparator />
 
-                      <DropdownMenuItem onClick={handleSignOut}>
-                        Sign Out
-                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleSignOut}>Sign Out</DropdownMenuItem>
                     </DropdownMenuContent>
                   </LazyDropdownMenu>
                 </Suspense>
@@ -781,44 +727,41 @@ const HeaderDev = React.memo(() => {
   );
 });
 
-HeaderDev.displayName = "HeaderDev";
+HeaderDev.displayName = 'HeaderDev';
 
-const ListItem = React.forwardRef<
-  React.ElementRef<"a">,
-  React.ComponentPropsWithoutRef<"a">
->(({ className, title, children, href, ...props }, ref) => {
-  const queryClient = useQueryClient();
-  const router = useRouter();
+const ListItem = React.forwardRef<React.ElementRef<'a'>, React.ComponentPropsWithoutRef<'a'>>(
+  ({ className, title, children, href, ...props }, ref) => {
+    const queryClient = useQueryClient();
+    const router = useRouter();
 
-  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault();
-    queryClient.invalidateQueries({ queryKey: ["navigation"] });
-    router.push(href || "");
-  };
+    const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+      e.preventDefault();
+      queryClient.invalidateQueries({ queryKey: ['navigation'] });
+      router.push(href || '');
+    };
 
-  return (
-    <li>
-      <NavigationMenuLink asChild>
-        <a
-          ref={ref}
-          href={href}
-          onClick={handleClick}
-          className={cn(
-            "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
-            className
-          )}
-          {...props}
-        >
-          <div className="text-sm font-medium leading-none">{title}</div>
-          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-            {children}
-          </p>
-        </a>
-      </NavigationMenuLink>
-    </li>
-  );
-});
+    return (
+      <li>
+        <NavigationMenuLink asChild>
+          <a
+            ref={ref}
+            href={href}
+            onClick={handleClick}
+            className={cn(
+              'block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground',
+              className
+            )}
+            {...props}
+          >
+            <div className="text-sm font-medium leading-none">{title}</div>
+            <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">{children}</p>
+          </a>
+        </NavigationMenuLink>
+      </li>
+    );
+  }
+);
 
-ListItem.displayName = "ListItem";
+ListItem.displayName = 'ListItem';
 
 export default HeaderDev;

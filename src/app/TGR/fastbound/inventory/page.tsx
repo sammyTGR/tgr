@@ -1,50 +1,46 @@
 //returns results but not the correct ones
-"use client";
+'use client';
 
-import { useCallback } from "react";
-import {
-  keepPreviousData,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Info } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useCallback } from 'react';
+import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Info } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   SearchFields,
   AcquisitionFields,
   DispositionFields,
   StatusFields,
-} from "./components/index";
-import type { SearchParams, InventoryItem, InventoryResponse } from "./types";
-import { Label } from "@/components/ui/label";
+} from './components/index';
+import type { SearchParams, InventoryItem, InventoryResponse } from './types';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from '@/components/ui/select';
 
 const initialSearchParams: SearchParams & { searchTriggered: boolean } = {
-  search: "",
-  itemNumber: "",
-  serial: "",
-  manufacturer: "",
-  model: "",
-  type: "",
-  caliber: "",
-  location: "",
-  condition: "",
-  status: "",
+  search: '',
+  itemNumber: '',
+  serial: '',
+  manufacturer: '',
+  model: '',
+  type: '',
+  caliber: '',
+  location: '',
+  condition: '',
+  status: '',
   skip: 0,
   take: 10,
-  disposedStatus: "3", // "Both"
-  deletedStatus: "1", // "Not Deleted Only"
-  doNotDisposeStatus: "1", // "Not Do Not Dispose Only"
+  disposedStatus: '3', // "Both"
+  deletedStatus: '1', // "Not Deleted Only"
+  doNotDisposeStatus: '1', // "Not Do Not Dispose Only"
   searchTriggered: false,
 };
 
@@ -54,38 +50,35 @@ const fetchInventory = async (searchParams: SearchParams) => {
 
   // Handle basic search fields
   const basicFields = {
-    model: "Model",
-    manufacturer: "Manufacturer",
-    type: "Type",
-    caliber: "Caliber",
-    location: "Location",
-    condition: "Condition",
-    serial: "Serial",
-    itemNumber: "ItemNumber",
+    model: 'Model',
+    manufacturer: 'Manufacturer',
+    type: 'Type',
+    caliber: 'Caliber',
+    location: 'Location',
+    condition: 'Condition',
+    serial: 'Serial',
+    itemNumber: 'ItemNumber',
   };
 
   // Only add non-empty search terms
   Object.entries(basicFields).forEach(([key, fbKey]) => {
     const value = searchParams[key as keyof SearchParams];
-    if (value && typeof value === "string" && value.trim() !== "") {
+    if (value && typeof value === 'string' && value.trim() !== '') {
       searchTerms.push(`${fbKey}:"${value.trim()}"`);
     }
   });
 
   // Handle status filters - only add if they're not "3" (Both)
-  if (searchParams.deletedStatus && searchParams.deletedStatus !== "3") {
-    searchTerms.push(`Deleted:${searchParams.deletedStatus === "2"}`);
+  if (searchParams.deletedStatus && searchParams.deletedStatus !== '3') {
+    searchTerms.push(`Deleted:${searchParams.deletedStatus === '2'}`);
   }
 
-  if (searchParams.disposedStatus && searchParams.disposedStatus !== "3") {
-    searchTerms.push(`Disposed:${searchParams.disposedStatus === "2"}`);
+  if (searchParams.disposedStatus && searchParams.disposedStatus !== '3') {
+    searchTerms.push(`Disposed:${searchParams.disposedStatus === '2'}`);
   }
 
-  if (
-    searchParams.doNotDisposeStatus &&
-    searchParams.doNotDisposeStatus !== "3"
-  ) {
-    searchTerms.push(`DoNotDispose:${searchParams.doNotDisposeStatus === "2"}`);
+  if (searchParams.doNotDisposeStatus && searchParams.doNotDisposeStatus !== '3') {
+    searchTerms.push(`DoNotDispose:${searchParams.doNotDisposeStatus === '2'}`);
   }
 
   // Handle date ranges - only add if they have values
@@ -113,66 +106,56 @@ const fetchInventory = async (searchParams: SearchParams) => {
 
   // Handle contact fields - only add if they have non-empty values
   if (searchParams.acquiredFromLicenseName?.trim()) {
-    searchTerms.push(
-      `AcquisitionContactName:"${searchParams.acquiredFromLicenseName.trim()}"`
-    );
+    searchTerms.push(`AcquisitionContactName:"${searchParams.acquiredFromLicenseName.trim()}"`);
   }
   if (searchParams.acquiredFromFFLNumber?.trim()) {
-    searchTerms.push(
-      `AcquisitionContactFFLNumber:"${searchParams.acquiredFromFFLNumber.trim()}"`
-    );
+    searchTerms.push(`AcquisitionContactFFLNumber:"${searchParams.acquiredFromFFLNumber.trim()}"`);
   }
   if (searchParams.disposedToLicenseName?.trim()) {
-    searchTerms.push(
-      `DispositionContactName:"${searchParams.disposedToLicenseName.trim()}"`
-    );
+    searchTerms.push(`DispositionContactName:"${searchParams.disposedToLicenseName.trim()}"`);
   }
   if (searchParams.disposedToFFLNumber?.trim()) {
-    searchTerms.push(
-      `DispositionContactFFLNumber:"${searchParams.disposedToFFLNumber.trim()}"`
-    );
+    searchTerms.push(`DispositionContactFFLNumber:"${searchParams.disposedToFFLNumber.trim()}"`);
   }
 
   // Add the combined search terms only if there are any
   if (searchTerms.length > 0) {
-    queryParams.set("search", searchTerms.join(" AND "));
+    queryParams.set('search', searchTerms.join(' AND '));
   }
 
   // Add pagination parameters
-  queryParams.set("skip", searchParams.skip.toString());
-  queryParams.set("take", searchParams.take.toString());
+  queryParams.set('skip', searchParams.skip.toString());
+  queryParams.set('take', searchParams.take.toString());
 
   // console.log("Search terms:", searchTerms); // Debug log
   // console.log("Query params:", queryParams.toString()); // Debug log
 
   // Make GET request
-  const response = await fetch(
-    `/api/fastBoundApi/items?${queryParams.toString()}`
-  );
+  const response = await fetch(`/api/fastBoundApi/items?${queryParams.toString()}`);
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.details || "Failed to fetch inventory");
+    throw new Error(error.details || 'Failed to fetch inventory');
   }
 
   return response.json();
 };
 
 const fetchManufacturers = async () => {
-  const response = await fetch("/api/fastBoundApi/manufacturers");
-  if (!response.ok) throw new Error("Failed to fetch manufacturers");
+  const response = await fetch('/api/fastBoundApi/manufacturers');
+  if (!response.ok) throw new Error('Failed to fetch manufacturers');
   return response.json();
 };
 
 const fetchCalibers = async () => {
-  const response = await fetch("/api/fastBoundApi/calibers");
-  if (!response.ok) throw new Error("Failed to fetch calibers");
+  const response = await fetch('/api/fastBoundApi/calibers');
+  if (!response.ok) throw new Error('Failed to fetch calibers');
   return response.json();
 };
 
 const fetchLocations = async () => {
-  const response = await fetch("/api/fastBoundApi/locations");
-  if (!response.ok) throw new Error("Failed to fetch locations");
+  const response = await fetch('/api/fastBoundApi/locations');
+  if (!response.ok) throw new Error('Failed to fetch locations');
   return response.json();
 };
 
@@ -180,13 +163,13 @@ function InventoryPage() {
   const queryClient = useQueryClient();
 
   const searchParamsQuery = useQuery({
-    queryKey: ["searchParams"],
+    queryKey: ['searchParams'],
     queryFn: () => ({ ...initialSearchParams, searchTriggered: false }),
     staleTime: Infinity,
   });
 
   const inventoryQuery = useQuery({
-    queryKey: ["inventory", searchParamsQuery.data],
+    queryKey: ['inventory', searchParamsQuery.data],
     queryFn: () => fetchInventory(searchParamsQuery.data!),
     enabled: !!searchParamsQuery.data,
     placeholderData: keepPreviousData,
@@ -194,7 +177,7 @@ function InventoryPage() {
 
   // Handle warning separately
   if (inventoryQuery.data?.warning) {
-    console.warn("API Warning:", inventoryQuery.data.warning);
+    console.warn('API Warning:', inventoryQuery.data.warning);
   }
 
   const handlePageChange = (newPage: number) => {
@@ -210,31 +193,29 @@ function InventoryPage() {
   // console.log("Current inventory data:", inventoryQuery.data);
 
   const { data: manufacturers } = useQuery({
-    queryKey: ["manufacturers"],
+    queryKey: ['manufacturers'],
     queryFn: fetchManufacturers,
   });
 
   const { data: calibers } = useQuery({
-    queryKey: ["calibers"],
+    queryKey: ['calibers'],
     queryFn: fetchCalibers,
   });
 
   const { data: locations } = useQuery({
-    queryKey: ["locations"],
+    queryKey: ['locations'],
     queryFn: fetchLocations,
   });
 
-  const updateSearchParams = (
-    updates: Partial<SearchParams> & { searchTriggered?: boolean }
-  ) => {
+  const updateSearchParams = (updates: Partial<SearchParams> & { searchTriggered?: boolean }) => {
     queryClient.setQueryData<SearchParams & { searchTriggered: boolean }>(
-      ["searchParams"],
+      ['searchParams'],
       (old) => ({
         ...old!,
         ...updates,
         // Only override searchTriggered if explicitly provided
         searchTriggered:
-          typeof updates.searchTriggered === "boolean"
+          typeof updates.searchTriggered === 'boolean'
             ? updates.searchTriggered
             : (old?.searchTriggered ?? false),
       })
@@ -264,11 +245,11 @@ function InventoryPage() {
   };
 
   const resetSearch = () => {
-    queryClient.setQueryData<SearchParams & { searchTriggered: boolean }>(
-      ["searchParams"],
-      { ...initialSearchParams, searchTriggered: false }
-    );
-    queryClient.removeQueries({ queryKey: ["inventory"] });
+    queryClient.setQueryData<SearchParams & { searchTriggered: boolean }>(['searchParams'], {
+      ...initialSearchParams,
+      searchTriggered: false,
+    });
+    queryClient.removeQueries({ queryKey: ['inventory'] });
     // console.log(
     //   "Reset search params:",
     //   queryClient.getQueryData(["searchParams"])
@@ -280,19 +261,14 @@ function InventoryPage() {
   };
 
   const currentPage =
-    Math.floor(
-      (searchParamsQuery.data?.skip || 0) / (searchParamsQuery.data?.take || 10)
-    ) + 1;
+    Math.floor((searchParamsQuery.data?.skip || 0) / (searchParamsQuery.data?.take || 10)) + 1;
   const totalPages = Math.min(
-    Math.ceil(
-      (inventoryQuery.data?.records || 0) / (searchParamsQuery.data?.take || 10)
-    ),
+    Math.ceil((inventoryQuery.data?.records || 0) / (searchParamsQuery.data?.take || 10)),
     Math.ceil(100 / (searchParamsQuery.data?.take || 10))
   );
 
   // Add search strategy hints
-  const showSearchHints =
-    inventoryQuery.data?.records && inventoryQuery.data.records > 100;
+  const showSearchHints = inventoryQuery.data?.records && inventoryQuery.data.records > 100;
 
   return (
     <div className="flex justify-center items-center mt-8 mx-auto max-w-[calc(100vw-100px)] overflow-hidden">
@@ -304,8 +280,7 @@ function InventoryPage() {
               <Info className="h-4 w-4" />
               <AlertTitle>Search Results Exceeded 100 Items</AlertTitle>
               <AlertDescription>
-                To find specific items, try using the advanced search options in
-                the tabs below.
+                To find specific items, try using the advanced search options in the tabs below.
               </AlertDescription>
             </Alert>
           )}
@@ -378,21 +353,19 @@ function InventoryPage() {
                       </tr>
                     </thead>
                     <tbody className="text-left">
-                      {inventoryQuery.data?.items.map(
-                        (item: InventoryItem, index: number) => (
-                          <tr key={`${item.id}-${item.itemNumber}`}>
-                            <td>{item.itemNumber}</td>
-                            <td>{item.serial}</td>
-                            <td>{item.manufacturer}</td>
-                            <td>{item.model}</td>
-                            <td>{item.type}</td>
-                            <td>{item.caliber}</td>
-                            <td>{item.location}</td>
-                            <td>{item.condition}</td>
-                            <td>{item.status.name}</td>
-                          </tr>
-                        )
-                      )}
+                      {inventoryQuery.data?.items.map((item: InventoryItem, index: number) => (
+                        <tr key={`${item.id}-${item.itemNumber}`}>
+                          <td>{item.itemNumber}</td>
+                          <td>{item.serial}</td>
+                          <td>{item.manufacturer}</td>
+                          <td>{item.model}</td>
+                          <td>{item.type}</td>
+                          <td>{item.caliber}</td>
+                          <td>{item.location}</td>
+                          <td>{item.condition}</td>
+                          <td>{item.status.name}</td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>
@@ -407,11 +380,9 @@ function InventoryPage() {
                   Previous Page
                 </Button>
                 <span>
-                  Page {currentPage} of {totalPages}{" "}
+                  Page {currentPage} of {totalPages}{' '}
                   {inventoryQuery.data?.records > 100 && (
-                    <span className="text-sm text-amber-600">
-                      (Limited to first 100 results)
-                    </span>
+                    <span className="text-sm text-amber-600">(Limited to first 100 results)</span>
                   )}
                 </span>
                 <Button
@@ -419,8 +390,7 @@ function InventoryPage() {
                   disabled={
                     currentPage >= totalPages ||
                     inventoryQuery.isFetching ||
-                    (searchParamsQuery.data?.skip || 0) +
-                      (searchParamsQuery.data?.take || 10) >=
+                    (searchParamsQuery.data?.skip || 0) + (searchParamsQuery.data?.take || 10) >=
                       100
                   }
                 >
@@ -431,9 +401,7 @@ function InventoryPage() {
                 <Label htmlFor="itemsPerPage">Items per page:</Label>
                 <Select
                   value={searchParamsQuery.data?.take.toString()}
-                  onValueChange={(value) =>
-                    handleItemsPerPageChange(parseInt(value, 10))
-                  }
+                  onValueChange={(value) => handleItemsPerPageChange(parseInt(value, 10))}
                 >
                   <SelectTrigger id="itemsPerPage">
                     <SelectValue placeholder="Select items per page" />
@@ -447,9 +415,7 @@ function InventoryPage() {
                 </Select>
               </div>
               {inventoryQuery.data?.warning && (
-                <div className="mt-4 text-amber-600">
-                  Warning: {inventoryQuery.data.warning}
-                </div>
+                <div className="mt-4 text-amber-600">Warning: {inventoryQuery.data.warning}</div>
               )}
             </div>
           ) : (

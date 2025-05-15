@@ -1,5 +1,5 @@
-"use client";
-import { useEffect, useState } from "react";
+'use client';
+import { useEffect, useState } from 'react';
 import {
   CardTitle,
   CardDescription,
@@ -7,24 +7,24 @@ import {
   CardContent,
   CardFooter,
   Card,
-} from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
+} from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
 import {
   SelectValue,
   SelectTrigger,
   SelectItem,
   SelectContent,
   Select,
-} from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import { supabase } from "@/utils/supabase/client";
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+} from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import { supabase } from '@/utils/supabase/client';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,9 +35,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Separator } from "@/components/ui/separator";
-import { useSidebar } from "@/components/ui/sidebar";
+} from '@/components/ui/alert-dialog';
+import { Separator } from '@/components/ui/separator';
+import { useSidebar } from '@/components/ui/sidebar';
 
 type Employee = {
   name: string;
@@ -47,16 +47,16 @@ type Employee = {
 const phoneRegex = /^\d{3}-\d{3}-\d{4}$/;
 
 const schema = z.object({
-  customer_type: z.string().nonempty({ message: "Customer type is required" }),
-  inquiry_type: z.string().nonempty({ message: "Inquiry type is required" }),
-  customer_name: z.string().min(6, { message: "First and Last Name Required" }),
+  customer_type: z.string().nonempty({ message: 'Customer type is required' }),
+  inquiry_type: z.string().nonempty({ message: 'Inquiry type is required' }),
+  customer_name: z.string().min(6, { message: 'First and Last Name Required' }),
   email: z.string().email(),
   phone: z.string().regex(phoneRegex, {
-    message: "Phone number must be in xxx-xxx-xxxx format",
+    message: 'Phone number must be in xxx-xxx-xxxx format',
   }),
-  manufacturer: z.string().min(2, { message: "Manufacturer is required" }),
-  item: z.string().min(4, { message: "Item is required" }),
-  details: z.string().min(4, { message: "Details are required" }),
+  manufacturer: z.string().min(2, { message: 'Manufacturer is required' }),
+  item: z.string().min(4, { message: 'Item is required' }),
+  details: z.string().min(4, { message: 'Details are required' }),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -90,16 +90,16 @@ export default function OrdersComponent() {
         error,
       } = await supabase.auth.getUser();
       if (error) {
-        console.error("Error fetching user:", error.message);
-        toast.error("Error fetching user. Please log in again.");
-        router.push("/sign-in");
+        console.error('Error fetching user:', error.message);
+        toast.error('Error fetching user. Please log in again.');
+        router.push('/sign-in');
         return;
       }
       if (user) {
         setUserUuid(user.id);
       } else {
-        toast.error("No active user found. Please log in.");
-        router.push("/sign-in");
+        toast.error('No active user found. Please log in.');
+        router.push('/sign-in');
       }
     };
 
@@ -110,12 +110,12 @@ export default function OrdersComponent() {
     if (userUuid) {
       const fetchUserData = async () => {
         const { data, error } = await supabase
-          .from("employees")
-          .select("name, contact_info")
-          .eq("user_uuid", userUuid)
+          .from('employees')
+          .select('name, contact_info')
+          .eq('user_uuid', userUuid)
           .single();
         if (error) {
-          console.error("Error fetching user data:", error.message);
+          console.error('Error fetching user data:', error.message);
         } else if (data) {
           setUserName(data.name);
           setUserEmail(data.contact_info);
@@ -129,12 +129,13 @@ export default function OrdersComponent() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [customerTypesResponse, inquiryTypesResponse] = await Promise.all(
-          [fetch("/api/customer-types"), fetch("/api/inquiry-types")]
-        );
+        const [customerTypesResponse, inquiryTypesResponse] = await Promise.all([
+          fetch('/api/customer-types'),
+          fetch('/api/inquiry-types'),
+        ]);
 
         if (!customerTypesResponse.ok || !inquiryTypesResponse.ok) {
-          throw new Error("One or more API calls failed");
+          throw new Error('One or more API calls failed');
         }
 
         const customerTypesData = await customerTypesResponse.json();
@@ -146,7 +147,7 @@ export default function OrdersComponent() {
         setCustomerTypes(customerTypesData);
         setInquiryTypes(inquiryTypesData);
       } catch (error) {
-        console.error("Error fetching data:", error);
+        console.error('Error fetching data:', error);
         // You might want to set an error state here to display to the user
         // setError("Failed to load dropdown options. Please try again later.");
       }
@@ -157,7 +158,7 @@ export default function OrdersComponent() {
 
   const onSubmit = async (data: FormData) => {
     if (!userUuid) {
-      toast.error("User is not authenticated.");
+      toast.error('User is not authenticated.');
       return;
     }
 
@@ -168,12 +169,12 @@ export default function OrdersComponent() {
       employee_email: userEmail,
     };
 
-    const { error } = await supabase.from("orders").insert(submissionData);
+    const { error } = await supabase.from('orders').insert(submissionData);
     if (error) {
-      console.error("Error submitting order:", error);
-      toast.error("There was an error submitting your request.");
+      console.error('Error submitting order:', error);
+      toast.error('There was an error submitting your request.');
     } else {
-      toast.success("Your order request has been submitted.");
+      toast.success('Your order request has been submitted.');
       reset();
       setIsDialogOpen(false);
     }
@@ -187,8 +188,8 @@ export default function OrdersComponent() {
         <CardHeader>
           <CardTitle>Special Orders & Requests</CardTitle>
           <CardDescription>
-            Fill out the form to submit a request for special orders, get added
-            to a waitlist, and more.
+            Fill out the form to submit a request for special orders, get added to a waitlist, and
+            more.
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
@@ -196,7 +197,7 @@ export default function OrdersComponent() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="employee">Employee Name</Label>
-                <Input id="employee" value={userName || ""} disabled />
+                <Input id="employee" value={userName || ''} disabled />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="customer_type">Customer Type</Label>
@@ -253,7 +254,7 @@ export default function OrdersComponent() {
                 <Input
                   id="customer_name"
                   placeholder="Enter customer name"
-                  {...register("customer_name")}
+                  {...register('customer_name')}
                 />
                 {errors.customer_name && (
                   <p className="text-red-500">{errors.customer_name.message}</p>
@@ -263,26 +264,13 @@ export default function OrdersComponent() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone Number</Label>
-                <Input
-                  id="phone"
-                  placeholder="Enter phone number"
-                  {...register("phone")}
-                />
-                {errors.phone && (
-                  <p className="text-red-500">{errors.phone.message}</p>
-                )}
+                <Input id="phone" placeholder="Enter phone number" {...register('phone')} />
+                {errors.phone && <p className="text-red-500">{errors.phone.message}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  placeholder="Enter email"
-                  type="email"
-                  {...register("email")}
-                />
-                {errors.email && (
-                  <p className="text-red-500">{errors.email.message}</p>
-                )}
+                <Input id="email" placeholder="Enter email" type="email" {...register('email')} />
+                {errors.email && <p className="text-red-500">{errors.email.message}</p>}
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -291,7 +279,7 @@ export default function OrdersComponent() {
                 <Input
                   id="manufacturer"
                   placeholder="Sig | CCW etc."
-                  {...register("manufacturer")}
+                  {...register('manufacturer')}
                 />
                 {errors.manufacturer && (
                   <p className="text-red-500">{errors.manufacturer.message}</p>
@@ -299,14 +287,8 @@ export default function OrdersComponent() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="item">Item | Model | Course</Label>
-                <Input
-                  id="item"
-                  placeholder="P320 | 16 Hour etc."
-                  {...register("item")}
-                />
-                {errors.item && (
-                  <p className="text-red-500">{errors.item.message}</p>
-                )}
+                <Input id="item" placeholder="P320 | 16 Hour etc." {...register('item')} />
+                {errors.item && <p className="text-red-500">{errors.item.message}</p>}
               </div>
             </div>
             <div className="space-y-2">
@@ -315,7 +297,7 @@ export default function OrdersComponent() {
                 id="details"
                 placeholder="Enter request details"
                 rows={4}
-                {...register("details")}
+                {...register('details')}
               />
             </div>
           </CardContent>
@@ -335,19 +317,14 @@ export default function OrdersComponent() {
       <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              Don&apos;t Tell The Customer This Is An Order!
-            </AlertDialogTitle>
+            <AlertDialogTitle>Don&apos;t Tell The Customer This Is An Order!</AlertDialogTitle>
             <AlertDialogDescription>
-              This is just a
-              <span className="text-red-500 italic"> REQUEST </span>
-              to see if we can order the item, what the availability is, and
-              what the pricing is.
+              This is just a<span className="text-red-500 italic"> REQUEST </span>
+              to see if we can order the item, what the availability is, and what the pricing is.
               <Separator className="my-4 mb-4" />
               <span className="italic">
-                Every special order requires payment before we can actually
-                order it, and Sam will reach out to them with the pricing and
-                availability.
+                Every special order requires payment before we can actually order it, and Sam will
+                reach out to them with the pricing and availability.
               </span>
             </AlertDialogDescription>
           </AlertDialogHeader>

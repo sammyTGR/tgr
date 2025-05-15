@@ -1,6 +1,6 @@
 export interface DatabaseFirearm {
   firearm_id: string;
-  type: "rifle" | "handgun";
+  type: 'rifle' | 'handgun';
   manufacturer: string;
   model: string;
   variations: string | null;
@@ -10,7 +10,7 @@ export interface DatabaseFirearm {
 
 export interface EditingFirearm {
   firearm_id: string;
-  type: "rifle" | "handgun";
+  type: 'rifle' | 'handgun';
   manufacturer: string;
   model: string;
   variations: string;

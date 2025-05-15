@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { createContext, useContext, ReactNode } from "react";
+import { createContext, useContext, ReactNode } from 'react';
 
 interface FeatureFlags {
   is_todo_enabled: boolean;
@@ -33,18 +33,11 @@ interface FeatureFlagsProviderProps {
   initialFlags?: Partial<FeatureFlags>;
 }
 
-export function FeatureFlagsProvider({
-  children,
-  initialFlags = {},
-}: FeatureFlagsProviderProps) {
+export function FeatureFlagsProvider({ children, initialFlags = {} }: FeatureFlagsProviderProps) {
   const flags = {
     ...defaultFlags,
     ...initialFlags,
   };
 
-  return (
-    <FeatureFlagsContext.Provider value={flags}>
-      {children}
-    </FeatureFlagsContext.Provider>
-  );
+  return <FeatureFlagsContext.Provider value={flags}>{children}</FeatureFlagsContext.Provider>;
 }

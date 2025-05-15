@@ -1,33 +1,20 @@
-"use client";
+'use client';
 
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/utils/supabase/client";
-import LoadingIndicator from "@/components/LoadingIndicator";
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/utils/supabase/client';
+import LoadingIndicator from '@/components/LoadingIndicator';
 
 // Define role types
-type Role =
-  | "super admin"
-  | "ceo"
-  | "dev"
-  | "admin"
-  | "gunsmith"
-  | "user"
-  | "customer"
-  | "auditor";
+type Role = 'super admin' | 'ceo' | 'dev' | 'admin' | 'gunsmith' | 'user' | 'customer' | 'auditor';
 
 export default function SupportPage() {
   // User data and role queries
   const { data: currentUser, isLoading: isLoadingUser } = useQuery({
-    queryKey: ["currentUser"],
+    queryKey: ['currentUser'],
     queryFn: async () => {
       const {
         data: { user },
@@ -38,11 +25,11 @@ export default function SupportPage() {
   });
 
   const { data: userData, isLoading: isLoadingRole } = useQuery({
-    queryKey: ["userRole"],
+    queryKey: ['userRole'],
     queryFn: async () => {
-      const response = await fetch("/api/getUserRole");
+      const response = await fetch('/api/getUserRole');
       if (!response.ok) {
-        throw new Error("Failed to fetch user role");
+        throw new Error('Failed to fetch user role');
       }
       const data = await response.json();
       return data;
@@ -59,12 +46,10 @@ export default function SupportPage() {
     if (!userRole) return false;
 
     // Only admin roles can see Audit Management and Management
-    if (title === "Audit Management") {
-      return ["super admin", "ceo", "dev", "admin", "auditor"].includes(
-        userRole
-      );
-    } else if (title === "Management") {
-      return ["super admin", "ceo", "dev", "admin"].includes(userRole);
+    if (title === 'Audit Management') {
+      return ['super admin', 'ceo', 'dev', 'admin', 'auditor'].includes(userRole);
+    } else if (title === 'Management') {
+      return ['super admin', 'ceo', 'dev', 'admin'].includes(userRole);
     }
 
     // All other sections are visible to all roles
@@ -73,34 +58,34 @@ export default function SupportPage() {
 
   const supportSections = [
     {
-      title: "Getting Started",
-      description: "Learn the basics of navigating and using the dashboard",
-      href: "/support/getting-started",
+      title: 'Getting Started',
+      description: 'Learn the basics of navigating and using the dashboard',
+      href: '/support/getting-started',
     },
     {
-      title: "Audit Management",
-      description: "How to create, edit, and manage audits effectively",
-      href: "/support/audit-management",
+      title: 'Audit Management',
+      description: 'How to create, edit, and manage audits effectively',
+      href: '/support/audit-management',
     },
     {
-      title: "DROS Guidance",
-      description: "Detailed instructions for all DROS-related features",
-      href: "/support/dros-guide",
+      title: 'DROS Guidance',
+      description: 'Detailed instructions for all DROS-related features',
+      href: '/support/dros-guide',
     },
     {
-      title: "Scheduling",
-      description: "Detailed instructions for all scheduling-related features",
-      href: "/support/scheduling",
+      title: 'Scheduling',
+      description: 'Detailed instructions for all scheduling-related features',
+      href: '/support/scheduling',
     },
     {
-      title: "Forms & Reports",
-      description: "Understanding and utilizing forms and reports",
-      href: "/support/forms-and-reports",
+      title: 'Forms & Reports',
+      description: 'Understanding and utilizing forms and reports',
+      href: '/support/forms-and-reports',
     },
     {
-      title: "Management",
-      description: "Detailed instructions for all management-related features",
-      href: "/support/management",
+      title: 'Management',
+      description: 'Detailed instructions for all management-related features',
+      href: '/support/management',
     },
   ];
 
@@ -109,8 +94,8 @@ export default function SupportPage() {
       <div className="mb-8">
         <h1 className="text-4xl font-bold mb-4">Support Center</h1>
         <p className="text-muted-foreground">
-          Welcome to the TGR support center. Find detailed guides and
-          documentation to help you make the most of the TGR application.
+          Welcome to the TGR support center. Find detailed guides and documentation to help you make
+          the most of the TGR application.
         </p>
       </div>
 

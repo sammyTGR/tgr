@@ -1,9 +1,9 @@
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Calendar } from "@/components/ui/calendar";
-import { toast } from "sonner";
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Calendar } from '@/components/ui/calendar';
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
@@ -11,14 +11,14 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogClose,
-} from "@/components/ui/dialog";
-import { format } from "date-fns";
-import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { supabase } from "@/utils/supabase/client";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
+} from '@/components/ui/dialog';
+import { format } from 'date-fns';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { supabase } from '@/utils/supabase/client';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import {
   Form,
   FormControl,
@@ -26,12 +26,12 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
+} from '@/components/ui/form';
 
 const holidaySchema = z.object({
-  name: z.string().min(1, "Holiday name is required"),
+  name: z.string().min(1, 'Holiday name is required'),
   date: z.date({
-    required_error: "Date is required",
+    required_error: 'Date is required',
   }),
   is_full_day: z.boolean().default(true),
   repeat_yearly: z.boolean().default(false),
@@ -42,15 +42,12 @@ type HolidayFormValues = z.infer<typeof holidaySchema>;
 
 const useHolidaysTableCheck = () => {
   return useQuery({
-    queryKey: ["holidaysTableCheck"],
+    queryKey: ['holidaysTableCheck'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("holidays")
-        .select("id")
-        .limit(1);
+      const { data, error } = await supabase.from('holidays').select('id').limit(1);
 
       if (error) {
-        console.error("Table check error:", error);
+        console.error('Table check error:', error);
         return false;
       }
       return true;
@@ -66,7 +63,7 @@ export function HolidayManager() {
   const form = useForm<HolidayFormValues>({
     resolver: zodResolver(holidaySchema),
     defaultValues: {
-      name: "",
+      name: '',
       is_full_day: true,
       repeat_yearly: false,
       isOpen: false,
@@ -76,46 +73,46 @@ export function HolidayManager() {
   const { mutate: addHoliday, isPending } = useMutation({
     mutationFn: async (values: HolidayFormValues) => {
       if (!values.date) {
-        throw new Error("Date is required");
+        throw new Error('Date is required');
       }
 
       const formattedData = {
         name: values.name.trim(),
-        date: format(values.date, "yyyy-MM-dd"),
+        date: format(values.date, 'yyyy-MM-dd'),
         is_full_day: values.is_full_day,
         repeat_yearly: values.repeat_yearly,
       };
 
       // console.log('Sending data:', formattedData);
 
-      const response = await fetch("/api/holidays", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/holidays', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formattedData),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to add holiday");
+        throw new Error(errorData.error || 'Failed to add holiday');
       }
 
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["holidays"] });
-      toast.success("Holiday added successfully");
+      queryClient.invalidateQueries({ queryKey: ['holidays'] });
+      toast.success('Holiday added successfully');
       form.reset();
-      form.setValue("isOpen", false);
+      form.setValue('isOpen', false);
     },
     onError: (error: Error) => {
-      console.error("Holiday creation error:", error);
+      console.error('Holiday creation error:', error);
       toast.error(error.message);
     },
   });
 
   function onSubmit(values: HolidayFormValues) {
     if (!values.date) {
-      toast.error("Please select a date");
+      toast.error('Please select a date');
       return;
     }
     addHoliday(values);
@@ -123,16 +120,13 @@ export function HolidayManager() {
 
   // If table check fails, show error
   if (tableCheck.isError) {
-    console.error("Holidays table not accessible:", tableCheck.error);
+    console.error('Holidays table not accessible:', tableCheck.error);
     return <div>Error: Unable to access holidays table</div>;
   }
 
   return (
     <Form {...form}>
-      <Dialog
-        open={form.watch("isOpen")}
-        onOpenChange={(open) => form.setValue("isOpen", open)}
-      >
+      <Dialog open={form.watch('isOpen')} onOpenChange={(open) => form.setValue('isOpen', open)}>
         <DialogTrigger asChild>
           <Button variant="outline">Manage Holidays</Button>
         </DialogTrigger>
@@ -140,10 +134,7 @@ export function HolidayManager() {
           <DialogHeader>
             <DialogTitle>Add Holiday</DialogTitle>
           </DialogHeader>
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className="grid gap-4 py-4"
-          >
+          <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 py-4">
             <FormField
               control={form.control}
               name="name"
@@ -185,10 +176,7 @@ export function HolidayManager() {
                 render={({ field }) => (
                   <FormItem className="flex items-center gap-2">
                     <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
+                      <Switch checked={field.value} onCheckedChange={field.onChange} />
                     </FormControl>
                     <FormLabel>Full Day Closure</FormLabel>
                   </FormItem>
@@ -201,10 +189,7 @@ export function HolidayManager() {
                 render={({ field }) => (
                   <FormItem className="flex items-center gap-2">
                     <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
+                      <Switch checked={field.value} onCheckedChange={field.onChange} />
                     </FormControl>
                     <FormLabel>Repeat Yearly</FormLabel>
                   </FormItem>
@@ -218,11 +203,8 @@ export function HolidayManager() {
                   Cancel
                 </Button>
               </DialogClose>
-              <Button
-                type="submit"
-                disabled={isPending || !form.formState.isValid}
-              >
-                {isPending ? "Adding..." : "Add Holiday"}
+              <Button type="submit" disabled={isPending || !form.formState.isValid}>
+                {isPending ? 'Adding...' : 'Add Holiday'}
               </Button>
             </div>
           </form>

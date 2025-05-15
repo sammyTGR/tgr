@@ -1,14 +1,9 @@
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
-import {
-  parseISO,
-  addMinutes,
-  differenceInMinutes,
-  differenceInHours,
-} from "date-fns";
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
+import { NextResponse } from 'next/server';
+import { parseISO, addMinutes, differenceInMinutes, differenceInHours } from 'date-fns';
 
-const VALID_VTO_TYPES = ["called_out", "no_call_no_show"] as const;
+const VALID_VTO_TYPES = ['called_out', 'no_call_no_show'] as const;
 type ValidVTOType = (typeof VALID_VTO_TYPES)[number];
 
 export async function POST(request: Request) {
@@ -20,13 +15,11 @@ export async function POST(request: Request) {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Convert single date to array for consistent processing
-    const dates = Array.isArray(body.event_date)
-      ? body.event_date
-      : [body.event_date];
+    const dates = Array.isArray(body.event_date) ? body.event_date : [body.event_date];
     const results = [];
     const errors = [];
 
@@ -35,16 +28,16 @@ export async function POST(request: Request) {
       try {
         // Fetch schedule for this employee and date
         const { data: scheduleData, error: scheduleError } = await supabase
-          .from("schedules")
-          .select("start_time, end_time, status")
-          .eq("employee_id", body.employee_id)
-          .eq("schedule_date", date)
+          .from('schedules')
+          .select('start_time, end_time, status')
+          .eq('employee_id', body.employee_id)
+          .eq('schedule_date', date)
           .maybeSingle();
 
         if (scheduleError) {
           errors.push({
             date,
-            error: "Failed to fetch schedule data",
+            error: 'Failed to fetch schedule data',
             details: scheduleError,
           });
           continue;
@@ -54,8 +47,8 @@ export async function POST(request: Request) {
         if (!scheduleData) {
           results.push({
             date,
-            status: "skipped",
-            message: "No schedule found for this date",
+            status: 'skipped',
+            message: 'No schedule found for this date',
           });
           continue;
         }
@@ -83,23 +76,23 @@ export async function POST(request: Request) {
           lunchEnd = addMinutes(lunchStart, 30);
 
           // Format times to HH:mm:ss
-          lunchStart = lunchStart.toLocaleTimeString("en-US", {
+          lunchStart = lunchStart.toLocaleTimeString('en-US', {
             hour12: false,
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
           });
 
-          lunchEnd = lunchEnd.toLocaleTimeString("en-US", {
+          lunchEnd = lunchEnd.toLocaleTimeString('en-US', {
             hour12: false,
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
           });
         }
 
         // Determine VTO type - ensure it's a valid value
-        let vtoType: ValidVTOType = "called_out";
+        let vtoType: ValidVTOType = 'called_out';
         if (body.status && VALID_VTO_TYPES.includes(body.status)) {
           vtoType = body.status as ValidVTOType;
         }
@@ -108,7 +101,7 @@ export async function POST(request: Request) {
         const insertData = {
           employee_id: body.employee_id,
           event_date: date,
-          total_hours: "0", // This will be calculated by the trigger
+          total_hours: '0', // This will be calculated by the trigger
           start_time: scheduleData.start_time,
           end_time: scheduleData.end_time,
           lunch_start: lunchStart,
@@ -118,24 +111,24 @@ export async function POST(request: Request) {
         };
 
         const { data, error } = await supabase
-          .from("employee_vto_events")
+          .from('employee_vto_events')
           .insert(insertData)
           .select()
           .single();
 
         if (error) {
-          console.error("Insert error:", error);
+          console.error('Insert error:', error);
           errors.push({
             date,
-            error: "Failed to create VTO entry",
+            error: 'Failed to create VTO entry',
             details: error,
           });
         } else {
-          results.push({ date, status: "success", data });
+          results.push({ date, status: 'success', data });
         }
       } catch (error) {
-        console.error("Processing error:", error);
-        errors.push({ date, error: "Unexpected error", details: error });
+        console.error('Processing error:', error);
+        errors.push({ date, error: 'Unexpected error', details: error });
       }
     }
 
@@ -146,9 +139,9 @@ export async function POST(request: Request) {
       success: errors.length === 0,
     });
   } catch (error) {
-    console.error("Error processing VTO entries:", error);
+    console.error('Error processing VTO entries:', error);
     return NextResponse.json(
-      { error: "Failed to process VTO entries", details: error },
+      { error: 'Failed to process VTO entries', details: error },
       { status: 500 }
     );
   }

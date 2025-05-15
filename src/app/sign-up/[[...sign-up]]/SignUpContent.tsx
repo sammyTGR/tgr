@@ -1,62 +1,54 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { toast } from "sonner";
-import { signup, signInWithGoogle } from "@/lib/auth-actions";
-import { Separator } from "@/components/ui/separator";
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { toast } from 'sonner';
+import { signup, signInWithGoogle } from '@/lib/auth-actions';
+import { Separator } from '@/components/ui/separator';
 import {
   useMutation,
   useQueryClient,
   QueryClient,
   QueryClientProvider,
   useQuery,
-} from "@tanstack/react-query";
-import DOMPurify from "isomorphic-dompurify";
-import LoadingIndicator from "@/components/LoadingIndicator";
-import dynamic from "next/dynamic";
+} from '@tanstack/react-query';
+import DOMPurify from 'isomorphic-dompurify';
+import LoadingIndicator from '@/components/LoadingIndicator';
+import dynamic from 'next/dynamic';
 
 // Create a client
 const queryClient = new QueryClient();
 
 // Define the validation schema using Zod
 const schema = z.object({
-  firstName: z.string().min(2, { message: "First name is required" }),
-  lastName: z.string().min(2, { message: "Last name is required" }),
+  firstName: z.string().min(2, { message: 'First name is required' }),
+  lastName: z.string().min(2, { message: 'Last name is required' }),
   email: z
     .string()
-    .min(1, { message: "Email is required" })
-    .email({ message: "Invalid email address" }),
-  password: z
-    .string()
-    .min(6, { message: "Password must be at least 6 characters" }),
+    .min(1, { message: 'Email is required' })
+    .email({ message: 'Invalid email address' }),
+  password: z.string().min(6, { message: 'Password must be at least 6 characters' }),
 });
 
 type FormData = z.infer<typeof schema>;
 
 function SignUpForm() {
   const params = useSearchParams();
-  const next = params ? params.get("next") || "" : "";
+  const next = params ? params.get('next') || '' : '';
   const router = useRouter();
   const queryClient = useQueryClient();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
   const { isLoading } = useQuery({
-    queryKey: ["navigation", pathname, searchParams],
+    queryKey: ['navigation', pathname, searchParams],
     queryFn: async () => {
       // Simulate a delay to show the loading indicator
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -88,12 +80,12 @@ function SignUpForm() {
     },
     onSuccess: () => {
       toast.success("Account created successfully! G'head & sign in!");
-      queryClient.invalidateQueries({ queryKey: ["user"] });
-      router.push("/sign-in");
+      queryClient.invalidateQueries({ queryKey: ['user'] });
+      router.push('/sign-in');
     },
     onError: (error: Error) => {
-      console.error("Error creating account:", error);
-      toast.error(error.message || "An unexpected error occurred");
+      console.error('Error creating account:', error);
+      toast.error(error.message || 'An unexpected error occurred');
     },
   });
 
@@ -101,10 +93,8 @@ function SignUpForm() {
   const googleSignupMutation = useMutation({
     mutationFn: signInWithGoogle,
     onError: (error: Error) => {
-      console.error("Error with Google sign-up:", error);
-      toast.error(
-        error.message || "An unexpected error occurred with Google sign-up"
-      );
+      console.error('Error with Google sign-up:', error);
+      toast.error(error.message || 'An unexpected error occurred with Google sign-up');
     },
   });
 
@@ -125,16 +115,11 @@ function SignUpForm() {
         <CardHeader>
           <CardTitle className="text-xl">Sign Up</CardTitle>
           <CardDescription>
-            Enter your information to create an account or sign up with your
-            Google account
+            Enter your information to create an account or sign up with your Google account
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form
-            onSubmit={handleSubmit(onSubmit)}
-            className="grid gap-4"
-            aria-label="Sign up form"
-          >
+          <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4" aria-label="Sign up form">
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="first_name">First name</Label>
@@ -146,20 +131,14 @@ function SignUpForm() {
                       {...field}
                       id="first_name"
                       type="text"
-                      aria-invalid={errors.firstName ? "true" : "false"}
-                      aria-describedby={
-                        errors.firstName ? "firstName-error" : undefined
-                      }
+                      aria-invalid={errors.firstName ? 'true' : 'false'}
+                      aria-describedby={errors.firstName ? 'firstName-error' : undefined}
                       required
                     />
                   )}
                 />
                 {errors.firstName && (
-                  <span
-                    id="firstName-error"
-                    role="alert"
-                    className="text-red-500 text-xs"
-                  >
+                  <span id="firstName-error" role="alert" className="text-red-500 text-xs">
                     {errors.firstName.message}
                   </span>
                 )}
@@ -174,20 +153,14 @@ function SignUpForm() {
                       {...field}
                       id="last_name"
                       type="text"
-                      aria-invalid={errors.lastName ? "true" : "false"}
-                      aria-describedby={
-                        errors.lastName ? "lastName-error" : undefined
-                      }
+                      aria-invalid={errors.lastName ? 'true' : 'false'}
+                      aria-describedby={errors.lastName ? 'lastName-error' : undefined}
                       required
                     />
                   )}
                 />
                 {errors.lastName && (
-                  <span
-                    id="lastName-error"
-                    role="alert"
-                    className="text-red-500 text-xs"
-                  >
+                  <span id="lastName-error" role="alert" className="text-red-500 text-xs">
                     {errors.lastName.message}
                   </span>
                 )}
@@ -203,18 +176,14 @@ function SignUpForm() {
                     {...field}
                     id="email"
                     type="email"
-                    aria-invalid={errors.email ? "true" : "false"}
-                    aria-describedby={errors.email ? "email-error" : undefined}
+                    aria-invalid={errors.email ? 'true' : 'false'}
+                    aria-describedby={errors.email ? 'email-error' : undefined}
                     required
                   />
                 )}
               />
               {errors.email && (
-                <span
-                  id="email-error"
-                  role="alert"
-                  className="text-red-500 text-xs"
-                >
+                <span id="email-error" role="alert" className="text-red-500 text-xs">
                   {errors.email.message}
                 </span>
               )}
@@ -229,20 +198,14 @@ function SignUpForm() {
                     {...field}
                     id="password"
                     type="password"
-                    aria-invalid={errors.password ? "true" : "false"}
-                    aria-describedby={
-                      errors.password ? "password-error" : undefined
-                    }
+                    aria-invalid={errors.password ? 'true' : 'false'}
+                    aria-describedby={errors.password ? 'password-error' : undefined}
                     required
                   />
                 )}
               />
               {errors.password && (
-                <span
-                  id="password-error"
-                  role="alert"
-                  className="text-red-500 text-xs"
-                >
+                <span id="password-error" role="alert" className="text-red-500 text-xs">
                   {errors.password.message}
                 </span>
               )}
@@ -254,9 +217,7 @@ function SignUpForm() {
               disabled={signupMutation.isPending}
               aria-busy={signupMutation.isPending}
             >
-              {signupMutation.isPending
-                ? "Signing up..."
-                : "Sign Up With Email"}
+              {signupMutation.isPending ? 'Signing up...' : 'Sign Up With Email'}
             </Button>
           </form>
 
@@ -269,13 +230,11 @@ function SignUpForm() {
             disabled={googleSignupMutation.isPending}
             aria-busy={googleSignupMutation.isPending}
           >
-            {googleSignupMutation.isPending
-              ? "Connecting..."
-              : "Sign Up With Google"}
+            {googleSignupMutation.isPending ? 'Connecting...' : 'Sign Up With Google'}
           </Button>
 
           <div className="mt-4 text-center text-sm">
-            Already have an account?{" "}
+            Already have an account?{' '}
             <Link href="/sign-in" className="underline">
               Sign in
             </Link>

@@ -1,45 +1,45 @@
 // src/app/sales/waiver/checkin/waiver-table-row-actions.tsx
-import { Waiver } from "./types";
-import { supabase } from "@/utils/supabase/client";
+import { Waiver } from './types';
+import { supabase } from '@/utils/supabase/client';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { DotsHorizontalIcon } from "@radix-ui/react-icons";
+} from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
+import { DotsHorizontalIcon } from '@radix-ui/react-icons';
 
 const WaiverTableRowActions = ({
   waiver,
   onStatusChange,
 }: {
   waiver: Waiver;
-  onStatusChange: (id: string, status: "checked_in" | "checked_out") => void;
+  onStatusChange: (id: string, status: 'checked_in' | 'checked_out') => void;
 }) => {
   const handleCheckIn = async () => {
     const { error } = await supabase
-      .from("waiver")
-      .update({ status: "checked_in" })
-      .eq("id", waiver.id);
+      .from('waiver')
+      .update({ status: 'checked_in' })
+      .eq('id', waiver.id);
 
     if (!error) {
-      onStatusChange(waiver.id, "checked_in");
+      onStatusChange(waiver.id, 'checked_in');
     } else {
-      console.error("Error updating waiver:", error);
+      console.error('Error updating waiver:', error);
     }
   };
 
   const handleCheckOut = async () => {
     const { error } = await supabase
-      .from("waiver")
-      .update({ status: "checked_out" })
-      .eq("id", waiver.id);
+      .from('waiver')
+      .update({ status: 'checked_out' })
+      .eq('id', waiver.id);
 
     if (!error) {
-      onStatusChange(waiver.id, "checked_out");
+      onStatusChange(waiver.id, 'checked_out');
     } else {
-      console.error("Error updating waiver:", error);
+      console.error('Error updating waiver:', error);
     }
   };
 

@@ -1,23 +1,23 @@
-"use client";
-import { Cross2Icon } from "@radix-ui/react-icons";
-import { Table } from "@tanstack/react-table";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { DataTableViewOptions } from "./data-table-view-options";
-import { DataTableFacetedFilter } from "./data-table-faceted-filter";
+'use client';
+import { Cross2Icon } from '@radix-ui/react-icons';
+import { Table } from '@tanstack/react-table';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { DataTableViewOptions } from './data-table-view-options';
+import { DataTableFacetedFilter } from './data-table-faceted-filter';
 
 const statuses = [
   {
-    label: "Completed",
-    value: "Completed",
+    label: 'Completed',
+    value: 'Completed',
   },
   {
-    label: "In Progress",
-    value: "In Progress",
+    label: 'In Progress',
+    value: 'In Progress',
   },
   {
-    label: "Pending",
-    value: "Pending",
+    label: 'Pending',
+    value: 'Pending',
   },
 ];
 
@@ -25,9 +25,7 @@ interface DataTableToolbarProps<TData> {
   table: Table<TData>;
 }
 
-export function DataTableToolbar<TData>({
-  table,
-}: DataTableToolbarProps<TData>) {
+export function DataTableToolbar<TData>({ table }: DataTableToolbarProps<TData>) {
   const isFiltered = table.getState().columnFilters.length > 0;
 
   return (
@@ -35,17 +33,13 @@ export function DataTableToolbar<TData>({
       <div className="flex flex-1 items-center space-x-2">
         <Input
           placeholder="Filter by Firearm Name..."
-          value={
-            (table.getColumn("firearm_name")?.getFilterValue() as string) || ""
-          }
-          onChange={(event) =>
-            table.getColumn("firearm_name")?.setFilterValue(event.target.value)
-          }
+          value={(table.getColumn('firearm_name')?.getFilterValue() as string) || ''}
+          onChange={(event) => table.getColumn('firearm_name')?.setFilterValue(event.target.value)}
           className="h-8 w-[150px] lg:w-[250px]"
         />
-        {table.getColumn("status") && (
+        {table.getColumn('status') && (
           <DataTableFacetedFilter
-            column={table.getColumn("status")}
+            column={table.getColumn('status')}
             title="Status"
             options={statuses}
           />

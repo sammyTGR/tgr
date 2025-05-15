@@ -1,7 +1,7 @@
-"use client";
-import React from "react";
-import Link from "next/link";
-import { TextGenerateEffect } from "./ui/text-generate-effect";
+'use client';
+import React from 'react';
+import Link from 'next/link';
+import { TextGenerateEffect } from './ui/text-generate-effect';
 import {
   AdminReviewAuditsCard,
   DrosGuidanceCard,
@@ -17,15 +17,15 @@ import {
   RangeRepairCard,
   AdminSOPCard,
   PointsCard,
-} from "@/components/LandingCards";
-import { Separator } from "./ui/separator";
-import { useRole } from "../context/RoleContext";
-import { Button } from "./ui/button";
-import LoadingIndicator from "@/components/LoadingIndicator";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+} from '@/components/LandingCards';
+import { Separator } from './ui/separator';
+import { useRole } from '../context/RoleContext';
+import { Button } from './ui/button';
+import LoadingIndicator from '@/components/LoadingIndicator';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
-const words = "Admin Dashboard";
+const words = 'Admin Dashboard';
 const subwords = "Let's Get On It!";
 
 const LandingPageAdmin: React.FC = React.memo(() => {
@@ -34,7 +34,7 @@ const LandingPageAdmin: React.FC = React.memo(() => {
   const searchParams = useSearchParams();
 
   const { isLoading } = useQuery({
-    queryKey: ["navigation", pathname, searchParams],
+    queryKey: ['navigation', pathname, searchParams],
     queryFn: async () => {
       // Simulate a delay to show the loading indicator
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -44,7 +44,7 @@ const LandingPageAdmin: React.FC = React.memo(() => {
     refetchInterval: 0, // Disable automatic refetching
   });
 
-  if (role !== "admin") {
+  if (role !== 'admin') {
     return (
       <div>
         {isLoading && <LoadingIndicator />}
@@ -107,6 +107,6 @@ const LandingPageAdmin: React.FC = React.memo(() => {
   );
 });
 
-LandingPageAdmin.displayName = "LandingPageAdmin";
+LandingPageAdmin.displayName = 'LandingPageAdmin';
 
 export default LandingPageAdmin;

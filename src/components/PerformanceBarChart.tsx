@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import React, { useEffect, useState } from "react";
-import { BarChart } from "@/components/BarChart";
-import { supabase } from "@/utils/supabase/client";
+import React, { useEffect, useState } from 'react';
+import { BarChart } from '@/components/BarChart';
+import { supabase } from '@/utils/supabase/client';
 
 interface ChartData {
   errorDetails: string;
@@ -16,22 +16,19 @@ interface PerformanceBarChartProps {
 
 const fetchData = async (employeeId: string) => {
   const { data, error } = await supabase
-    .from("Auditsinput")
-    .select("error_details")
-    .eq("salesreps", employeeId);
+    .from('Auditsinput')
+    .select('error_details')
+    .eq('salesreps', employeeId);
 
   if (error) {
-    console.error("Error fetching audit data:", error);
+    console.error('Error fetching audit data:', error);
     return [];
   }
 
   return data;
 };
 
-const PerformanceBarChart: React.FC<PerformanceBarChartProps> = ({
-  employeeId,
-  selectedDate,
-}) => {
+const PerformanceBarChart: React.FC<PerformanceBarChartProps> = ({ employeeId, selectedDate }) => {
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
 

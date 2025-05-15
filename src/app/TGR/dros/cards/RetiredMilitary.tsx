@@ -1,5 +1,5 @@
-import * as React from "react";
-import { useRouter } from "next/navigation";
+import * as React from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Card,
   CardContent,
@@ -7,13 +7,8 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import {
-  HoveredLink,
-  Menu,
-  MenuItem,
-  ProductItem,
-} from "@/components/ui/navbar-menu";
+} from '@/components/ui/card';
+import { HoveredLink, Menu, MenuItem, ProductItem } from '@/components/ui/navbar-menu';
 
 function RetiredMilitary({ className }: { className?: string }) {
   const router = useRouter();
@@ -26,8 +21,8 @@ function RetiredMilitary({ className }: { className?: string }) {
           <CardDescription>
             <span className="text-orange-500">Before Moving Forward - </span>
             <br />
-            <span className="text-orange-500">PRINT</span> THE Federal Doc
-            Worksheet In The Link Below
+            <span className="text-orange-500">PRINT</span> THE Federal Doc Worksheet In The Link
+            Below
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -35,22 +30,20 @@ function RetiredMilitary({ className }: { className?: string }) {
             <h2>Required Documents:</h2>
             <ul className="list-none pl-4">
               <p>
-                If The Veteran&apos;s DL | ID Doesn&apos;t Indicate VETERAN
-                Status, We Need The Following:
+                If The Veteran&apos;s DL | ID Doesn&apos;t Indicate VETERAN Status, We Need The
+                Following:
               </p>
               <ul className="list-disc pl-4">
                 <li>A Copy Of Their DD-214 (Condition Of Discharge)</li>
                 <ul className="list-disc pl-4">
                   <li>
-                    Remember To Copy | Scan Their DD-214 To Submit For{" "}
+                    Remember To Copy | Scan Their DD-214 To Submit For{' '}
                     <span className="text-blue-500">Blue Label</span>
                   </li>
                 </ul>
                 <li>
-                  Write Down DOD ID#, Rank & Branch On Fed Doc Worksheet{" "}
-                  <span className="text-orange-500">
-                    (Print From Link Below)
-                  </span>
+                  Write Down DOD ID#, Rank & Branch On Fed Doc Worksheet{' '}
+                  <span className="text-orange-500">(Print From Link Below)</span>
                 </li>
               </ul>
               <hr className="my-4" />
@@ -60,8 +53,7 @@ function RetiredMilitary({ className }: { className?: string }) {
               </ul>
               <hr className="my-4" />
               <p>
-                Veterans Are <span className="text-red-500">NOT</span>{" "}
-                Non-Roster Exempt
+                Veterans Are <span className="text-red-500">NOT</span> Non-Roster Exempt
               </p>
             </ul>
           </div>

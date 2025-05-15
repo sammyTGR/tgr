@@ -1,12 +1,12 @@
 // src/app/admin/reports/sales/columns-employee.tsx
 
-import { format, parseISO } from "date-fns";
-import { ColumnDef as BaseColumnDef } from "@tanstack/react-table";
-import { DataTableColumnHeader } from "./data-table-column-header";
-import { toZonedTime } from "date-fns-tz";
-import { compareAsc } from "date-fns";
+import { format, parseISO } from 'date-fns';
+import { ColumnDef as BaseColumnDef } from '@tanstack/react-table';
+import { DataTableColumnHeader } from './data-table-column-header';
+import { toZonedTime } from 'date-fns-tz';
+import { compareAsc } from 'date-fns';
 
-const TIMEZONE = "America/Los_Angeles";
+const TIMEZONE = 'America/Los_Angeles';
 
 export interface SalesData {
   id: number;
@@ -20,10 +20,7 @@ export interface SalesData {
   total_net: number;
 }
 
-export type ColumnDef<TData, TValue = unknown> = BaseColumnDef<
-  TData,
-  TValue
-> & {
+export type ColumnDef<TData, TValue = unknown> = BaseColumnDef<TData, TValue> & {
   meta?: {
     style?: React.CSSProperties;
   };
@@ -60,33 +57,27 @@ export const employeeSalesColumns = (
   //   },
   // },
   {
-    accessorKey: "Date",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Date" />
-    ),
+    accessorKey: 'Date',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Date" />,
     cell: ({ row }) => {
       const originalDate = row.original.Date;
-      if (!originalDate) return "";
+      if (!originalDate) return '';
 
       try {
         const parsedDate = parseISO(originalDate);
-        const utcDate = toZonedTime(parsedDate, "UTC");
-        return format(utcDate, "MM/dd/yyyy");
+        const utcDate = toZonedTime(parsedDate, 'UTC');
+        return format(utcDate, 'MM/dd/yyyy');
       } catch (error) {
-        console.error("Error formatting date:", error);
-        return "";
+        console.error('Error formatting date:', error);
+        return '';
       }
     },
     meta: {
-      style: { width: "100px" },
+      style: { width: '100px' },
     },
     sortingFn: (rowA, rowB, columnId) => {
-      const dateA = rowA.original.Date
-        ? parseISO(rowA.original.Date)
-        : new Date(0);
-      const dateB = rowB.original.Date
-        ? parseISO(rowB.original.Date)
-        : new Date(0);
+      const dateA = rowA.original.Date ? parseISO(rowA.original.Date) : new Date(0);
+      const dateB = rowB.original.Date ? parseISO(rowB.original.Date) : new Date(0);
       return compareAsc(dateA, dateB);
     },
     filterFn: (row, columnId, filterValue) => {
@@ -94,8 +85,8 @@ export const employeeSalesColumns = (
       if (!dateValue) return false;
       try {
         const date = parseISO(String(dateValue));
-        const utcDate = toZonedTime(date, "UTC");
-        const formattedDate = format(utcDate, "yyyy-MM-dd");
+        const utcDate = toZonedTime(date, 'UTC');
+        const formattedDate = format(utcDate, 'yyyy-MM-dd');
         return formattedDate.includes(filterValue);
       } catch (error) {
         return false;
@@ -103,12 +94,10 @@ export const employeeSalesColumns = (
     },
   },
   {
-    accessorKey: "Desc",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Desc" />
-    ),
+    accessorKey: 'Desc',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Desc" />,
     meta: {
-      style: { width: "600px" },
+      style: { width: '600px' },
     },
   },
   // {
@@ -168,57 +157,45 @@ export const employeeSalesColumns = (
   //   },
   // },
   {
-    accessorKey: "category_label",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Category" />
-    ),
+    accessorKey: 'category_label',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Category" />,
     meta: {
-      style: { width: "150px" },
+      style: { width: '150px' },
     },
   },
   {
-    accessorKey: "subcategory_label",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Subcategory" />
-    ),
+    accessorKey: 'subcategory_label',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Subcategory" />,
     meta: {
-      style: { width: "150px" },
+      style: { width: '150px' },
     },
   },
   {
-    accessorKey: "SoldQty",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Sold Qty" />
-    ),
+    accessorKey: 'SoldQty',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Sold Qty" />,
     meta: {
-      style: { width: "100px" },
+      style: { width: '100px' },
     },
   },
   {
-    accessorKey: "Cost",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Cost" />
-    ),
+    accessorKey: 'Cost',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Cost" />,
     meta: {
-      style: { width: "100px" },
+      style: { width: '100px' },
     },
   },
   {
-    accessorKey: "total_gross",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Total Gross" />
-    ),
+    accessorKey: 'total_gross',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Total Gross" />,
     meta: {
-      style: { width: "100px" },
+      style: { width: '100px' },
     },
   },
   {
-    accessorKey: "total_net",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Total Net" />
-    ),
+    accessorKey: 'total_net',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Total Net" />,
     meta: {
-      style: { width: "100px" },
+      style: { width: '100px' },
     },
   },
 ];

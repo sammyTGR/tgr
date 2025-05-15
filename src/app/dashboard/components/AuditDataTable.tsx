@@ -1,13 +1,7 @@
 // components/AuditDataTable.tsx
-import React from "react";
-import {
-  Table,
-  TableBody,
-  TableRow,
-  TableCell,
-  TableHeader,
-} from "@/components/ui/table";
-import { AuditData } from "../../admin/audits/review/columns"; // adjust the path as needed
+import React from 'react';
+import { Table, TableBody, TableRow, TableCell, TableHeader } from '@/components/ui/table';
+import { AuditData } from '../../admin/audits/review/columns'; // adjust the path as needed
 
 interface AuditDataTableProps {
   data: AuditData[];
@@ -36,11 +30,11 @@ const AuditDataTable: React.FC<AuditDataTableProps> = ({ data }) => {
             <TableCell>{item.salesreps}</TableCell>
             <TableCell>{item.audit_type}</TableCell>
             <TableCell>{item.trans_date}</TableCell>
-            <TableCell>{item.audit_date || "N/A"}</TableCell>
+            <TableCell>{item.audit_date || 'N/A'}</TableCell>
             <TableCell>{item.error_location}</TableCell>
             <TableCell>{item.error_details}</TableCell>
-            <TableCell>{item.error_notes || "N/A"}</TableCell>
-            <TableCell>{item.dros_cancel ? "Yes" : "No"}</TableCell>
+            <TableCell>{item.error_notes || 'N/A'}</TableCell>
+            <TableCell>{item.dros_cancel ? 'Yes' : 'No'}</TableCell>
             <TableCell>
               {/* Example of action: */}
               <button>Edit</button>

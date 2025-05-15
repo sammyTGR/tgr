@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { Card } from "@/components/ui/card";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { supabase } from "@/utils/supabase/client";
-import { toast } from "sonner";
+import React, { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { Card } from '@/components/ui/card';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { supabase } from '@/utils/supabase/client';
+import { toast } from 'sonner';
 
 type EmployeeProfileData = {
   name: string;
@@ -31,14 +31,14 @@ export default function EmployeeProfilePage() {
         setUser(userData.user);
 
         const { data: employeeData, error } = await supabase
-          .from("employees")
-          .select("name, last_name, phone_number, street_address, city, state, zip")
-          .eq("user_uuid", userData.user?.id)
+          .from('employees')
+          .select('name, last_name, phone_number, street_address, city, state, zip')
+          .eq('user_uuid', userData.user?.id)
           .single();
 
         if (error) {
-          console.error("Error fetching employee data:", error);
-          toast.error("Failed to load profile data. Please try again.");
+          console.error('Error fetching employee data:', error);
+          toast.error('Failed to load profile data. Please try again.');
           return;
         }
 
@@ -56,16 +56,13 @@ export default function EmployeeProfilePage() {
 
   const onSubmit = async (data: EmployeeProfileData) => {
     if (user) {
-      const { error } = await supabase
-        .from("employees")
-        .update(data)
-        .eq("user_uuid", user.id);
+      const { error } = await supabase.from('employees').update(data).eq('user_uuid', user.id);
 
       if (error) {
-        console.error("Error updating profile:", error);
-        toast.error("Failed to update profile. Please try again.");
+        console.error('Error updating profile:', error);
+        toast.error('Failed to update profile. Please try again.');
       } else {
-        toast.success("Profile updated successfully!");
+        toast.success('Profile updated successfully!');
       }
     }
   };
@@ -84,13 +81,13 @@ export default function EmployeeProfilePage() {
       <form onSubmit={handleSubmit(onSubmit)}>
         <div className="p-6 rounded-b-lg space-y-6">
           {[
-            { label: "First Name", id: "name" },
-            { label: "Last Name", id: "last_name" },
-            { label: "Phone Number", id: "phone_number" },
-            { label: "Street Address", id: "street_address" },
-            { label: "City", id: "city" },
-            { label: "State", id: "state" },
-            { label: "ZIP Code", id: "zip" },
+            { label: 'First Name', id: 'name' },
+            { label: 'Last Name', id: 'last_name' },
+            { label: 'Phone Number', id: 'phone_number' },
+            { label: 'Street Address', id: 'street_address' },
+            { label: 'City', id: 'city' },
+            { label: 'State', id: 'state' },
+            { label: 'ZIP Code', id: 'zip' },
           ].map((field) => (
             <div key={field.id} className="grid gap-2">
               <div className="flex items-center justify-between">

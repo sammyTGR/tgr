@@ -1,6 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/utils/supabase/client";
-import { format, startOfMonth, endOfMonth } from "date-fns";
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/utils/supabase/client';
+import { format, startOfMonth, endOfMonth } from 'date-fns';
 
 interface PointsCalculation {
   category: string;
@@ -11,7 +11,7 @@ interface PointsCalculation {
 const isDrosTransaction = (sale: any) => {
   // A transaction counts as a DROS if:
   // 1. It's in the Dros Fee description
-  return sale.Desc?.toLowerCase() === "Dros Fee".toLowerCase();
+  return sale.Desc?.toLowerCase() === 'Dros Fee'.toLowerCase();
 };
 
 export const useSummaryData = (
@@ -20,7 +20,7 @@ export const useSummaryData = (
   selectedDate: Date | null
 ) => {
   return useQuery({
-    queryKey: ["summaryData", selectedLanid, showAllEmployees, selectedDate],
+    queryKey: ['summaryData', selectedLanid, showAllEmployees, selectedDate],
     enabled: !!selectedDate,
     queryFn: async () => {
       if (!selectedDate) return [];
@@ -30,35 +30,30 @@ export const useSummaryData = (
       const endDate = endOfMonth(selectedDate);
 
       // Format dates for database query
-      const formattedStartDate = format(
-        startDate,
-        "yyyy-MM-dd'T'HH:mm:ss.SSSxxx"
-      );
+      const formattedStartDate = format(startDate, "yyyy-MM-dd'T'HH:mm:ss.SSSxxx");
       const formattedEndDate = format(endDate, "yyyy-MM-dd'T'HH:mm:ss.SSSxxx");
 
       // Fetch all required data
-      let employeesQuery = supabase
-        .from("employees")
-        .select("lanid, department");
+      let employeesQuery = supabase.from('employees').select('lanid, department');
 
       let salesQuery = supabase
-        .from("detailed_sales_data")
-        .select("*")
-        .gte("SoldDate", formattedStartDate)
-        .lte("SoldDate", formattedEndDate)
-        .eq("Desc", "Dros Fee");
+        .from('detailed_sales_data')
+        .select('*')
+        .gte('SoldDate', formattedStartDate)
+        .lte('SoldDate', formattedEndDate)
+        .eq('Desc', 'Dros Fee');
 
       let auditQuery = supabase
-        .from("Auditsinput")
-        .select("*")
-        .gte("audit_date", format(startDate, "yyyy-MM-dd"))
-        .lte("audit_date", format(endDate, "yyyy-MM-dd"));
+        .from('Auditsinput')
+        .select('*')
+        .gte('audit_date', format(startDate, 'yyyy-MM-dd'))
+        .lte('audit_date', format(endDate, 'yyyy-MM-dd'));
 
-      const pointsQuery = supabase.from("points_calculation").select("*");
+      const pointsQuery = supabase.from('points_calculation').select('*');
 
       if (!showAllEmployees && selectedLanid) {
-        salesQuery = salesQuery.eq("Lanid", selectedLanid);
-        auditQuery = auditQuery.eq("salesreps", selectedLanid);
+        salesQuery = salesQuery.eq('Lanid', selectedLanid);
+        auditQuery = auditQuery.eq('salesreps', selectedLanid);
       }
 
       const [
@@ -66,15 +61,10 @@ export const useSummaryData = (
         { data: salesData, error: salesError },
         { data: auditData, error: auditError },
         { data: pointsCalculation, error: pointsError },
-      ] = await Promise.all([
-        employeesQuery,
-        salesQuery,
-        auditQuery,
-        pointsQuery,
-      ]);
+      ] = await Promise.all([employeesQuery, salesQuery, auditQuery, pointsQuery]);
 
       if (employeesError || salesError || auditError || pointsError) {
-        throw new Error("Error fetching data");
+        throw new Error('Error fetching data');
       }
 
       // Get unique lanids from audit data
@@ -102,12 +92,8 @@ export const useSummaryData = (
 
       // Calculate summary data
       const summary = lanids.map((lanid) => {
-        const employeeSalesData = relevantSalesData.filter(
-          (sale) => sale.Lanid === lanid
-        );
-        const employeeAuditData = auditData?.filter(
-          (audit) => audit.salesreps === lanid
-        );
+        const employeeSalesData = relevantSalesData.filter((sale) => sale.Lanid === lanid);
+        const employeeAuditData = auditData?.filter((audit) => audit.salesreps === lanid);
 
         const totalDros = employeeSalesData.filter(isDrosTransaction).length;
 
@@ -115,7 +101,7 @@ export const useSummaryData = (
 
         // Calculate points deducted from cancelled DROS
         employeeSalesData.forEach((sale) => {
-          if (sale.dros_cancel === "Yes") {
+          if (sale.dros_cancel === 'Yes') {
             pointsDeducted += 5;
           }
         });
@@ -128,8 +114,8 @@ export const useSummaryData = (
               if (audit.error_location === point.error_location) {
                 pointsDeducted += point.points_deducted;
               } else if (
-                point.error_location === "dros_cancel_field" &&
-                audit.dros_cancel === "Yes"
+                point.error_location === 'dros_cancel_field' &&
+                audit.dros_cancel === 'Yes'
               ) {
                 pointsDeducted += point.points_deducted;
               }
@@ -138,15 +124,14 @@ export const useSummaryData = (
         });
 
         const totalPoints = 300 - pointsDeducted;
-        const errorRate =
-          totalDros > 0 ? (pointsDeducted / totalDros) * 100 : 0;
+        const errorRate = totalDros > 0 ? (pointsDeducted / totalDros) * 100 : 0;
         const department = employeeDepartments.get(lanid);
-        const isOperations = department?.toString() === "Operations";
+        const isOperations = department?.toString() === 'Operations';
         const isQualified = !isOperations && totalDros >= 20;
 
         return {
           Lanid: lanid,
-          Department: department || "Unknown",
+          Department: department || 'Unknown',
           TotalDros: totalDros,
           PointsDeducted: pointsDeducted,
           TotalPoints: totalPoints,
@@ -154,11 +139,11 @@ export const useSummaryData = (
           Qualified: isQualified,
           DisqualificationReason: !isQualified
             ? isOperations
-              ? "Not Qualified (Operations Department)"
+              ? 'Not Qualified (Operations Department)'
               : totalDros < 20
-                ? "Not Qualified (< 20 DROS)"
-                : "Not Qualified"
-            : "Qualified",
+                ? 'Not Qualified (< 20 DROS)'
+                : 'Not Qualified'
+            : 'Qualified',
         };
       });
 

@@ -1,9 +1,9 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/utils/supabase/client";
-import { Employee, PointsCalculation, AuditData, SummaryData } from "../types";
-import { format } from "date-fns";
-import { WeightedScoringCalculator } from "../contest/WeightedScoringCalculator";
-import DOMPurify from "dompurify";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/utils/supabase/client';
+import { Employee, PointsCalculation, AuditData, SummaryData } from '../types';
+import { format } from 'date-fns';
+import { WeightedScoringCalculator } from '../contest/WeightedScoringCalculator';
+import DOMPurify from 'dompurify';
 
 type QueryType<T> = {
   queryKey: string[];
@@ -13,50 +13,46 @@ type QueryType<T> = {
 
 export const useEmployees = () => {
   return useQuery({
-    queryKey: ["employees"],
+    queryKey: ['employees'],
     queryFn: async () => {
       // First, get all employees who have sales data
       const { data: salesData, error: salesError } = await supabase
-        .from("detailed_sales_data")
-        .select("Lanid")
-        .eq("Desc", "Dros Fee")
-        .order("Lanid");
+        .from('detailed_sales_data')
+        .select('Lanid')
+        .eq('Desc', 'Dros Fee')
+        .order('Lanid');
 
       if (salesError) {
-        console.error("Sales data error:", salesError);
+        console.error('Sales data error:', salesError);
         throw salesError;
       }
 
       // Get all employees who have audit data
       const { data: auditData, error: auditError } = await supabase
-        .from("Auditsinput")
-        .select("salesreps")
-        .order("salesreps");
+        .from('Auditsinput')
+        .select('salesreps')
+        .order('salesreps');
 
       if (auditError) {
-        console.error("Audit data error:", auditError);
+        console.error('Audit data error:', auditError);
         throw auditError;
       }
 
       // Get all employees
       const { data: employeesData, error: employeesError } = await supabase
-        .from("employees")
-        .select("lanid, department")
-        .not("department", "eq", "Operations")
-        .order("lanid");
+        .from('employees')
+        .select('lanid, department')
+        .not('department', 'eq', 'Operations')
+        .order('lanid');
 
       if (employeesError) {
-        console.error("Employees error:", employeesError);
+        console.error('Employees error:', employeesError);
         throw employeesError;
       }
 
       // Create sets of lanids from sales and audits
-      const salesLanids = new Set(
-        salesData?.map((sale) => sale.Lanid.toLowerCase()) || []
-      );
-      const auditLanids = new Set(
-        auditData?.map((audit) => audit.salesreps.toLowerCase()) || []
-      );
+      const salesLanids = new Set(salesData?.map((sale) => sale.Lanid.toLowerCase()) || []);
+      const auditLanids = new Set(auditData?.map((audit) => audit.salesreps.toLowerCase()) || []);
 
       // Filter employees who have either sales or audit data
       const filteredEmployees =
@@ -78,11 +74,9 @@ export const useEmployees = () => {
 
 export const usePointsCalculation = () => {
   return useQuery({
-    queryKey: ["pointsCalculation"],
+    queryKey: ['pointsCalculation'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("points_calculation")
-        .select("*");
+      const { data, error } = await supabase.from('points_calculation').select('*');
 
       if (error) throw error;
       return data || [];
@@ -92,29 +86,18 @@ export const usePointsCalculation = () => {
 
 export const useAudits = () => {
   const query: QueryType<AuditData[]> = {
-    queryKey: ["audits"],
+    queryKey: ['audits'],
     queryFn: () => {
       return Promise.resolve(
-        supabase
-          .from("Auditsinput")
-          .select("*")
-          .order("audit_date", { ascending: false })
+        supabase.from('Auditsinput').select('*').order('audit_date', { ascending: false })
       ).then(({ data, error }) => {
         if (error) throw error;
         return (data || []).map((audit: AuditData) => ({
           ...audit,
-          dros_number: audit.dros_number
-            ? DOMPurify.sanitize(audit.dros_number)
-            : null,
-          salesreps: audit.salesreps
-            ? DOMPurify.sanitize(audit.salesreps)
-            : null,
-          error_details: audit.error_details
-            ? DOMPurify.sanitize(audit.error_details)
-            : null,
-          error_notes: audit.error_notes
-            ? DOMPurify.sanitize(audit.error_notes)
-            : null,
+          dros_number: audit.dros_number ? DOMPurify.sanitize(audit.dros_number) : null,
+          salesreps: audit.salesreps ? DOMPurify.sanitize(audit.salesreps) : null,
+          error_details: audit.error_details ? DOMPurify.sanitize(audit.error_details) : null,
+          error_notes: audit.error_notes ? DOMPurify.sanitize(audit.error_notes) : null,
         }));
       });
     },
@@ -145,7 +128,7 @@ export const useSummaryData = (
   options = {}
 ) => {
   return useQuery({
-    queryKey: ["summaryData", selectedLanid, showAllEmployees, selectedDate],
+    queryKey: ['summaryData', selectedLanid, showAllEmployees, selectedDate],
     queryFn: async () => {
       if (!selectedDate) return [];
 
@@ -164,24 +147,24 @@ export const useSummaryData = (
       ).toISOString();
 
       const queries = [
-        supabase.from("employees").select("lanid,department"),
+        supabase.from('employees').select('lanid,department'),
         supabase
-          .from("detailed_sales_data")
-          .select("*")
-          .gte("SoldDate", startDate)
-          .lte("SoldDate", endDate)
-          .eq("Desc", "Dros Fee"),
+          .from('detailed_sales_data')
+          .select('*')
+          .gte('SoldDate', startDate)
+          .lte('SoldDate', endDate)
+          .eq('Desc', 'Dros Fee'),
         supabase
-          .from("Auditsinput")
-          .select("*")
-          .gte("audit_date", startDate.split("T")[0])
-          .lte("audit_date", endDate.split("T")[0]),
-        supabase.from("points_calculation").select("*"),
+          .from('Auditsinput')
+          .select('*')
+          .gte('audit_date', startDate.split('T')[0])
+          .lte('audit_date', endDate.split('T')[0]),
+        supabase.from('points_calculation').select('*'),
       ];
 
       if (!showAllEmployees && selectedLanid) {
-        queries[1] = queries[1].eq("Lanid", selectedLanid);
-        queries[2] = queries[2].eq("salesreps", selectedLanid);
+        queries[1] = queries[1].eq('Lanid', selectedLanid);
+        queries[2] = queries[2].eq('salesreps', selectedLanid);
       }
 
       return Promise.all(queries as any).then(
@@ -196,18 +179,11 @@ export const useSummaryData = (
           }
 
           const employeeDepartments = new Map<string, string>(
-            (employeesData as DatabaseEmployee[]).map((emp) => [
-              emp.lanid,
-              emp.department,
-            ])
+            (employeesData as DatabaseEmployee[]).map((emp) => [emp.lanid, emp.department])
           );
 
-          const lanidSet = new Set(
-            (salesData as DatabaseSale[]).map((sale) => sale.Lanid)
-          );
-          const lanids = showAllEmployees
-            ? Array.from(lanidSet)
-            : [selectedLanid];
+          const lanidSet = new Set((salesData as DatabaseSale[]).map((sale) => sale.Lanid));
+          const lanids = showAllEmployees ? Array.from(lanidSet) : [selectedLanid];
 
           const summaryData = lanids
             .filter((lanid): lanid is string => Boolean(lanid))
@@ -221,16 +197,16 @@ export const useSummaryData = (
               const calculator = new WeightedScoringCalculator({
                 salesData: employeeSalesData.map((sale) => ({
                   ...sale,
-                  id: sale.id || "",
-                  Desc: sale.Desc || "", // Updated field name
-                  SoldDate: sale.SoldDate || "", // Updated field name
+                  id: sale.id || '',
+                  Desc: sale.Desc || '', // Updated field name
+                  SoldDate: sale.SoldDate || '', // Updated field name
                   dros_cancel: sale.dros_cancel || false,
                 })),
                 auditData: employeeAuditData.map((audit) => ({
                   ...audit,
-                  id: audit.id || "",
-                  error_location: audit.error_location || "",
-                  audit_date: audit.audit_date || "",
+                  id: audit.id || '',
+                  error_location: audit.error_location || '',
+                  audit_date: audit.audit_date || '',
                   dros_cancel: audit.dros_cancel || false,
                 })),
                 pointsCalculation: pointsData,
@@ -240,7 +216,7 @@ export const useSummaryData = (
 
               return {
                 ...calculator.metrics,
-                Department: employeeDepartments.get(lanid) || "Unknown",
+                Department: employeeDepartments.get(lanid) || 'Unknown',
                 isDivider: false,
               } satisfies SummaryData;
             });
@@ -248,16 +224,10 @@ export const useSummaryData = (
           return [
             ...summaryData
               .filter((emp) => emp.Qualified)
-              .sort(
-                (a, b) =>
-                  (a.WeightedErrorRate || 0) - (b.WeightedErrorRate || 0)
-              ),
+              .sort((a, b) => (a.WeightedErrorRate || 0) - (b.WeightedErrorRate || 0)),
             ...summaryData
               .filter((emp) => !emp.Qualified)
-              .sort(
-                (a, b) =>
-                  (a.WeightedErrorRate || 0) - (b.WeightedErrorRate || 0)
-              ),
+              .sort((a, b) => (a.WeightedErrorRate || 0) - (b.WeightedErrorRate || 0)),
           ];
         }
       );
@@ -278,7 +248,7 @@ export const useAuditMutations = () => {
   const submitAudit = useMutation({
     mutationFn: async (formData: any) => {
       const { data, error } = await supabase
-        .from("Auditsinput")
+        .from('Auditsinput')
         .insert([formData])
         .select()
         .single();
@@ -287,16 +257,16 @@ export const useAuditMutations = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["audits"] });
+      queryClient.invalidateQueries({ queryKey: ['audits'] });
     },
   });
 
   const updateAudit = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: any }) => {
       const { data, error } = await supabase
-        .from("Auditsinput")
+        .from('Auditsinput')
         .update(updates)
-        .eq("id", id)
+        .eq('id', id)
         .select()
         .single();
 
@@ -304,21 +274,18 @@ export const useAuditMutations = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["audits"] });
+      queryClient.invalidateQueries({ queryKey: ['audits'] });
     },
   });
 
   const deleteAudit = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("Auditsinput")
-        .delete()
-        .eq("id", id);
+      const { error } = await supabase.from('Auditsinput').delete().eq('id', id);
 
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["audits"] });
+      queryClient.invalidateQueries({ queryKey: ['audits'] });
     },
   });
 
@@ -331,8 +298,8 @@ export const useAuditMutations = () => {
 
 export const useActiveTab = () => {
   return useQuery({
-    queryKey: ["activeTab"],
-    queryFn: () => "submit", // default value
+    queryKey: ['activeTab'],
+    queryFn: () => 'submit', // default value
     staleTime: Infinity, // Tab state shouldn't go stale
     gcTime: Infinity,
   });
@@ -344,7 +311,7 @@ export const useUpdateActiveTab = () => {
   return useMutation({
     mutationFn: (newTab: string) => Promise.resolve(newTab),
     onSuccess: (newTab) => {
-      queryClient.setQueryData(["activeTab"], newTab);
+      queryClient.setQueryData(['activeTab'], newTab);
     },
   });
 };

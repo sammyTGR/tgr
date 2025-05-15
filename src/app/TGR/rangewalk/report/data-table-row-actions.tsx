@@ -1,8 +1,8 @@
-"use client";
-import { useState } from "react";
-import { DotsHorizontalIcon } from "@radix-ui/react-icons";
-import { Row } from "@tanstack/react-table";
-import { Button } from "@/components/ui/button";
+'use client';
+import { useState } from 'react';
+import { DotsHorizontalIcon } from '@radix-ui/react-icons';
+import { Row } from '@tanstack/react-table';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,7 +12,7 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from '@/components/ui/dropdown-menu';
 import {
   Dialog,
   DialogContent,
@@ -21,10 +21,10 @@ import {
   DialogDescription,
   DialogFooter,
   DialogClose,
-} from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { rangeWalkDataSchema, RangeWalkData } from "./data-schema";
-import { supabase } from "@/utils/supabase/client";
+} from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { rangeWalkDataSchema, RangeWalkData } from './data-schema';
+import { supabase } from '@/utils/supabase/client';
 
 interface DataTableRowActionsProps {
   row: Row<RangeWalkData>;
@@ -43,16 +43,16 @@ export function DataTableRowActions({
 }: DataTableRowActionsProps) {
   const task = rangeWalkDataSchema.parse(row.original);
   const [open, setOpen] = useState(false);
-  const [repairNotes, setRepairNotes] = useState(task.repair_notes || "");
+  const [repairNotes, setRepairNotes] = useState(task.repair_notes || '');
 
   const handleStatusChange = async (status: string | null) => {
     const { error } = await supabase
-      .from("range_walk_reports")
+      .from('range_walk_reports')
       .update({ status })
-      .eq("id", task.id);
+      .eq('id', task.id);
 
     if (error) {
-      console.error("Error updating status:", error.message);
+      console.error('Error updating status:', error.message);
     } else {
       onStatusChange(task.id, status);
     }
@@ -60,25 +60,25 @@ export function DataTableRowActions({
 
   const handleSaveNotes = async () => {
     const { data: userData, error: userError } = await supabase
-      .from("employees")
-      .select("name")
-      .eq("user_uuid", userUuid)
+      .from('employees')
+      .select('name')
+      .eq('user_uuid', userUuid)
       .single();
 
     if (userError) {
-      console.error("Error fetching user name:", userError.message);
+      console.error('Error fetching user name:', userError.message);
       return;
     }
 
-    const userName = userData?.name || "Unknown";
+    const userName = userData?.name || 'Unknown';
 
     const { error } = await supabase
-      .from("range_walk_reports")
+      .from('range_walk_reports')
       .update({ repair_notes: repairNotes, repair_notes_user: userName })
-      .eq("id", task.id);
+      .eq('id', task.id);
 
     if (error) {
-      console.error("Error saving repair notes:", error.message);
+      console.error('Error saving repair notes:', error.message);
     } else {
       onNotesChange(task.id, repairNotes, userName);
       setOpen(false);
@@ -86,37 +86,29 @@ export function DataTableRowActions({
   };
 
   const canEditNotes =
-    ["user", "admin", "super admin", "dev"].includes(userRole) ||
-    userUuid === task.user_uuid;
+    ['user', 'admin', 'super admin', 'dev'].includes(userRole) || userUuid === task.user_uuid;
 
   return (
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            className="flex h-8 w-8 p-0 data-[state=open]:bg-muted"
-          >
+          <Button variant="ghost" className="flex h-8 w-8 p-0 data-[state=open]:bg-muted">
             <DotsHorizontalIcon className="h-4 w-4" />
             <span className="sr-only">Open menu</span>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-[160px]">
           {canEditNotes && (
-            <DropdownMenuItem onSelect={() => setOpen(true)}>
-              Enter Repair Notes
-            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => setOpen(true)}>Enter Repair Notes</DropdownMenuItem>
           )}
           <DropdownMenuSeparator />
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>Status</DropdownMenuSubTrigger>
             <DropdownMenuSubContent>
-              <DropdownMenuItem onSelect={() => handleStatusChange("Repaired")}>
+              <DropdownMenuItem onSelect={() => handleStatusChange('Repaired')}>
                 Repaired
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onSelect={() => handleStatusChange("Under Repair")}
-              >
+              <DropdownMenuItem onSelect={() => handleStatusChange('Under Repair')}>
                 Under Repair
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => handleStatusChange(null)}>
@@ -130,9 +122,7 @@ export function DataTableRowActions({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Enter Repair Notes</DialogTitle>
-            <DialogDescription>
-              Please enter the details of the repair.
-            </DialogDescription>
+            <DialogDescription>Please enter the details of the repair.</DialogDescription>
           </DialogHeader>
           <Textarea
             placeholder="Enter repair notes..."

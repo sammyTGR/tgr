@@ -1,7 +1,7 @@
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
-import { PostgrestError } from "@supabase/supabase-js";
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
+import { NextResponse } from 'next/server';
+import { PostgrestError } from '@supabase/supabase-js';
 
 export async function POST(request: Request) {
   const supabase = createRouteHandlerClient({ cookies });
@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Base data that's always required
@@ -62,9 +62,7 @@ export async function POST(request: Request) {
       seller_eye_color: formData.sellerEyeColor,
       seller_height_feet: parseInt(formData.sellerHeightFeet),
       seller_height_inches: parseInt(formData.sellerHeightInches),
-      seller_weight: formData.sellerWeight
-        ? parseInt(formData.sellerWeight)
-        : null,
+      seller_weight: formData.sellerWeight ? parseInt(formData.sellerWeight) : null,
       seller_date_of_birth: formData.sellerDateOfBirth,
       seller_id_type: formData.sellerIdType,
       seller_id_number: formData.sellerIdNumber,
@@ -80,19 +78,14 @@ export async function POST(request: Request) {
       // Transaction Information
       hsc_fsc_number: formData.hscFscNumber,
       exemption_code: formData.exemptionCode,
-      eligibility_q1:
-        formData.eligibilityQ1?.toLowerCase() === "yes" ? "yes" : "no",
-      eligibility_q2:
-        formData.eligibilityQ2?.toLowerCase() === "yes" ? "yes" : "no",
-      eligibility_q3:
-        formData.eligibilityQ3?.toLowerCase() === "yes" ? "yes" : "no",
-      eligibility_q4:
-        formData.eligibilityQ4?.toLowerCase() === "yes" ? "yes" : "no",
+      eligibility_q1: formData.eligibilityQ1?.toLowerCase() === 'yes' ? 'yes' : 'no',
+      eligibility_q2: formData.eligibilityQ2?.toLowerCase() === 'yes' ? 'yes' : 'no',
+      eligibility_q3: formData.eligibilityQ3?.toLowerCase() === 'yes' ? 'yes' : 'no',
+      eligibility_q4: formData.eligibilityQ4?.toLowerCase() === 'yes' ? 'yes' : 'no',
       firearms_q1: formData.firearmsQ1?.toLowerCase(),
       is_gun_show_transaction: formData.isGunShowTransaction?.toLowerCase(),
       waiting_period_exemption: formData.waitingPeriodExemption,
-      restriction_exemption:
-        "Private Party Transfer Through Licensed Firearms Dealer",
+      restriction_exemption: 'Private Party Transfer Through Licensed Firearms Dealer',
 
       // Firearm Information
       make: formData.make,
@@ -104,13 +97,13 @@ export async function POST(request: Request) {
       non_roster_exemption: formData.nonRosterExemption,
       agency_department: formData.agencyDepartment,
       comments: formData.comments,
-      status: "submitted",
-      transaction_type: "officer-ppt-handgun",
+      status: 'submitted',
+      transaction_type: 'officer-ppt-handgun',
     };
 
     // Frame-only specific data
     const frameOnlyData =
-      formData.frameOnly === "yes"
+      formData.frameOnly === 'yes'
         ? {
             frame_only: true,
             calibers: null,
@@ -119,7 +112,7 @@ export async function POST(request: Request) {
             additional_caliber3: null,
             barrel_length: null,
             unit: null,
-            gun_type: "HANDGUN",
+            gun_type: 'HANDGUN',
             category: formData.category,
             regulated: formData.regulated?.toUpperCase(),
           }
@@ -129,11 +122,9 @@ export async function POST(request: Request) {
             additional_caliber: formData.additionalCaliber,
             additional_caliber2: formData.additionalCaliber2,
             additional_caliber3: formData.additionalCaliber3,
-            barrel_length: formData.barrelLength
-              ? parseFloat(formData.barrelLength)
-              : null,
+            barrel_length: formData.barrelLength ? parseFloat(formData.barrelLength) : null,
             unit: formData.unit?.toUpperCase(),
-            gun_type: "HANDGUN",
+            gun_type: 'HANDGUN',
             category: formData.category,
             regulated: null,
           };
@@ -147,13 +138,13 @@ export async function POST(request: Request) {
     // console.log("Submitting data to database:", dbData); // Log the data being sent to database
 
     const { data, error } = await supabase
-      .from("officer_ppt_handgun_transfers")
+      .from('officer_ppt_handgun_transfers')
       .insert(dbData)
       .select()
       .single();
 
     if (error) {
-      console.error("Supabase error details:", {
+      console.error('Supabase error details:', {
         code: error.code,
         message: error.message,
         details: error.details,
@@ -164,15 +155,15 @@ export async function POST(request: Request) {
 
     return NextResponse.json(data);
   } catch (error: unknown) {
-    console.error("Detailed error:", error);
+    console.error('Detailed error:', error);
     if (error instanceof Error) {
       return NextResponse.json(
-        { error: "Internal Server Error", details: error.message },
+        { error: 'Internal Server Error', details: error.message },
         { status: 500 }
       );
     }
     return NextResponse.json(
-      { error: "Internal Server Error", details: "An unknown error occurred" },
+      { error: 'Internal Server Error', details: 'An unknown error occurred' },
       { status: 500 }
     );
   }

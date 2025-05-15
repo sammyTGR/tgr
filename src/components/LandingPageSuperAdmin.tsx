@@ -1,7 +1,7 @@
-"use client";
-import React from "react";
-import Link from "next/link";
-import { TextGenerateEffect } from "./ui/text-generate-effect";
+'use client';
+import React from 'react';
+import Link from 'next/link';
+import { TextGenerateEffect } from './ui/text-generate-effect';
 import {
   AdminReviewAuditsCard,
   DrosGuidanceCard,
@@ -12,16 +12,16 @@ import {
   WaiverCard,
   OrderCard,
   DepositsCard,
-} from "@/components/LandingCards";
-import { Separator } from "./ui/separator";
-import { useRole } from "../context/RoleContext";
-import { Button } from "./ui/button";
-import LoadingIndicator from "@/components/LoadingIndicator";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+} from '@/components/LandingCards';
+import { Separator } from './ui/separator';
+import { useRole } from '../context/RoleContext';
+import { Button } from './ui/button';
+import LoadingIndicator from '@/components/LoadingIndicator';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
-const words = "Ops Management Dashboard";
-const subwords = "Weekly Checks For 9MM Quality Control";
+const words = 'Ops Management Dashboard';
+const subwords = 'Weekly Checks For 9MM Quality Control';
 
 const LandingPageSuperAdmin: React.FC = React.memo(() => {
   const { role } = useRole();
@@ -29,7 +29,7 @@ const LandingPageSuperAdmin: React.FC = React.memo(() => {
   const searchParams = useSearchParams();
 
   const { isLoading } = useQuery({
-    queryKey: ["navigation", pathname, searchParams],
+    queryKey: ['navigation', pathname, searchParams],
     queryFn: async () => {
       // Simulate a delay to show the loading indicator
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -39,7 +39,7 @@ const LandingPageSuperAdmin: React.FC = React.memo(() => {
     refetchInterval: 0, // Disable automatic refetching
   });
 
-  if (role !== "super admin" && role !== "dev") {
+  if (role !== 'super admin' && role !== 'dev') {
     return (
       <div>
         {isLoading && <LoadingIndicator />}
@@ -91,6 +91,6 @@ const LandingPageSuperAdmin: React.FC = React.memo(() => {
   );
 });
 
-LandingPageSuperAdmin.displayName = "LandingPageSuperAdmin";
+LandingPageSuperAdmin.displayName = 'LandingPageSuperAdmin';
 
 export default LandingPageSuperAdmin;

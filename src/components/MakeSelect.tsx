@@ -1,14 +1,14 @@
-import React from "react";
+import React from 'react';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import DOMPurify from "isomorphic-dompurify";
-import { UseFormSetValue, Path, PathValue, FieldValues } from "react-hook-form";
+} from '@/components/ui/select';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import DOMPurify from 'isomorphic-dompurify';
+import { UseFormSetValue, Path, PathValue, FieldValues } from 'react-hook-form';
 
 interface Manufacturer {
   value: string;
@@ -30,8 +30,8 @@ const MakeSelect = <T extends FieldValues>({
   value,
   handgunData,
   isLoadingHandguns,
-  makeField = "make" as Path<T>,
-  modelField = "model" as Path<T>,
+  makeField = 'make' as Path<T>,
+  modelField = 'model' as Path<T>,
 }: MakeSelectProps<T>) => {
   if (isLoadingHandguns) {
     return (
@@ -58,7 +58,7 @@ const MakeSelect = <T extends FieldValues>({
       value={value}
       onValueChange={(newValue) => {
         setValue(makeField, newValue as PathValue<T, Path<T>>);
-        setValue(modelField, "" as PathValue<T, Path<T>>);
+        setValue(modelField, '' as PathValue<T, Path<T>>);
       }}
     >
       <SelectTrigger className="w-full">

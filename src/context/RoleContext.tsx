@@ -1,8 +1,8 @@
-"use client";
-import { createContext, useContext, ReactNode } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/utils/supabase/client";
-import { Session, User } from "@supabase/supabase-js";
+'use client';
+import { createContext, useContext, ReactNode } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/utils/supabase/client';
+import { Session, User } from '@supabase/supabase-js';
 
 interface RoleContextType {
   role: string | null;
@@ -24,7 +24,7 @@ export function RoleProvider({ children, initialSession }: RoleProviderProps) {
     isLoading,
     error,
   } = useQuery<{ role: string | null; user: User | null }>({
-    queryKey: ["role"],
+    queryKey: ['role'],
     queryFn: async () => {
       try {
         const {
@@ -35,21 +35,21 @@ export function RoleProvider({ children, initialSession }: RoleProviderProps) {
         if (!user) return { role: null, user: null };
 
         const { data: employeeData, error: employeeError } = await supabase
-          .from("employees")
-          .select("role")
-          .eq("user_uuid", user.id)
-          .eq("status", "active")
+          .from('employees')
+          .select('role')
+          .eq('user_uuid', user.id)
+          .eq('status', 'active')
           .single();
 
         if (employeeData) {
           return { role: employeeData.role, user };
         }
 
-        if (!employeeError || employeeError.code === "PGRST116") {
+        if (!employeeError || employeeError.code === 'PGRST116') {
           const { data: customerData } = await supabase
-            .from("customers")
-            .select("role")
-            .eq("email", user.email)
+            .from('customers')
+            .select('role')
+            .eq('email', user.email)
             .single();
 
           return { role: customerData?.role || null, user };
@@ -57,7 +57,7 @@ export function RoleProvider({ children, initialSession }: RoleProviderProps) {
 
         throw employeeError;
       } catch (error) {
-        console.error("Role fetch error:", error);
+        console.error('Role fetch error:', error);
         throw error;
       }
     },
@@ -72,15 +72,13 @@ export function RoleProvider({ children, initialSession }: RoleProviderProps) {
     error: error as Error | null,
   };
 
-  return (
-    <RoleContext.Provider value={contextValue}>{children}</RoleContext.Provider>
-  );
+  return <RoleContext.Provider value={contextValue}>{children}</RoleContext.Provider>;
 }
 
 export function useRole(): RoleContextType {
   const context = useContext(RoleContext);
   if (context === undefined) {
-    throw new Error("useRole must be used within a RoleProvider");
+    throw new Error('useRole must be used within a RoleProvider');
   }
   return context;
 }

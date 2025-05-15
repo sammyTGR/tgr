@@ -1,5 +1,5 @@
-"use client";
-import { useState } from "react";
+'use client';
+import { useState } from 'react';
 import {
   Card,
   CardHeader,
@@ -7,38 +7,34 @@ import {
   CardDescription,
   CardContent,
   CardFooter,
-} from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-} from "@/components/ui/popover";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import { Textarea } from "@/components/ui/textarea";
-import { MultiSelect, OptionType } from "@/components/ui/multi-select";
+} from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import { Textarea } from '@/components/ui/textarea';
+import { MultiSelect, OptionType } from '@/components/ui/multi-select';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { CalendarIcon } from "@radix-ui/react-icons";
-import { useRole } from "@/context/RoleContext"; // Import useRole
-import { supabase } from "@/utils/supabase/client";
-import { toast } from "sonner"; // Import toast from Sonner
+} from '@/components/ui/select';
+import { CalendarIcon } from '@radix-ui/react-icons';
+import { useRole } from '@/context/RoleContext'; // Import useRole
+import { supabase } from '@/utils/supabase/client';
+import { toast } from 'sonner'; // Import toast from Sonner
 
 const lanesOptions: OptionType[] = [
-  { value: "No Problems", label: "No Problems" },
-  { label: "Main Range", value: "Main Range" },
+  { value: 'No Problems', label: 'No Problems' },
+  { label: 'Main Range', value: 'Main Range' },
   ...Array.from({ length: 15 }, (_, i) => ({
     value: `Lane ${i + 1}`,
     label: `Lane ${i + 1}`,
   })),
-  { label: "Back Range", value: "Back Range" },
-  ...["A", "B", "C", "D", "E"].map((lane) => ({
+  { label: 'Back Range', value: 'Back Range' },
+  ...['A', 'B', 'C', 'D', 'E'].map((lane) => ({
     value: `Lane ${lane}`,
     label: `Lane ${lane}`,
   })),
@@ -48,7 +44,7 @@ export default function Component() {
   const { role } = useRole();
   const [selectedProblems, setSelectedProblems] = useState<string[]>([]);
   const [date, setDate] = useState<Date | undefined>(undefined);
-  const [description, setDescription] = useState<string>("");
+  const [description, setDescription] = useState<string>('');
 
   const handleDateSelect = (day: Date | undefined) => {
     setDate(day || undefined);
@@ -58,7 +54,7 @@ export default function Component() {
     e.preventDefault();
 
     if (!date || !description) {
-      toast.error("Please fill out all required fields.");
+      toast.error('Please fill out all required fields.');
       return;
     }
 
@@ -69,38 +65,38 @@ export default function Component() {
       } = await supabase.auth.getUser();
 
       if (userError || !user) {
-        toast.error("Unauthorized");
+        toast.error('Unauthorized');
         return;
       }
 
       const data = {
         date_of_repair: date,
-        lanes_repaired: selectedProblems.join(", "),
+        lanes_repaired: selectedProblems.join(', '),
         description,
         role,
       };
 
       // The Supabase client will automatically handle the authorization
-      const response = await fetch("/api/submitRangeRepairs", {
-        method: "POST",
+      const response = await fetch('/api/submitRangeRepairs', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify(data),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to submit the report.");
+        throw new Error('Failed to submit the report.');
       }
 
-      toast.success("Repair Report Submitted Successfully.");
+      toast.success('Repair Report Submitted Successfully.');
       // Reset form
       setDate(undefined);
       setSelectedProblems([]);
-      setDescription("");
+      setDescription('');
     } catch (error) {
       console.error(error);
-      toast.error("There was an error submitting the report.");
+      toast.error('There was an error submitting the report.');
     }
   };
 
@@ -109,8 +105,7 @@ export default function Component() {
       <CardHeader>
         <CardTitle>Range Repair Report</CardTitle>
         <CardDescription>
-          Please fill out the form to report EVERY action taken during your
-          range repair.
+          Please fill out the form to report EVERY action taken during your range repair.
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
@@ -119,21 +114,13 @@ export default function Component() {
             <Label htmlFor="date">Date Of Range Repairs</Label>
             <Popover>
               <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start text-left font-normal"
-                >
+                <Button variant="outline" className="w-full justify-start text-left font-normal">
                   <CalendarIcon className="mr-1 h-4 w-4 -translate-x-1" />
-                  {date ? date.toDateString() : "Pick a date"}
+                  {date ? date.toDateString() : 'Pick a date'}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={date}
-                  onSelect={handleDateSelect}
-                  initialFocus
-                />
+                <Calendar mode="single" selected={date} onSelect={handleDateSelect} initialFocus />
               </PopoverContent>
             </Popover>
           </div>
@@ -162,7 +149,7 @@ export default function Component() {
             onClick={() => {
               setDate(undefined);
               setSelectedProblems([]);
-              setDescription("");
+              setDescription('');
             }}
           >
             Cancel

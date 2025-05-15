@@ -1,24 +1,24 @@
-import { NextResponse } from 'next/server'
+import { NextResponse } from 'next/server';
 
-const BASE_URL = 'https://cloud.fastbound.com'
-const API_KEY = process.env.FASTBOUND_API_KEY
-const ACCOUNT_NUMBER = process.env.FASTBOUND_ACCOUNT_NUMBER
-const AUDIT_USER = 'sammy@thegunrange.biz' // Replace with the actual email of a valid FastBound account user
+const BASE_URL = 'https://cloud.fastbound.com';
+const API_KEY = process.env.FASTBOUND_API_KEY;
+const ACCOUNT_NUMBER = process.env.FASTBOUND_ACCOUNT_NUMBER;
+const AUDIT_USER = 'sammy@thegunrange.biz'; // Replace with the actual email of a valid FastBound account user
 
 if (!API_KEY || !ACCOUNT_NUMBER) {
-  throw new Error('FastBound API key or account number is not set')
+  throw new Error('FastBound API key or account number is not set');
 }
 
 const rateLimiter = {
   lastRequestTime: 0,
   async limit() {
-    const now = Date.now()
+    const now = Date.now();
     if (now - this.lastRequestTime < 1000) {
-      await new Promise(resolve => setTimeout(resolve, 1000 - (now - this.lastRequestTime)))
+      await new Promise((resolve) => setTimeout(resolve, 1000 - (now - this.lastRequestTime)));
     }
-    this.lastRequestTime = Date.now()
-  }
-}
+    this.lastRequestTime = Date.now();
+  },
+};
 
 const formatContact = (contact: any) => {
   const baseContact = {
@@ -55,7 +55,7 @@ const formatContact = (contact: any) => {
       middleName: contact.middleName,
     };
   } else {
-    throw new Error("Invalid contact information");
+    throw new Error('Invalid contact information');
   }
 };
 
@@ -63,7 +63,7 @@ async function getContact(contact: any) {
   const searchResponse = await fetch(`${BASE_URL}/${ACCOUNT_NUMBER}/api/Contacts/Search`, {
     method: 'POST',
     headers: {
-      'Authorization': `Basic ${Buffer.from(`${API_KEY}:`).toString('base64')}`,
+      Authorization: `Basic ${Buffer.from(`${API_KEY}:`).toString('base64')}`,
       'Content-Type': 'application/json',
       'X-AuditUser': AUDIT_USER,
     },
@@ -83,7 +83,7 @@ async function getContact(contact: any) {
   const createResponse = await fetch(`${BASE_URL}/${ACCOUNT_NUMBER}/api/Contacts`, {
     method: 'POST',
     headers: {
-      'Authorization': `Basic ${Buffer.from(`${API_KEY}:`).toString('base64')}`,
+      Authorization: `Basic ${Buffer.from(`${API_KEY}:`).toString('base64')}`,
       'Content-Type': 'application/json',
       'X-AuditUser': AUDIT_USER,
     },
@@ -110,14 +110,17 @@ async function getOrCreateContact(contact: any): Promise<{ id: string; isNew: bo
 
     // console.log('Contact search parameters:', searchParams.toString());
 
-    const searchResponse = await fetch(`${BASE_URL}/${ACCOUNT_NUMBER}/api/Contacts?${searchParams.toString()}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Basic ${Buffer.from(`${API_KEY}:`).toString('base64')}`,
-        'Content-Type': 'application/json',
-        'X-AuditUser': AUDIT_USER,
-      },
-    });
+    const searchResponse = await fetch(
+      `${BASE_URL}/${ACCOUNT_NUMBER}/api/Contacts?${searchParams.toString()}`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Basic ${Buffer.from(`${API_KEY}:`).toString('base64')}`,
+          'Content-Type': 'application/json',
+          'X-AuditUser': AUDIT_USER,
+        },
+      }
+    );
 
     const responseText = await searchResponse.text();
     // console.log('Contact search response:', searchResponse.status, responseText);
@@ -145,7 +148,6 @@ async function getOrCreateContact(contact: any): Promise<{ id: string; isNew: bo
 
     // Contact doesn't exist, create a new one
     return await createNewContact(contact);
-
   } catch (error) {
     console.error('Error in getOrCreateContact:', error);
     throw error;
@@ -183,7 +185,7 @@ async function createNewContact(contact: any): Promise<{ id: string; isNew: bool
   const createResponse = await fetch(`${BASE_URL}/${ACCOUNT_NUMBER}/api/Contacts`, {
     method: 'POST',
     headers: {
-      'Authorization': `Basic ${Buffer.from(`${API_KEY}:`).toString('base64')}`,
+      Authorization: `Basic ${Buffer.from(`${API_KEY}:`).toString('base64')}`,
       'Content-Type': 'application/json',
       'X-AuditUser': AUDIT_USER,
     },
@@ -210,9 +212,9 @@ async function createNewContact(contact: any): Promise<{ id: string; isNew: bool
 
 export async function POST(request: Request) {
   try {
-    await rateLimiter.limit()
+    await rateLimiter.limit();
 
-    const requestData = await request.json()
+    const requestData = await request.json();
     // console.log('Received data:', JSON.stringify(requestData, null, 2))
 
     // Get or create contact
@@ -221,14 +223,17 @@ export async function POST(request: Request) {
       contact = await getOrCreateContact(requestData.contact);
     } catch (error) {
       console.error('Error getting or creating contact:', error);
-      return NextResponse.json({ error: 'Failed to process contact', details: (error as Error).message }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Failed to process contact', details: (error as Error).message },
+        { status: 400 }
+      );
     }
 
     const payload = {
       contactId: contact.id,
       items: requestData.items.map((item: any) => ({
         manufacturer: item.manufacturer,
-        countryOfManufacture: item.countryOfManufacture || "Unknown",
+        countryOfManufacture: item.countryOfManufacture || 'Unknown',
         model: item.model,
         serial: item.serial,
         caliber: item.caliber,
@@ -257,46 +262,67 @@ export async function POST(request: Request) {
     const response = await fetch(`${BASE_URL}/${ACCOUNT_NUMBER}/api/Acquisitions/CreateAndCommit`, {
       method: 'POST',
       headers: {
-        'Authorization': `Basic ${Buffer.from(`${API_KEY}:`).toString('base64')}`,
+        Authorization: `Basic ${Buffer.from(`${API_KEY}:`).toString('base64')}`,
         'Content-Type': 'application/json',
         'X-AuditUser': AUDIT_USER,
       },
       body: JSON.stringify(payload),
-    })
+    });
 
     // console.log('FastBound API response status:', response.status)
     // console.log('FastBound API response headers:', Object.fromEntries(response.headers))
 
     if (response.status === 204) {
       // console.log('FastBound API returned 204 No Content - operation successful')
-      return NextResponse.json({ message: 'Acquisition created successfully', contactId: contact.id, isNewContact: contact.isNew }, { status: 200 })
+      return NextResponse.json(
+        {
+          message: 'Acquisition created successfully',
+          contactId: contact.id,
+          isNewContact: contact.isNew,
+        },
+        { status: 200 }
+      );
     }
-    
-    const responseText = await response.text()
+
+    const responseText = await response.text();
     // console.log('FastBound API response text:', responseText)
 
-    let responseData
+    let responseData;
     try {
-      responseData = responseText ? JSON.parse(responseText) : null
+      responseData = responseText ? JSON.parse(responseText) : null;
     } catch (parseError) {
-      console.error('Error parsing JSON response:', parseError)
-      return NextResponse.json({ error: 'Invalid JSON response from FastBound API', details: responseText }, { status: 500 })
+      console.error('Error parsing JSON response:', parseError);
+      return NextResponse.json(
+        { error: 'Invalid JSON response from FastBound API', details: responseText },
+        { status: 500 }
+      );
     }
 
     if (!response.ok) {
-      console.error('FastBound API error:', responseData)
+      console.error('FastBound API error:', responseData);
       if (responseData && responseData.errors) {
-        const errorMessages = responseData.errors.map((error: any) => `${error.field}: ${error.message}`).join(', ');
-        return NextResponse.json({ error: errorMessages }, { status: response.status })
+        const errorMessages = responseData.errors
+          .map((error: any) => `${error.field}: ${error.message}`)
+          .join(', ');
+        return NextResponse.json({ error: errorMessages }, { status: response.status });
       }
-      return NextResponse.json({ error: 'An error occurred while processing your request', details: responseData }, { status: response.status })
+      return NextResponse.json(
+        { error: 'An error occurred while processing your request', details: responseData },
+        { status: response.status }
+      );
     }
 
     // console.log('FastBound API success:', responseData)
-    return NextResponse.json({ ...responseData, contactId: contact.id, isNewContact: contact.isNew })
-
+    return NextResponse.json({
+      ...responseData,
+      contactId: contact.id,
+      isNewContact: contact.isNew,
+    });
   } catch (error: any) {
-    console.error('Error in API route:', error)
-    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 })
+    console.error('Error in API route:', error);
+    return NextResponse.json(
+      { error: 'Internal Server Error', details: error.message },
+      { status: 500 }
+    );
   }
 }

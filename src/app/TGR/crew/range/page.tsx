@@ -1,36 +1,32 @@
-"use client";
-import { useCallback, useMemo, useEffect } from "react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-} from "@/components/ui/popover";
-import { Textarea } from "@/components/ui/textarea";
+'use client';
+import { useCallback, useMemo, useEffect } from 'react';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { supabase } from "@/utils/supabase/client";
-import RoleBasedWrapper from "@/components/RoleBasedWrapper";
-import { useRole } from "@/context/RoleContext";
-import { DataTable } from "../../rangewalk/report/data-table";
-import { columns } from "../../rangewalk/report/columns";
-import { RangeWalkData } from "../../rangewalk/report/columns";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import classNames from "classnames";
-import { BarChartIcon } from "@radix-ui/react-icons";
-import styles from "./table.module.css";
-import RangewalkForm from "@/components/RangewalkForm";
-import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import DOMPurify from "dompurify";
-import { format, parseISO } from "date-fns";
-import { toast } from "sonner";
-import { useSidebar } from "@/components/ui/sidebar";
+} from '@/components/ui/select';
+import { supabase } from '@/utils/supabase/client';
+import RoleBasedWrapper from '@/components/RoleBasedWrapper';
+import { useRole } from '@/context/RoleContext';
+import { DataTable } from '../../rangewalk/report/data-table';
+import { columns } from '../../rangewalk/report/columns';
+import { RangeWalkData } from '../../rangewalk/report/columns';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import classNames from 'classnames';
+import { BarChartIcon } from '@radix-ui/react-icons';
+import styles from './table.module.css';
+import RangewalkForm from '@/components/RangewalkForm';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
+import DOMPurify from 'dompurify';
+import { format, parseISO } from 'date-fns';
+import { toast } from 'sonner';
+import { useSidebar } from '@/components/ui/sidebar';
 
 export default function RangeWalkPage() {
   const { state } = useSidebar();
@@ -38,51 +34,47 @@ export default function RangeWalkPage() {
   const queryClient = useQueryClient();
 
   const { data: rangeWalkPopoverState } = useQuery({
-    queryKey: ["rangeWalkPopoverState"],
+    queryKey: ['rangeWalkPopoverState'],
     queryFn: () => false,
     staleTime: Infinity,
   });
 
   const { data: repairNotesPopoverState } = useQuery({
-    queryKey: ["repairNotesPopoverState"],
+    queryKey: ['repairNotesPopoverState'],
     queryFn: () => false,
     staleTime: Infinity,
   });
 
   const { data: repairNotes } = useQuery({
-    queryKey: ["repairNotes"],
-    queryFn: () => "",
+    queryKey: ['repairNotes'],
+    queryFn: () => '',
     staleTime: Infinity,
   });
 
   const { data: selectedRangeWalkId } = useQuery({
-    queryKey: ["selectedRangeWalkId"],
+    queryKey: ['selectedRangeWalkId'],
     queryFn: () => null as number | null,
     staleTime: Infinity,
   });
 
-  const { data: selectedRangeWalk, isLoading: selectedRangeWalkLoading } =
-    useQuery({
-      queryKey: ["selectedRangeWalk", selectedRangeWalkId],
-      queryFn: async () => {
-        if (!selectedRangeWalkId) return null;
-        const { data, error } = await supabase
-          .from("range_walk_reports")
-          .select("*")
-          .eq("id", selectedRangeWalkId)
-          .single();
-        if (error) throw error;
-        return data;
-      },
-      enabled: !!selectedRangeWalkId,
-    });
+  const { data: selectedRangeWalk, isLoading: selectedRangeWalkLoading } = useQuery({
+    queryKey: ['selectedRangeWalk', selectedRangeWalkId],
+    queryFn: async () => {
+      if (!selectedRangeWalkId) return null;
+      const { data, error } = await supabase
+        .from('range_walk_reports')
+        .select('*')
+        .eq('id', selectedRangeWalkId)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!selectedRangeWalkId,
+  });
 
   useEffect(() => {
     if (selectedRangeWalk) {
-      queryClient.setQueryData(
-        ["repairNotes"],
-        selectedRangeWalk.repair_notes || ""
-      );
+      queryClient.setQueryData(['repairNotes'], selectedRangeWalk.repair_notes || '');
     }
   }, [selectedRangeWalk, queryClient]);
 
@@ -94,19 +86,19 @@ export default function RangeWalkPage() {
     }
 
     const user = userData.user;
-    const userUuid = user?.id || "";
+    const userUuid = user?.id || '';
 
     const { data: roleData, error: roleError } = await supabase
-      .from("employees")
-      .select("role")
-      .eq("user_uuid", user?.id)
+      .from('employees')
+      .select('role')
+      .eq('user_uuid', user?.id)
       .single();
 
     if (roleError || !roleData) {
       const { data: customerData, error: customerError } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("email", user?.email)
+        .from('profiles')
+        .select('role')
+        .eq('email', user?.email)
         .single();
 
       if (customerError || !customerData) {
@@ -124,15 +116,15 @@ export default function RangeWalkPage() {
   }, []);
 
   const { data: userData, isLoading: userLoading } = useQuery({
-    queryKey: ["user"],
+    queryKey: ['user'],
     queryFn: fetchUserRoleAndUuid,
   });
 
   const fetchRangeWalkData = async () => {
     const { data, error } = await supabase
-      .from("range_walk_reports")
-      .select("*")
-      .order("date_of_walk", { ascending: false });
+      .from('range_walk_reports')
+      .select('*')
+      .order('date_of_walk', { ascending: false });
 
     if (error) {
       //console.error("Error fetching range walk data:", error.message);
@@ -142,7 +134,7 @@ export default function RangeWalkPage() {
   };
 
   const { data: rangeWalkData, isLoading: dataLoading } = useQuery({
-    queryKey: ["rangeWalkData"],
+    queryKey: ['rangeWalkData'],
     queryFn: fetchRangeWalkData,
   });
 
@@ -157,7 +149,7 @@ export default function RangeWalkPage() {
   const formatDate = (dateString: string) => {
     try {
       const date = parseISO(dateString);
-      return format(date, "MM/dd/yyyy");
+      return format(date, 'MM/dd/yyyy');
     } catch (error) {
       //console.error("Error parsing date:", dateString, error);
       return dateString; // Return original string if parsing fails
@@ -165,24 +157,18 @@ export default function RangeWalkPage() {
   };
 
   const updateStatusMutation = useMutation({
-    mutationFn: async ({
-      id,
-      status,
-    }: {
-      id: number;
-      status: string | null;
-    }) => {
+    mutationFn: async ({ id, status }: { id: number; status: string | null }) => {
       const { data, error } = await supabase
-        .from("range_walk_reports")
-        .update({ status: DOMPurify.sanitize(status || "") })
-        .eq("id", id)
+        .from('range_walk_reports')
+        .update({ status: DOMPurify.sanitize(status || '') })
+        .eq('id', id)
         .select();
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["rangeWalkData"] });
-      queryClient.setQueryData(["popoverState"], false);
+      queryClient.invalidateQueries({ queryKey: ['rangeWalkData'] });
+      queryClient.setQueryData(['popoverState'], false);
     },
   });
 
@@ -197,19 +183,19 @@ export default function RangeWalkPage() {
       userName: string;
     }) => {
       const { data, error } = await supabase
-        .from("range_walk_reports")
+        .from('range_walk_reports')
         .update({
           repair_notes: DOMPurify.sanitize(notes),
           repair_notes_user: DOMPurify.sanitize(userName),
         })
-        .eq("id", id)
+        .eq('id', id)
         .select();
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["rangeWalkData"] });
-      queryClient.setQueryData(["popoverState"], false);
+      queryClient.invalidateQueries({ queryKey: ['rangeWalkData'] });
+      queryClient.setQueryData(['popoverState'], false);
     },
   });
 
@@ -224,23 +210,23 @@ export default function RangeWalkPage() {
       rangeWalkId: number;
     }) => {
       const { data, error } = await supabase
-        .from("range_walk_reports")
+        .from('range_walk_reports')
         .update({
           repair_notes: DOMPurify.sanitize(notes),
           repair_notes_user: DOMPurify.sanitize(userName),
         })
-        .eq("id", rangeWalkId)
+        .eq('id', rangeWalkId)
         .select();
 
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["rangeWalkData"] });
-      queryClient.setQueryData(["repairNotesPopoverState"], false);
-      queryClient.setQueryData(["repairNotes"], "");
-      queryClient.setQueryData(["selectedRangeWalkId"], null);
-      toast.success("Repair Repair Notes Submitted!");
+      queryClient.invalidateQueries({ queryKey: ['rangeWalkData'] });
+      queryClient.setQueryData(['repairNotesPopoverState'], false);
+      queryClient.setQueryData(['repairNotes'], '');
+      queryClient.setQueryData(['selectedRangeWalkId'], null);
+      toast.success('Repair Repair Notes Submitted!');
     },
   });
 
@@ -253,15 +239,15 @@ export default function RangeWalkPage() {
   };
 
   useQuery({
-    queryKey: ["rangeWalkSubscription"],
+    queryKey: ['rangeWalkSubscription'],
     queryFn: () => {
       const subscription = supabase
-        .channel("custom-all-range-walk-reports-channel")
+        .channel('custom-all-range-walk-reports-channel')
         .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "range_walk_reports" },
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'range_walk_reports' },
           () => {
-            queryClient.invalidateQueries({ queryKey: ["rangeWalkData"] });
+            queryClient.invalidateQueries({ queryKey: ['rangeWalkData'] });
           }
         )
         .subscribe();
@@ -277,7 +263,7 @@ export default function RangeWalkPage() {
 
   const handleSubmitRepairNotes = async () => {
     if (!selectedRangeWalkId) {
-      console.error("No range walk selected");
+      console.error('No range walk selected');
       return;
     }
 
@@ -285,55 +271,53 @@ export default function RangeWalkPage() {
     const user = userData.user;
 
     const { data: userDetails, error: userError } = await supabase
-      .from("employees")
-      .select("name")
-      .eq("user_uuid", user?.id)
+      .from('employees')
+      .select('name')
+      .eq('user_uuid', user?.id)
       .single();
 
     if (userError) {
-      console.error("Error fetching user name:", userError.message);
+      console.error('Error fetching user name:', userError.message);
       return;
     }
 
-    const userName = userDetails?.name || user?.email || "Unknown";
+    const userName = userDetails?.name || user?.email || 'Unknown';
 
     submitRepairNotesMutation.mutate({
-      notes: repairNotes || "",
+      notes: repairNotes || '',
       userName,
       rangeWalkId: selectedRangeWalkId,
     });
   };
 
   const handleRangeWalkSubmitSuccess = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ["rangeWalkData"] });
-    queryClient.setQueryData(["rangeWalkPopoverState"], false);
+    queryClient.invalidateQueries({ queryKey: ['rangeWalkData'] });
+    queryClient.setQueryData(['rangeWalkPopoverState'], false);
   }, [queryClient]);
 
   const handleRangeWalkPopoverOpenChange = (open: boolean) => {
-    queryClient.setQueryData(["rangeWalkPopoverState"], open);
+    queryClient.setQueryData(['rangeWalkPopoverState'], open);
   };
 
   const handleRepairNotesPopoverOpenChange = (open: boolean) => {
-    queryClient.setQueryData(["repairNotesPopoverState"], open);
+    queryClient.setQueryData(['repairNotesPopoverState'], open);
     if (!open) {
-      queryClient.setQueryData(["selectedRangeWalkId"], null);
+      queryClient.setQueryData(['selectedRangeWalkId'], null);
     }
   };
 
   const handleRepairNotesChange = (notes: string) => {
-    queryClient.setQueryData(["repairNotes"], notes);
+    queryClient.setQueryData(['repairNotes'], notes);
   };
 
   const handleSelectedRangeWalkChange = (id: string) => {
     const numId = Number(id);
-    queryClient.setQueryData(["selectedRangeWalkId"], numId);
-    queryClient.setQueryData(["repairNotes"], ""); // Clear existing notes
+    queryClient.setQueryData(['selectedRangeWalkId'], numId);
+    queryClient.setQueryData(['repairNotes'], ''); // Clear existing notes
   };
 
   return (
-    <RoleBasedWrapper
-      allowedRoles={["user", "auditor", "admin", "super admin", "dev"]}
-    >
+    <RoleBasedWrapper allowedRoles={['user', 'auditor', 'admin', 'super admin', 'dev']}>
       <div
         className={`flex flex-col items-center space-y-4 w-full ml-6 md:ml-6 lg:ml-6 md:w-[calc(100vw-15rem)] lg:w-[calc(100vw-20rem)] transition-all duration-300`}
       >
@@ -351,10 +335,7 @@ export default function RangeWalkPage() {
                   onOpenChange={handleRangeWalkPopoverOpenChange}
                 >
                   <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full text-left font-normal"
-                    >
+                    <Button variant="outline" className="w-full text-left font-normal">
                       Submit Range Walk
                     </Button>
                   </PopoverTrigger>
@@ -371,9 +352,7 @@ export default function RangeWalkPage() {
             {/* Repair Notes Card */}
             <Card>
               <CardHeader className="flex flex-row items-center space-y-0 pb-2">
-                <CardTitle className="text-2xl font-bold">
-                  Repair Notes
-                </CardTitle>
+                <CardTitle className="text-2xl font-bold">Repair Notes</CardTitle>
               </CardHeader>
               <CardContent>
                 <Popover
@@ -381,10 +360,7 @@ export default function RangeWalkPage() {
                   onOpenChange={handleRepairNotesPopoverOpenChange}
                 >
                   <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full text-left font-normal"
-                    >
+                    <Button variant="outline" className="w-full text-left font-normal">
                       Enter Repair Notes
                     </Button>
                   </PopoverTrigger>
@@ -396,40 +372,30 @@ export default function RangeWalkPage() {
                         </SelectTrigger>
                         <SelectContent className="max-w-xl mb-2">
                           {rangeWalkData?.map((walk) => (
-                            <SelectItem
-                              key={walk.id}
-                              value={walk.id.toString()}
-                            >
-                              {formatDate(walk.date_of_walk)} -{" "}
-                              {walk.lanes_with_problems || "No problems"} <br />
-                              {walk.description || "No problems"}
+                            <SelectItem key={walk.id} value={walk.id.toString()}>
+                              {formatDate(walk.date_of_walk)} -{' '}
+                              {walk.lanes_with_problems || 'No problems'} <br />
+                              {walk.description || 'No problems'}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                       {selectedRangeWalkId && (
                         <div className="text-sm">
-                          <strong>Details:</strong>{" "}
-                          {selectedRangeWalk?.description ||
-                            "No description provided"}
+                          <strong>Details:</strong>{' '}
+                          {selectedRangeWalk?.description || 'No description provided'}
                         </div>
                       )}
                       <Textarea
                         placeholder="Enter repair notes..."
-                        value={repairNotes || ""}
-                        onChange={(e) =>
-                          handleRepairNotesChange(e.target.value)
-                        }
+                        value={repairNotes || ''}
+                        onChange={(e) => handleRepairNotesChange(e.target.value)}
                       />
-                      {selectedRangeWalkLoading && (
-                        <p>Loading existing notes...</p>
-                      )}
+                      {selectedRangeWalkLoading && <p>Loading existing notes...</p>}
                       <div className="flex justify-end space-x-2">
                         <Button
                           variant="ghost"
-                          onClick={() =>
-                            handleRepairNotesPopoverOpenChange(false)
-                          }
+                          onClick={() => handleRepairNotesPopoverOpenChange(false)}
                         >
                           Cancel
                         </Button>
@@ -462,7 +428,7 @@ export default function RangeWalkPage() {
               <ScrollArea
                 className={classNames(
                   styles.noScroll,
-                  "w-full md:w-[calc(100vw-15rem)] lg:w-[calc(100vw-20rem)] overflow-hidden relative"
+                  'w-full md:w-[calc(100vw-15rem)] lg:w-[calc(100vw-20rem)] overflow-hidden relative'
                 )}
               >
                 <CardContent className="flex flex-col overflow-hidden">

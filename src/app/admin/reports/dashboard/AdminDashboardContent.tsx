@@ -1,20 +1,16 @@
-"use client";
+'use client';
 
-import SalesRangeStackedBarChart from "@/app/admin/reports/charts/SalesRangeStackedBarChart";
-import LoadingIndicator from "@/components/LoadingIndicator";
-import RoleBasedWrapper from "@/components/RoleBasedWrapper";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Calendar, CustomCalendar } from "@/components/ui/calendar";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Progress } from "@/components/ui/progress";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import SalesRangeStackedBarChart from '@/app/admin/reports/charts/SalesRangeStackedBarChart';
+import LoadingIndicator from '@/components/LoadingIndicator';
+import RoleBasedWrapper from '@/components/RoleBasedWrapper';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Calendar, CustomCalendar } from '@/components/ui/calendar';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Progress } from '@/components/ui/progress';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import {
   Table,
   TableBody,
@@ -23,11 +19,11 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
-import { useRole } from "@/context/RoleContext";
-import { supabase } from "@/utils/supabase/client";
+} from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { useRole } from '@/context/RoleContext';
+import { supabase } from '@/utils/supabase/client';
 import {
   BarChartIcon,
   BellIcon,
@@ -39,15 +35,15 @@ import {
   MagnifyingGlassIcon,
   PersonIcon,
   TableIcon,
-} from "@radix-ui/react-icons";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+} from '@radix-ui/react-icons';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   createColumnHelper,
   flexRender,
   getCoreRowModel,
   useReactTable,
-} from "@tanstack/react-table";
-import classNames from "classnames";
+} from '@tanstack/react-table';
+import classNames from 'classnames';
 import {
   endOfDay,
   format,
@@ -58,18 +54,18 @@ import {
   startOfMonth,
   subMonths,
   addDays,
-} from "date-fns";
-import { formatInTimeZone, format as formatTZ, toZonedTime } from "date-fns-tz";
-import DOMPurify from "isomorphic-dompurify";
-import dynamic from "next/dynamic";
-import { usePathname, useSearchParams } from "next/navigation";
-import React, { Suspense, useState } from "react";
-import { toast } from "sonner";
-import * as XLSX from "xlsx";
-import TodoWrapper from "../../todo/todo-wrapper";
-import styles from "./table.module.css";
-import AnnualRevenueBarChart from "@/app/admin/reports/charts/AnnualRevenueBarChart";
-import StackedBarChartRange from "../charts/StackedBarChartRange";
+} from 'date-fns';
+import { formatInTimeZone, format as formatTZ, toZonedTime } from 'date-fns-tz';
+import DOMPurify from 'isomorphic-dompurify';
+import dynamic from 'next/dynamic';
+import { usePathname, useSearchParams } from 'next/navigation';
+import React, { Suspense, useState } from 'react';
+import { toast } from 'sonner';
+import * as XLSX from 'xlsx';
+import TodoWrapper from '../../todo/todo-wrapper';
+import styles from './table.module.css';
+import AnnualRevenueBarChart from '@/app/admin/reports/charts/AnnualRevenueBarChart';
+import StackedBarChartRange from '../charts/StackedBarChartRange';
 import {
   fetchDomains,
   fetchSuggestions,
@@ -86,26 +82,22 @@ import {
   fetchLatestSalesData,
   sendEmailMutation,
   fetchKPIData,
-} from "./api";
-import { sendEmail } from "./actions";
-import SalesDataTableAllEmployees from "@/app/admin/reports/sales/sales-data-table-all-employees";
-import { SalesAtGlanceTable } from "../sales/sales-at-glance-table";
-import {
-  CommandEmpty,
-  CommandInput,
-  CommandItem,
-} from "@/components/ui/command";
-import { Command } from "@/components/ui/command";
-import { CommandGroup } from "@/components/ui/command";
-import { CommandList } from "@/components/ui/command";
-import { DateRange } from "react-day-picker";
-import { TimeTrackingDataTable } from "./TimeTrackingDataTable";
-import { cn } from "@/lib/utils";
-import { Calendar as CalendarIcon, ChevronUp, ChevronDown } from "lucide-react";
-import DashboardKPI from "./dashboard-kpi";
-import PatchNotesPage from "@/app/patch-notes/page";
-import { PatchNotesSection } from "@/app/patch-notes/patch-notes-section";
-import { useSidebar } from "@/components/ui/sidebar";
+} from './api';
+import { sendEmail } from './actions';
+import SalesDataTableAllEmployees from '@/app/admin/reports/sales/sales-data-table-all-employees';
+import { SalesAtGlanceTable } from '../sales/sales-at-glance-table';
+import { CommandEmpty, CommandInput, CommandItem } from '@/components/ui/command';
+import { Command } from '@/components/ui/command';
+import { CommandGroup } from '@/components/ui/command';
+import { CommandList } from '@/components/ui/command';
+import { DateRange } from 'react-day-picker';
+import { TimeTrackingDataTable } from './TimeTrackingDataTable';
+import { cn } from '@/lib/utils';
+import { Calendar as CalendarIcon, ChevronUp, ChevronDown } from 'lucide-react';
+import DashboardKPI from './dashboard-kpi';
+import PatchNotesPage from '@/app/patch-notes/page';
+import { PatchNotesSection } from '@/app/patch-notes/patch-notes-section';
+import { useSidebar } from '@/components/ui/sidebar';
 
 interface Certificate {
   id: number;
@@ -169,7 +161,7 @@ interface ReportCardProps {
   date: string | Date | null;
   icon: React.ReactNode;
   extraInfo?: string;
-  type?: "deposit" | "certificate" | "maintenance" | "dailyChecklist";
+  type?: 'deposit' | 'certificate' | 'maintenance' | 'dailyChecklist';
   details?: Certificate[] | DepositDetail[];
 }
 
@@ -187,7 +179,7 @@ declare global {
 
 const LazySalesDataTable = dynamic(
   () =>
-    import("@/app/admin/reports/sales/sales-data-table").then((module) => ({
+    import('@/app/admin/reports/sales/sales-data-table').then((module) => ({
       default: module.default,
     })),
   {
@@ -201,21 +193,19 @@ const LazySalesDataTable = dynamic(
 const columnHelper = createColumnHelper<MetricData>();
 
 const columns = [
-  columnHelper.accessor("metric", {
-    header: "Metric",
+  columnHelper.accessor('metric', {
+    header: 'Metric',
     cell: (info) => info.getValue(),
   }),
-  columnHelper.accessor("value", {
-    header: "Value",
+  columnHelper.accessor('value', {
+    header: 'Value',
     cell: (info) => info.getValue(),
   }),
 ];
 
 function AdminDashboardContent() {
   const { state } = useSidebar();
-  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>(
-    {}
-  );
+  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
 
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
@@ -223,7 +213,7 @@ function AdminDashboardContent() {
   const { role } = useRole();
 
   const { isLoading } = useQuery({
-    queryKey: ["navigation", pathname, searchParams],
+    queryKey: ['navigation', pathname, searchParams],
     queryFn: () => Promise.resolve(null),
     staleTime: 0,
     refetchInterval: 0,
@@ -243,21 +233,19 @@ function AdminDashboardContent() {
   };
 
   // Initialize dateRange with current month
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(
-    getDefaultDateRange()
-  );
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(getDefaultDateRange());
 
   const { data: metricsData, isLoading: isMetricsLoading } = useQuery<{
     metrics2024: SalesMetrics;
     metrics2025: SalesMetrics;
   }>({
-    queryKey: ["metrics"],
+    queryKey: ['metrics'],
     queryFn: async () => {
       // console.log("Fetching metrics...");
-      const response = await fetch("/api/metrics");
+      const response = await fetch('/api/metrics');
       if (!response.ok) {
-        console.error("Failed to fetch metrics:", response.statusText);
-        throw new Error("Failed to fetch metrics");
+        console.error('Failed to fetch metrics:', response.statusText);
+        throw new Error('Failed to fetch metrics');
       }
       const data = await response.json();
       // console.log("Metrics data:", data);
@@ -269,29 +257,29 @@ function AdminDashboardContent() {
   const createMetricsTableData = (metrics: SalesMetrics | undefined) => {
     if (!metrics) return [];
 
-    const formatter = new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
+    const formatter = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
     });
 
     return [
       {
-        metric: "Average Monthly Gross Revenue",
+        metric: 'Average Monthly Gross Revenue',
         value: formatter.format(metrics.averageMonthlyGrossRevenue),
       },
       {
-        metric: "Average Monthly Net Revenue",
+        metric: 'Average Monthly Net Revenue',
         value: formatter.format(metrics.averageMonthlyNetRevenue),
       },
       {
-        metric: "Top Performing Category",
-        value: metrics.topPerformingCategories[0]?.category || "N/A",
+        metric: 'Top Performing Category',
+        value: metrics.topPerformingCategories[0]?.category || 'N/A',
       },
       {
-        metric: "Peak Business Hour",
+        metric: 'Peak Business Hour',
         value: metrics.peakHours[0]
           ? `${metrics.peakHours[0].formattedHour} (${metrics.peakHours[0].transactions} transactions)`
-          : "N/A",
+          : 'N/A',
       },
     ];
   };
@@ -343,10 +331,7 @@ function AdminDashboardContent() {
                       <TableRow key={row.id}>
                         {row.getVisibleCells().map((cell) => (
                           <TableCell key={cell.id}>
-                            {flexRender(
-                              cell.column.columnDef.cell,
-                              cell.getContext()
-                            )}
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
                           </TableCell>
                         ))}
                       </TableRow>
@@ -354,9 +339,7 @@ function AdminDashboardContent() {
                   </TableBody>
                 </Table>
                 {metricsData?.metrics2024 && (
-                  <CustomerFrequencyCard2024
-                    metrics={metricsData.metrics2024}
-                  />
+                  <CustomerFrequencyCard2024 metrics={metricsData.metrics2024} />
                 )}
               </CardContent>
             </Card>
@@ -379,10 +362,7 @@ function AdminDashboardContent() {
                       <TableRow key={row.id}>
                         {row.getVisibleCells().map((cell) => (
                           <TableCell key={cell.id}>
-                            {flexRender(
-                              cell.column.columnDef.cell,
-                              cell.getContext()
-                            )}
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
                           </TableCell>
                         ))}
                       </TableRow>
@@ -390,9 +370,7 @@ function AdminDashboardContent() {
                   </TableBody>
                 </Table>
                 {metricsData?.metrics2025 && (
-                  <CustomerFrequencyCard2025
-                    metrics={metricsData.metrics2025}
-                  />
+                  <CustomerFrequencyCard2025 metrics={metricsData.metrics2025} />
                 )}
               </CardContent>
             </Card>
@@ -409,15 +387,11 @@ function AdminDashboardContent() {
     }));
   };
 
-  const ExpandableCard: React.FC<ExpandableCardProps> = ({
-    id,
-    title,
-    children,
-  }) => {
+  const ExpandableCard: React.FC<ExpandableCardProps> = ({ id, title, children }) => {
     const isExpanded = expandedCards[id];
 
     return (
-      <Card className={`relative ${isExpanded ? "h-auto" : "h-[200px]"}`}>
+      <Card className={`relative ${isExpanded ? 'h-auto' : 'h-[200px]'}`}>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>{title}</CardTitle>
           <Button
@@ -426,16 +400,12 @@ function AdminDashboardContent() {
             onClick={() => toggleCardExpansion(id)}
             className="h-8 w-8 p-0"
           >
-            {isExpanded ? (
-              <ChevronUp className="h-4 w-4" />
-            ) : (
-              <ChevronDown className="h-4 w-4" />
-            )}
+            {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </Button>
         </CardHeader>
         <CardContent
           className={`
-            ${isExpanded ? "" : "h-[100px] overflow-y-auto pr-4"}
+            ${isExpanded ? '' : 'h-[100px] overflow-y-auto pr-4'}
             space-y-2
           `}
         >
@@ -446,74 +416,73 @@ function AdminDashboardContent() {
   };
 
   // Modify the suggestions section in AdminDashboardContent:
-  const { data: replyStates = {} as ReplyStates, refetch: refetchReplyStates } =
-    useQuery({
-      queryKey: ["replyStates"],
-      queryFn: () => ({}) as ReplyStates,
-      staleTime: Infinity,
-    });
+  const { data: replyStates = {} as ReplyStates, refetch: refetchReplyStates } = useQuery({
+    queryKey: ['replyStates'],
+    queryFn: () => ({}) as ReplyStates,
+    staleTime: Infinity,
+  });
 
   const { data: domains } = useQuery({
-    queryKey: ["domains"],
+    queryKey: ['domains'],
     queryFn: fetchDomains,
   });
 
-  const { data: newDomain = "", refetch: refetchNewDomain } = useQuery({
-    queryKey: ["newDomain"],
-    queryFn: () => "",
+  const { data: newDomain = '', refetch: refetchNewDomain } = useQuery({
+    queryKey: ['newDomain'],
+    queryFn: () => '',
     staleTime: Infinity,
   });
 
   const { data: editingDomain, refetch: refetchEditingDomain } = useQuery({
-    queryKey: ["editingDomain"],
+    queryKey: ['editingDomain'],
     queryFn: () => null as Domain | null,
     staleTime: Infinity,
   });
 
   const { data: suggestions } = useQuery({
-    queryKey: ["suggestions"],
+    queryKey: ['suggestions'],
     queryFn: fetchSuggestions,
   });
 
   const { data: certificates } = useQuery({
-    queryKey: ["certificates"],
+    queryKey: ['certificates'],
     queryFn: fetchCertificates,
     refetchInterval: 15 * 60 * 1000,
   });
 
   const { data: rangeWalk } = useQuery({
-    queryKey: ["rangeWalk"],
+    queryKey: ['rangeWalk'],
     queryFn: fetchLatestRangeWalkReport,
     refetchInterval: 5 * 60 * 1000,
   });
 
   const { data: checklist } = useQuery({
-    queryKey: ["checklist"],
+    queryKey: ['checklist'],
     queryFn: fetchLatestChecklistSubmission,
     refetchInterval: 5 * 60 * 1000,
   });
 
   const { data: gunsmiths } = useQuery({
-    queryKey: ["gunsmiths"],
+    queryKey: ['gunsmiths'],
     queryFn: fetchLatestGunsmithMaintenance,
     refetchInterval: 5 * 60 * 1000,
   });
 
   const { data: dailyDeposit } = useQuery({
-    queryKey: ["dailyDeposit"],
+    queryKey: ['dailyDeposit'],
     queryFn: fetchLatestDailyDeposit,
     refetchInterval: 5 * 60 * 1000,
   });
 
   const { data: dailyChecklistStatus } = useQuery({
-    queryKey: ["dailyChecklistStatus"],
+    queryKey: ['dailyChecklistStatus'],
     queryFn: fetchDailyChecklistStatus,
     refetchInterval: 5 * 60 * 1000,
   });
 
   const { data: replyText, refetch: refetchReplyText } = useQuery({
-    queryKey: ["replyText"],
-    queryFn: () => "",
+    queryKey: ['replyText'],
+    queryFn: () => '',
     staleTime: Infinity,
   });
 
@@ -524,13 +493,13 @@ function AdminDashboardContent() {
       return Promise.resolve({ start, end });
     },
     onSuccess: (newRange) => {
-      queryClient.setQueryData(["selectedRange"], {
+      queryClient.setQueryData(['selectedRange'], {
         start: newRange.start,
         end: newRange.end,
       });
       // Invalidate queries that depend on the date range
       queryClient.invalidateQueries({
-        queryKey: ["detailed-sales-range-data"],
+        queryKey: ['detailed-sales-range-data'],
       });
     },
   });
@@ -540,12 +509,12 @@ function AdminDashboardContent() {
       return Promise.resolve(newReplyText);
     },
     onSuccess: (newReplyText) => {
-      queryClient.setQueryData(["replyText"], newReplyText);
+      queryClient.setQueryData(['replyText'], newReplyText);
     },
   });
 
   const { data: selectedRange } = useQuery({
-    queryKey: ["selectedRange"],
+    queryKey: ['selectedRange'],
     queryFn: () => {
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
@@ -567,21 +536,15 @@ function AdminDashboardContent() {
   // Convert salesData to a query
   // Update the sales data query with proper configuration
   const { data: salesData } = useQuery({
-    queryKey: [
-      "salesData",
-      dateRange?.from?.toISOString(),
-      dateRange?.to?.toISOString(),
-    ],
+    queryKey: ['salesData', dateRange?.from?.toISOString(), dateRange?.to?.toISOString()],
     queryFn: () =>
-      dateRange?.from && dateRange?.to
-        ? fetchLatestSalesData(dateRange.from, dateRange.to)
-        : null,
+      dateRange?.from && dateRange?.to ? fetchLatestSalesData(dateRange.from, dateRange.to) : null,
     enabled: !!dateRange?.from && !!dateRange?.to,
   });
 
   // Keep your existing fileData query
   const { data: fileData } = useQuery({
-    queryKey: ["fileData"],
+    queryKey: ['fileData'],
     queryFn: () => ({ file: null, fileName: null, fileInputKey: 0 }),
     staleTime: Infinity,
   });
@@ -596,7 +559,7 @@ function AdminDashboardContent() {
       return Promise.resolve(newFileData);
     },
     onSuccess: (newFileData) => {
-      queryClient.setQueryData(["fileData"], newFileData);
+      queryClient.setQueryData(['fileData'], newFileData);
     },
   });
 
@@ -613,8 +576,8 @@ function AdminDashboardContent() {
       });
 
       // Format dates for API
-      const apiStart = format(start, "yyyy-MM-dd");
-      const apiEnd = format(start, "yyyy-MM-dd"); // Use same date for end
+      const apiStart = format(start, 'yyyy-MM-dd');
+      const apiEnd = format(start, 'yyyy-MM-dd'); // Use same date for end
 
       updateRangeMutation.mutate({
         start: new Date(`${apiStart}T00:00:00.000Z`),
@@ -636,13 +599,13 @@ function AdminDashboardContent() {
   const uploadFileMutation = useMutation({
     mutationFn: async (file: File) => {
       const upload = (progress: number) => {
-        queryClient.setQueryData(["uploadProgress"], progress);
+        queryClient.setQueryData(['uploadProgress'], progress);
       };
       return handleFileUpload(file, upload);
     },
     onSuccess: () => {
-      queryClient.setQueryData(["uploadProgress"], 100);
-      toast.success("File uploaded and processed successfully");
+      queryClient.setQueryData(['uploadProgress'], 100);
+      toast.success('File uploaded and processed successfully');
       updateFileDataMutation.mutate({
         file: null,
         fileName: null,
@@ -662,20 +625,20 @@ function AdminDashboardContent() {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      if (!user) throw new Error("User not found");
+      if (!user) throw new Error('User not found');
 
-      const fullName = user.user_metadata?.name || "";
-      const firstName = fullName.split(" ")[0];
-      const replierName = firstName || "Admin";
+      const fullName = user.user_metadata?.name || '';
+      const firstName = fullName.split(' ')[0];
+      const replierName = firstName || 'Admin';
 
       // First update the suggestion in the database
       await replySuggestion({ suggestion, replyText, replierName });
 
       // Then send the email notification using your existing sendEmailMutation
       await sendEmailMutation({
-        email: suggestion.email || "",
-        subject: "Reply to Your Suggestion",
-        templateName: "SuggestionReply",
+        email: suggestion.email || '',
+        subject: 'Reply to Your Suggestion',
+        templateName: 'SuggestionReply',
         templateData: {
           employeeName: suggestion.created_by,
           originalSuggestion: suggestion.suggestion,
@@ -687,52 +650,47 @@ function AdminDashboardContent() {
       return { suggestion, replyText };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["suggestions"] });
-      toast.success("Reply sent successfully!");
+      queryClient.invalidateQueries({ queryKey: ['suggestions'] });
+      toast.success('Reply sent successfully!');
     },
     onError: (error: Error) => {
-      console.error("Reply error:", error);
+      console.error('Reply error:', error);
       toast.error(`Failed to send reply: ${error.message}`);
     },
   });
 
   const { data: uploadProgress = 0 } = useQuery({
-    queryKey: ["uploadProgress"],
-    queryFn: () => queryClient.getQueryData(["uploadProgress"]) ?? 0,
+    queryKey: ['uploadProgress'],
+    queryFn: () => queryClient.getQueryData(['uploadProgress']) ?? 0,
     enabled: uploadFileMutation.isPending,
   });
 
   const metricsData2024 = React.useMemo(() => {
     if (!metricsData?.metrics2024) return [];
 
-    const formatter = new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
+    const formatter = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
     });
 
     return [
       {
-        metric: "Average Monthly Gross Revenue",
-        value: formatter.format(
-          metricsData.metrics2024.averageMonthlyGrossRevenue
-        ),
+        metric: 'Average Monthly Gross Revenue',
+        value: formatter.format(metricsData.metrics2024.averageMonthlyGrossRevenue),
       },
       {
-        metric: "Average Monthly Net Revenue",
-        value: formatter.format(
-          metricsData.metrics2024.averageMonthlyNetRevenue
-        ),
+        metric: 'Average Monthly Net Revenue',
+        value: formatter.format(metricsData.metrics2024.averageMonthlyNetRevenue),
       },
       {
-        metric: "Top Performing Category",
-        value:
-          metricsData.metrics2024.topPerformingCategories[0]?.category || "N/A",
+        metric: 'Top Performing Category',
+        value: metricsData.metrics2024.topPerformingCategories[0]?.category || 'N/A',
       },
       {
-        metric: "Peak Business Hour",
+        metric: 'Peak Business Hour',
         value: metricsData.metrics2024.peakHours[0]
           ? `${metricsData.metrics2024.peakHours[0].formattedHour} (${metricsData.metrics2024.peakHours[0].transactions} transactions)`
-          : "N/A",
+          : 'N/A',
       },
     ];
   }, [metricsData?.metrics2024]);
@@ -740,34 +698,29 @@ function AdminDashboardContent() {
   const metricsData2025 = React.useMemo(() => {
     if (!metricsData?.metrics2025) return [];
 
-    const formatter = new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
+    const formatter = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
     });
 
     return [
       {
-        metric: "Average Monthly Gross Revenue",
-        value: formatter.format(
-          metricsData.metrics2025.averageMonthlyGrossRevenue
-        ),
+        metric: 'Average Monthly Gross Revenue',
+        value: formatter.format(metricsData.metrics2025.averageMonthlyGrossRevenue),
       },
       {
-        metric: "Average Monthly Net Revenue",
-        value: formatter.format(
-          metricsData.metrics2025.averageMonthlyNetRevenue
-        ),
+        metric: 'Average Monthly Net Revenue',
+        value: formatter.format(metricsData.metrics2025.averageMonthlyNetRevenue),
       },
       {
-        metric: "Top Performing Category",
-        value:
-          metricsData.metrics2025.topPerformingCategories[0]?.category || "N/A",
+        metric: 'Top Performing Category',
+        value: metricsData.metrics2025.topPerformingCategories[0]?.category || 'N/A',
       },
       {
-        metric: "Peak Business Hour",
+        metric: 'Peak Business Hour',
         value: metricsData.metrics2025.peakHours[0]
           ? `${metricsData.metrics2025.peakHours[0].formattedHour} (${metricsData.metrics2025.peakHours[0].transactions} transactions)`
-          : "N/A",
+          : 'N/A',
       },
     ];
   }, [metricsData?.metrics2025]);
@@ -793,16 +746,13 @@ function AdminDashboardContent() {
   }): Promise<void> {
     if (!suggestion.id) {
       // console.error("Suggestion ID is undefined", suggestion);
-      toast.error("Unable to reply: Suggestion ID is missing");
-      return Promise.reject("Suggestion ID is missing");
+      toast.error('Unable to reply: Suggestion ID is missing');
+      return Promise.reject('Suggestion ID is missing');
     }
     return replyMutation.mutateAsync({ suggestion, replyText }).then(() => {});
   }
 
-  function handleFileUpload(
-    file: File,
-    onProgress: (progress: number) => void
-  ) {
+  function handleFileUpload(file: File, onProgress: (progress: number) => void) {
     return Promise.resolve(
       new Promise<void>((resolve, reject) => {
         const reader = new FileReader();
@@ -810,13 +760,13 @@ function AdminDashboardContent() {
           Promise.resolve().then(() => {
             try {
               const data = new Uint8Array(e.target?.result as ArrayBuffer);
-              const workbook = XLSX.read(data, { type: "array" });
+              const workbook = XLSX.read(data, { type: 'array' });
               const firstSheetName = workbook.SheetNames[0];
               const worksheet = workbook.Sheets[firstSheetName];
               const jsonData = XLSX.utils.sheet_to_json(worksheet, {
                 header: 1,
                 raw: true,
-                dateNF: "yyyy-mm-dd",
+                dateNF: 'yyyy-mm-dd',
               });
 
               // Inside handleFileUpload function, update the data formatting
@@ -825,7 +775,7 @@ function AdminDashboardContent() {
                 let soldDate = null;
                 if (row.SoldDate) {
                   // Check if it's an Excel date number
-                  if (typeof row.SoldDate === "number") {
+                  if (typeof row.SoldDate === 'number') {
                     // Convert Excel date number to JavaScript Date
                     soldDate = new Date((row.SoldDate - 25569) * 86400 * 1000);
                   } else {
@@ -846,9 +796,7 @@ function AdminDashboardContent() {
                   Acct: row.Acct ? Number(row.Acct) : null,
                   RetailPrice: row.RetailPrice ? Number(row.RetailPrice) : null,
                   SoldDisc: row.SoldDisc ? Number(row.SoldDisc) : null,
-                  AvailableQty: row.AvailableQty
-                    ? Number(row.AvailableQty)
-                    : null,
+                  AvailableQty: row.AvailableQty ? Number(row.AvailableQty) : null,
                 };
               });
 
@@ -860,22 +808,18 @@ function AdminDashboardContent() {
                 const batch = formattedData.slice(i, i + batchSize);
                 chainPromise = chainPromise.then(() =>
                   supabase
-                    .from("detailed_sales_data")
+                    .from('detailed_sales_data')
                     .upsert(batch, {
-                      onConflict: "SoldRef,Serial,SoldDate",
+                      onConflict: 'SoldRef,Serial,SoldDate',
                       ignoreDuplicates: false,
                     })
                     .then(({ error }) => {
                       if (error) {
-                        console.error("Error upserting data batch:", error);
+                        console.error('Error upserting data batch:', error);
                         toast.error(`Upload error: ${error.message}`);
                       } else {
                         processedCount += batch.length;
-                        onProgress(
-                          Math.round(
-                            (processedCount / formattedData.length) * 100
-                          )
-                        );
+                        onProgress(Math.round((processedCount / formattedData.length) * 100));
                       }
                     })
                 );
@@ -883,9 +827,7 @@ function AdminDashboardContent() {
 
               chainPromise
                 .then(() => {
-                  toast.success(
-                    `Successfully uploaded ${processedCount} records`
-                  );
+                  toast.success(`Successfully uploaded ${processedCount} records`);
                   resolve();
                 })
                 .catch((error) => {
@@ -910,51 +852,51 @@ function AdminDashboardContent() {
   }
 
   function convertDateFormat(date: string) {
-    if (!date) return "";
-    const [month, day, year] = date.split("/");
-    if (!month || !day || !year) return "";
-    return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+    if (!date) return '';
+    const [month, day, year] = date.split('/');
+    if (!month || !day || !year) return '';
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
   }
 
   const categoryMap = new Map<number, string>([
-    [3, "Firearm Accessories"],
-    [175, "Station Rental"],
-    [4, "Ammunition"],
-    [170, "Buyer Fees"],
-    [1, "Pistol"],
-    [10, "Shotgun"],
-    [150, "Gun Range Rental"],
-    [8, "Accessories"],
-    [6, "Knives & Tools"],
-    [131, "Service Labor"],
-    [101, "Class"],
-    [11, "Revolver"],
-    [2, "Rifle"],
-    [191, "FFL Transfer Fee"],
-    [12, "Consumables"],
-    [9, "Receiver"],
-    [135, "Shipping"],
-    [5, "Clothing"],
-    [100, "Shooting Fees"],
-    [7, "Hunting Gear"],
-    [14, "Storage"],
-    [13, "Reloading Supplies"],
-    [15, "Less Than Lethal"],
-    [16, "Personal Protection Equipment"],
-    [17, "Training Tools"],
-    [132, "Outside Service Labor"],
-    [168, "CA Tax Adjust"],
-    [192, "CA Tax Gun Transfer"],
-    [102, "Monthly Storage Fee (Per Firearm)"],
-    [103, "CA Excise Tax"],
-    [104, "CA Excise Tax Adjustment"],
+    [3, 'Firearm Accessories'],
+    [175, 'Station Rental'],
+    [4, 'Ammunition'],
+    [170, 'Buyer Fees'],
+    [1, 'Pistol'],
+    [10, 'Shotgun'],
+    [150, 'Gun Range Rental'],
+    [8, 'Accessories'],
+    [6, 'Knives & Tools'],
+    [131, 'Service Labor'],
+    [101, 'Class'],
+    [11, 'Revolver'],
+    [2, 'Rifle'],
+    [191, 'FFL Transfer Fee'],
+    [12, 'Consumables'],
+    [9, 'Receiver'],
+    [135, 'Shipping'],
+    [5, 'Clothing'],
+    [100, 'Shooting Fees'],
+    [7, 'Hunting Gear'],
+    [14, 'Storage'],
+    [13, 'Reloading Supplies'],
+    [15, 'Less Than Lethal'],
+    [16, 'Personal Protection Equipment'],
+    [17, 'Training Tools'],
+    [132, 'Outside Service Labor'],
+    [168, 'CA Tax Adjust'],
+    [192, 'CA Tax Gun Transfer'],
+    [102, 'Monthly Storage Fee (Per Firearm)'],
+    [103, 'CA Excise Tax'],
+    [104, 'CA Excise Tax Adjustment'],
   ]);
 
   const subcategoryMap = new Map<string, string>([
-    ["170-7", "Standard Ammunition Eligibility Check"],
-    ["170-1", "Dros Fee"],
-    ["170-16", "DROS Reprocessing Fee (Dealer Sale)"],
-    ["170-8", "Basic Ammunition Eligibility Check"],
+    ['170-7', 'Standard Ammunition Eligibility Check'],
+    ['170-1', 'Dros Fee'],
+    ['170-16', 'DROS Reprocessing Fee (Dealer Sale)'],
+    ['170-8', 'Basic Ammunition Eligibility Check'],
   ]);
 
   function SuggestionReplyForm({
@@ -973,13 +915,13 @@ function AdminDashboardContent() {
         return Promise.resolve({ id, text });
       },
       onSuccess: ({ id, text }) => {
-        queryClient.setQueryData(["replyText", id], text);
+        queryClient.setQueryData(['replyText', id], text);
       },
     });
 
-    const { data: replyText = "" } = useQuery({
-      queryKey: ["replyText", suggestion.id],
-      queryFn: () => "",
+    const { data: replyText = '' } = useQuery({
+      queryKey: ['replyText', suggestion.id],
+      queryFn: () => '',
       staleTime: Infinity,
     });
 
@@ -987,10 +929,10 @@ function AdminDashboardContent() {
       e.preventDefault();
       try {
         await onSubmit(replyText);
-        replyTextMutation.mutate({ id: suggestion.id, text: "" });
+        replyTextMutation.mutate({ id: suggestion.id, text: '' });
         onClose(); // Close the popover after successful submission
       } catch (error) {
-        console.error("Error submitting reply:", error);
+        console.error('Error submitting reply:', error);
       }
     };
 
@@ -1013,19 +955,19 @@ function AdminDashboardContent() {
   }
 
   const { data: searchQuery } = useQuery({
-    queryKey: ["searchQuery"],
-    queryFn: () => "",
-    initialData: "",
+    queryKey: ['searchQuery'],
+    queryFn: () => '',
+    initialData: '',
   });
 
   const { data: selectedEmployees } = useQuery<string[]>({
-    queryKey: ["selectedEmployees"],
-    queryFn: () => ["all"],
-    initialData: ["all"],
+    queryKey: ['selectedEmployees'],
+    queryFn: () => ['all'],
+    initialData: ['all'],
   });
 
   const { data: commandOpen } = useQuery({
-    queryKey: ["commandOpen"],
+    queryKey: ['commandOpen'],
     queryFn: () => false,
     initialData: false,
   });
@@ -1034,32 +976,32 @@ function AdminDashboardContent() {
   const searchQueryMutation = useMutation({
     mutationFn: (newValue: string) => Promise.resolve(newValue),
     onSuccess: (newValue) => {
-      queryClient.setQueryData(["searchQuery"], newValue);
+      queryClient.setQueryData(['searchQuery'], newValue);
     },
   });
 
   const selectedEmployeesMutation = useMutation({
     mutationFn: (newValue: string[]) => Promise.resolve(newValue),
     onSuccess: (newValue) => {
-      queryClient.setQueryData(["selectedEmployees"], newValue);
+      queryClient.setQueryData(['selectedEmployees'], newValue);
     },
   });
 
   const commandOpenMutation = useMutation({
     mutationFn: (newValue: boolean) => Promise.resolve(newValue),
     onSuccess: (newValue) => {
-      queryClient.setQueryData(["commandOpen"], newValue);
+      queryClient.setQueryData(['commandOpen'], newValue);
     },
   });
 
   const { data: validEmployees } = useQuery({
-    queryKey: ["employees"],
+    queryKey: ['employees'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("employees")
-        .select("*")
-        .eq("status", "active")
-        .in("department", ["Sales", "Range", "Operations"]);
+        .from('employees')
+        .select('*')
+        .eq('status', 'active')
+        .in('department', ['Sales', 'Range', 'Operations']);
 
       if (error) throw error;
       return data;
@@ -1071,9 +1013,7 @@ function AdminDashboardContent() {
     if (!searchQuery) return validEmployees;
 
     return validEmployees.filter((employee) => {
-      const fullName = `${employee.name || ""} ${
-        employee.last_name || ""
-      }`.toLowerCase();
+      const fullName = `${employee.name || ''} ${employee.last_name || ''}`.toLowerCase();
       const searchTerm = searchQuery.toLowerCase();
       return fullName.includes(searchTerm);
     });
@@ -1081,7 +1021,7 @@ function AdminDashboardContent() {
 
   // Required queries and mutations
   const { data: historicalFileData } = useQuery({
-    queryKey: ["historicalFileData"],
+    queryKey: ['historicalFileData'],
     queryFn: () => ({ file: null, fileName: null, fileInputKey: 0 }),
     staleTime: Infinity,
   });
@@ -1095,7 +1035,7 @@ function AdminDashboardContent() {
       return Promise.resolve(newFileData);
     },
     onSuccess: (newFileData) => {
-      queryClient.setQueryData(["historicalFileData"], newFileData);
+      queryClient.setQueryData(['historicalFileData'], newFileData);
     },
   });
 
@@ -1103,17 +1043,17 @@ function AdminDashboardContent() {
     mutationFn: async (file: File) => {
       const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
       if (file.size > MAX_FILE_SIZE) {
-        throw new Error("File size exceeds 50MB limit");
+        throw new Error('File size exceeds 50MB limit');
       }
 
       const upload = (progress: number) => {
-        queryClient.setQueryData(["historicalUploadProgress"], progress);
+        queryClient.setQueryData(['historicalUploadProgress'], progress);
       };
       return handleHistoricalFileUpload(file, upload);
     },
     onSuccess: () => {
-      queryClient.setQueryData(["historicalUploadProgress"], 100);
-      toast.success("Historical data uploaded and processed successfully");
+      queryClient.setQueryData(['historicalUploadProgress'], 100);
+      toast.success('Historical data uploaded and processed successfully');
       updateHistoricalFileDataMutation.mutate({
         file: null,
         fileName: null,
@@ -1122,20 +1062,18 @@ function AdminDashboardContent() {
     },
     onError: (error) => {
       toast.error(`Upload failed: ${error.message}`);
-      queryClient.setQueryData(["historicalUploadProgress"], 0);
+      queryClient.setQueryData(['historicalUploadProgress'], 0);
     },
   });
 
   const { data: historicalUploadProgress = 0 } = useQuery({
-    queryKey: ["historicalUploadProgress"],
-    queryFn: () => queryClient.getQueryData(["historicalUploadProgress"]) ?? 0,
+    queryKey: ['historicalUploadProgress'],
+    queryFn: () => queryClient.getQueryData(['historicalUploadProgress']) ?? 0,
     enabled: uploadHistoricalFileMutation.isPending,
   });
 
   // Helper functions
-  const handleHistoricalFileChange = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleHistoricalFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       updateHistoricalFileDataMutation.mutate({
         file: e.target.files[0],
@@ -1145,16 +1083,13 @@ function AdminDashboardContent() {
     }
   };
 
-  function handleHistoricalFileUpload(
-    file: File,
-    onProgress: (progress: number) => void
-  ) {
+  function handleHistoricalFileUpload(file: File, onProgress: (progress: number) => void) {
     return new Promise<void>((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (e) => {
         try {
           const data = new Uint8Array(e.target?.result as ArrayBuffer);
-          const workbook = XLSX.read(data, { type: "array" });
+          const workbook = XLSX.read(data, { type: 'array' });
           const firstSheetName = workbook.SheetNames[0];
           const worksheet = workbook.Sheets[firstSheetName];
           const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
@@ -1163,24 +1098,23 @@ function AdminDashboardContent() {
           const formattedData = jsonData.slice(1).map((row: any) => {
             const rowData: any = {};
             keys.forEach((key, index) => {
-              if (key !== "Margin" && key !== "Margin %") {
-                const mappedKey =
-                  key === "Primary Email" ? "Primary Email" : key;
+              if (key !== 'Margin' && key !== 'Margin %') {
+                const mappedKey = key === 'Primary Email' ? 'Primary Email' : key;
                 rowData[mappedKey] = row[index];
               }
             });
 
-            const categoryLabel = categoryMap.get(parseInt(rowData.Cat)) || "";
+            const categoryLabel = categoryMap.get(parseInt(rowData.Cat)) || '';
             const subcategoryKey = `${rowData.Cat}-${rowData.Sub}`;
-            const subcategoryLabel = subcategoryMap.get(subcategoryKey) || "";
+            const subcategoryLabel = subcategoryMap.get(subcategoryKey) || '';
 
             if (
-              (rowData.Cat === "170" || parseInt(rowData.Cat) === 170) &&
-              (rowData.Sub === "7" ||
+              (rowData.Cat === '170' || parseInt(rowData.Cat) === 170) &&
+              (rowData.Sub === '7' ||
                 parseInt(rowData.Sub) === 7 ||
-                rowData.Sub === "1" ||
+                rowData.Sub === '1' ||
                 parseInt(rowData.Sub) === 1 ||
-                rowData.Sub === "8" ||
+                rowData.Sub === '8' ||
                 parseInt(rowData.Sub) === 8)
             ) {
               rowData.Cost = rowData.SoldPrice;
@@ -1202,20 +1136,18 @@ function AdminDashboardContent() {
             const batch = formattedData.slice(i, i + batchSize);
             chainPromise = chainPromise.then(() =>
               supabase
-                .from("historical_sales")
+                .from('historical_sales')
                 .upsert(batch, {
-                  onConflict: "SoldRef,Serial,SoldDate",
+                  onConflict: 'SoldRef,Serial,SoldDate',
                   ignoreDuplicates: false,
                 })
                 .then(({ error }) => {
                   if (error) {
-                    console.error("Error upserting data batch:", error);
+                    console.error('Error upserting data batch:', error);
                     toast.error(`Upload error: ${error.message}`);
                   } else {
                     processedCount += batch.length;
-                    onProgress(
-                      Math.round((processedCount / formattedData.length) * 100)
-                    );
+                    onProgress(Math.round((processedCount / formattedData.length) * 100));
                   }
                 })
             );
@@ -1247,11 +1179,7 @@ function AdminDashboardContent() {
 
   // Update the KPI query to use the dateRange
   const kpiQuery = useQuery({
-    queryKey: [
-      "kpis",
-      dateRange?.from?.toISOString(),
-      dateRange?.to?.toISOString(),
-    ],
+    queryKey: ['kpis', dateRange?.from?.toISOString(), dateRange?.to?.toISOString()],
     queryFn: () => {
       if (!dateRange?.from || !dateRange?.to) {
         const defaultRange = getDefaultDateRange();
@@ -1261,32 +1189,31 @@ function AdminDashboardContent() {
     },
   });
 
-  const formatter = new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
+  const formatter = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
   });
 
   // Add these near your other queries
   const { data: timeTrackingFileData } = useQuery({
-    queryKey: ["timeTrackingFileData"],
+    queryKey: ['timeTrackingFileData'],
     queryFn: () => ({ file: null, fileName: null, fileInputKey: 0 }),
     staleTime: Infinity,
   });
 
-  const { data: timeTrackingData, isLoading: isTimeTrackingDataLoading } =
-    useQuery({
-      queryKey: ["timeTrackingData"],
-      queryFn: async () => {
-        const { data, error } = await supabase
-          .from("employee_time_tracking")
-          .select("*")
-          .order("date", { ascending: false })
-          .limit(100);
+  const { data: timeTrackingData, isLoading: isTimeTrackingDataLoading } = useQuery({
+    queryKey: ['timeTrackingData'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('employee_time_tracking')
+        .select('*')
+        .order('date', { ascending: false })
+        .limit(100);
 
-        if (error) throw error;
-        return data;
-      },
-    });
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const uploadTimeTrackingMutation = useMutation({
     mutationFn: async (file: File) => {
@@ -1296,7 +1223,7 @@ function AdminDashboardContent() {
         reader.onload = async (e) => {
           try {
             const data = new Uint8Array(e.target?.result as ArrayBuffer);
-            const workbook = XLSX.read(data, { type: "array" });
+            const workbook = XLSX.read(data, { type: 'array' });
             const worksheet = workbook.Sheets[workbook.SheetNames[0]];
             const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
@@ -1305,35 +1232,29 @@ function AdminDashboardContent() {
             let processedCount = 0;
 
             for (let i = 0; i < jsonData.length; i += batchSize) {
-              const batch = jsonData
-                .slice(i, i + batchSize)
-                .map((row: any) => ({
-                  employee_id: row.LanID,
-                  name: row.Name,
-                  date: row.Date,
-                  work_date_time: row.WorkDateTime,
-                  day_total: row["Day Total"],
-                  over_time: row["Over Time"],
-                  day_total_error: row["Day Total Error"],
-                  over_time_error: row["Over Time Error"],
-                  type: row.Type,
-                  last_name: row["Last Name"],
-                  location: row.Location,
-                  headline_lanid: row["Headline LanId"],
-                  pay_type: row["Pay Type"],
-                }));
+              const batch = jsonData.slice(i, i + batchSize).map((row: any) => ({
+                employee_id: row.LanID,
+                name: row.Name,
+                date: row.Date,
+                work_date_time: row.WorkDateTime,
+                day_total: row['Day Total'],
+                over_time: row['Over Time'],
+                day_total_error: row['Day Total Error'],
+                over_time_error: row['Over Time Error'],
+                type: row.Type,
+                last_name: row['Last Name'],
+                location: row.Location,
+                headline_lanid: row['Headline LanId'],
+                pay_type: row['Pay Type'],
+              }));
 
-              const { error } = await supabase
-                .from("employee_time_tracking")
-                .upsert(batch);
+              const { error } = await supabase.from('employee_time_tracking').upsert(batch);
 
               if (error) throw error;
 
               processedCount += batch.length;
-              const progress = Math.round(
-                (processedCount / jsonData.length) * 100
-              );
-              queryClient.setQueryData(["uploadProgress"], progress);
+              const progress = Math.round((processedCount / jsonData.length) * 100);
+              queryClient.setQueryData(['uploadProgress'], progress);
             }
 
             resolve(true);
@@ -1347,10 +1268,10 @@ function AdminDashboardContent() {
       });
     },
     onSuccess: () => {
-      toast.success("Time tracking data uploaded successfully");
-      queryClient.invalidateQueries({ queryKey: ["timeTrackingData"] });
+      toast.success('Time tracking data uploaded successfully');
+      queryClient.invalidateQueries({ queryKey: ['timeTrackingData'] });
       // Reset file input
-      queryClient.setQueryData(["timeTrackingFileData"], {
+      queryClient.setQueryData(['timeTrackingFileData'], {
         file: null,
         fileName: null,
         fileInputKey: Date.now(),
@@ -1362,11 +1283,9 @@ function AdminDashboardContent() {
   });
 
   // Add these handlers
-  const handleTimeTrackingFileChange = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleTimeTrackingFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      queryClient.setQueryData(["timeTrackingFileData"], {
+      queryClient.setQueryData(['timeTrackingFileData'], {
         file: e.target.files[0],
         fileName: e.target.files[0].name,
         fileInputKey: Date.now(),
@@ -1382,7 +1301,7 @@ function AdminDashboardContent() {
 
   // Add new file data query for detailed sales
   const { data: detailedSalesFileData } = useQuery({
-    queryKey: ["detailedSalesFileData"],
+    queryKey: ['detailedSalesFileData'],
     queryFn: () => ({ file: null, fileName: null, fileInputKey: 0 }),
     staleTime: Infinity,
   });
@@ -1397,7 +1316,7 @@ function AdminDashboardContent() {
       return Promise.resolve(newFileData);
     },
     onSuccess: (newFileData) => {
-      queryClient.setQueryData(["detailedSalesFileData"], newFileData);
+      queryClient.setQueryData(['detailedSalesFileData'], newFileData);
     },
   });
 
@@ -1406,17 +1325,17 @@ function AdminDashboardContent() {
     mutationFn: async (file: File) => {
       const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
       if (file.size > MAX_FILE_SIZE) {
-        throw new Error("File size exceeds 50MB limit");
+        throw new Error('File size exceeds 50MB limit');
       }
 
       const upload = (progress: number) => {
-        queryClient.setQueryData(["detailedSalesUploadProgress"], progress);
+        queryClient.setQueryData(['detailedSalesUploadProgress'], progress);
       };
       return handleDetailedSalesUpload(file, upload);
     },
     onSuccess: () => {
-      queryClient.setQueryData(["detailedSalesUploadProgress"], 100);
-      toast.success("Detailed sales data uploaded and processed successfully");
+      queryClient.setQueryData(['detailedSalesUploadProgress'], 100);
+      toast.success('Detailed sales data uploaded and processed successfully');
       updateDetailedSalesFileDataMutation.mutate({
         file: null,
         fileName: null,
@@ -1425,22 +1344,19 @@ function AdminDashboardContent() {
     },
     onError: (error: Error) => {
       toast.error(`Upload failed: ${error.message}`);
-      queryClient.setQueryData(["detailedSalesUploadProgress"], 0);
+      queryClient.setQueryData(['detailedSalesUploadProgress'], 0);
     },
   });
 
   // Add progress tracking for detailed sales upload
   const { data: detailedSalesUploadProgress = 0 } = useQuery({
-    queryKey: ["detailedSalesUploadProgress"],
-    queryFn: () =>
-      queryClient.getQueryData(["detailedSalesUploadProgress"]) ?? 0,
+    queryKey: ['detailedSalesUploadProgress'],
+    queryFn: () => queryClient.getQueryData(['detailedSalesUploadProgress']) ?? 0,
     enabled: uploadDetailedSalesMutation.isPending,
   });
 
   // Add handler for detailed sales file change
-  const handleDetailedSalesFileChange = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleDetailedSalesFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       updateDetailedSalesFileDataMutation.mutate({
         file: e.target.files[0],
@@ -1451,16 +1367,13 @@ function AdminDashboardContent() {
   };
 
   // Add function to handle detailed sales data upload
-  function handleSalesDataUpload(
-    file: File,
-    onProgress: (progress: number) => void
-  ) {
+  function handleSalesDataUpload(file: File, onProgress: (progress: number) => void) {
     return new Promise<void>((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = async (e) => {
         try {
           const data = new Uint8Array(e.target?.result as ArrayBuffer);
-          const workbook = XLSX.read(data, { type: "array" });
+          const workbook = XLSX.read(data, { type: 'array' });
           const worksheet = workbook.Sheets[workbook.SheetNames[0]];
           const jsonData = XLSX.utils.sheet_to_json(worksheet, {
             header: 1,
@@ -1471,26 +1384,25 @@ function AdminDashboardContent() {
             const rowData: any = {};
             keys.forEach((key, index) => {
               // Skip the Margin and Margin % columns
-              if (key !== "Margin" && key !== "Margin %") {
+              if (key !== 'Margin' && key !== 'Margin %') {
                 // Handle Primary Email column name change if needed
-                const mappedKey =
-                  key === "Primary Email" ? "Primary Email" : key;
+                const mappedKey = key === 'Primary Email' ? 'Primary Email' : key;
                 rowData[mappedKey] = row[index];
               }
             });
 
-            const categoryLabel = categoryMap.get(parseInt(rowData.Cat)) || "";
+            const categoryLabel = categoryMap.get(parseInt(rowData.Cat)) || '';
             const subcategoryKey = `${rowData.Cat}-${rowData.Sub}`;
-            const subcategoryLabel = subcategoryMap.get(subcategoryKey) || "";
+            const subcategoryLabel = subcategoryMap.get(subcategoryKey) || '';
 
             // Set Cost equal to SoldPrice for specific category/subcategory combinations
             if (
-              (rowData.Cat === "170" || parseInt(rowData.Cat) === 170) &&
-              (rowData.Sub === "7" ||
+              (rowData.Cat === '170' || parseInt(rowData.Cat) === 170) &&
+              (rowData.Sub === '7' ||
                 parseInt(rowData.Sub) === 7 ||
-                rowData.Sub === "1" ||
+                rowData.Sub === '1' ||
                 parseInt(rowData.Sub) === 1 ||
-                rowData.Sub === "8" ||
+                rowData.Sub === '8' ||
                 parseInt(rowData.Sub) === 8)
             ) {
               rowData.Cost = rowData.SoldPrice;
@@ -1512,17 +1424,15 @@ function AdminDashboardContent() {
             const batch = formattedData.slice(i, i + batchSize);
             chainPromise = chainPromise.then(() =>
               supabase
-                .from("sales_data")
+                .from('sales_data')
                 .upsert(batch)
                 .then(({ error }) => {
                   if (error) {
-                    console.error("Error upserting data batch:", error);
+                    console.error('Error upserting data batch:', error);
                     throw error;
                   }
                   processedCount += batch.length;
-                  onProgress(
-                    Math.round((processedCount / formattedData.length) * 100)
-                  );
+                  onProgress(Math.round((processedCount / formattedData.length) * 100));
                 })
             );
           }
@@ -1531,16 +1441,14 @@ function AdminDashboardContent() {
           toast.success(`Successfully uploaded ${processedCount} records`);
           resolve();
         } catch (error) {
-          console.error("Error processing data:", error);
-          toast.error(
-            `Upload failed: ${error instanceof Error ? error.message : "Unknown error"}`
-          );
+          console.error('Error processing data:', error);
+          toast.error(`Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
           reject(error);
         }
       };
 
       reader.onerror = (error) => {
-        console.error("Error reading file:", error);
+        console.error('Error reading file:', error);
         reject(error);
       };
 
@@ -1548,32 +1456,29 @@ function AdminDashboardContent() {
     });
   }
 
-  function handleHistoricalSalesUpload(
-    file: File,
-    onProgress: (progress: number) => void
-  ) {
+  function handleHistoricalSalesUpload(file: File, onProgress: (progress: number) => void) {
     return new Promise<void>((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = async (e) => {
         try {
           const data = new Uint8Array(e.target?.result as ArrayBuffer);
-          const workbook = XLSX.read(data, { type: "array" });
+          const workbook = XLSX.read(data, { type: 'array' });
           const worksheet = workbook.Sheets[workbook.SheetNames[0]];
           const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
           // Use same mapping logic as sales_data
           const formattedData = jsonData.map((row: any) => {
-            const categoryLabel = categoryMap.get(parseInt(row.Cat)) || "";
+            const categoryLabel = categoryMap.get(parseInt(row.Cat)) || '';
             const subcategoryKey = `${row.Cat}-${row.Sub}`;
-            const subcategoryLabel = subcategoryMap.get(subcategoryKey) || "";
+            const subcategoryLabel = subcategoryMap.get(subcategoryKey) || '';
 
             const cost =
-              (row.Cat === "170" || parseInt(row.Cat) === 170) &&
-              (row.Sub === "7" ||
+              (row.Cat === '170' || parseInt(row.Cat) === 170) &&
+              (row.Sub === '7' ||
                 parseInt(row.Sub) === 7 ||
-                row.Sub === "1" ||
+                row.Sub === '1' ||
                 parseInt(row.Sub) === 1 ||
-                row.Sub === "8" ||
+                row.Sub === '8' ||
                 parseInt(row.Sub) === 8)
                 ? row.SoldPrice
                 : row.Cost;
@@ -1603,7 +1508,7 @@ function AdminDashboardContent() {
               category_label: categoryLabel,
               subcategory_label: subcategoryLabel,
               status: row.status?.toString(),
-              "Primary Email": row["Primary Email"]?.toString(),
+              'Primary Email': row['Primary Email']?.toString(),
             };
           });
 
@@ -1612,24 +1517,20 @@ function AdminDashboardContent() {
 
           for (let i = 0; i < formattedData.length; i += batchSize) {
             const batch = formattedData.slice(i, i + batchSize);
-            const { error } = await supabase
-              .from("historical_sales_data")
-              .upsert(batch);
+            const { error } = await supabase.from('historical_sales_data').upsert(batch);
 
             if (error) {
-              console.error("Error upserting historical data batch:", error);
+              console.error('Error upserting historical data batch:', error);
               throw error;
             }
 
             processedCount += batch.length;
-            onProgress(
-              Math.round((processedCount / formattedData.length) * 100)
-            );
+            onProgress(Math.round((processedCount / formattedData.length) * 100));
           }
 
           resolve();
         } catch (error) {
-          console.error("Error processing historical data:", error);
+          console.error('Error processing historical data:', error);
           reject(error);
         }
       };
@@ -1639,126 +1540,123 @@ function AdminDashboardContent() {
     });
   }
 
-  function handleDetailedSalesUpload(
-    file: File,
-    onProgress: (progress: number) => void
-  ) {
+  function handleDetailedSalesUpload(file: File, onProgress: (progress: number) => void) {
     // Add state mapping
     const stateMapping: { [key: string]: string } = {
       // Standard mappings
-      ALABAMA: "AL",
-      ALBAMA: "AL",
-      ALA: "AL",
-      ALASKA: "AK",
-      ALSAKA: "AK",
-      ARIZONA: "AZ",
-      ARIZONIA: "AZ",
-      ARKANSAS: "AR",
-      ARKANSAW: "AR",
-      CALIFORNIA: "CA",
-      CALIFORNA: "CA",
-      CALIFORNNIA: "CA",
-      CALIF: "CA",
-      CALI: "CA",
-      COLORADO: "CO",
-      COLORODO: "CO",
-      CONNECTICUT: "CT",
-      CONNETICUT: "CT",
-      CONN: "CT",
-      DELAWARE: "DE",
-      DEL: "DE",
-      FLORIDA: "FL",
-      FLA: "FL",
-      FLORDIA: "FL",
-      GEORGIA: "GA",
-      GERGIA: "GA",
-      HAWAII: "HI",
-      HAWAI: "HI",
-      IDAHO: "ID",
-      ILLINOIS: "IL",
-      ILLNOIS: "IL",
-      ILL: "IL",
-      INDIANA: "IN",
-      IND: "IN",
-      IOWA: "IA",
-      KANSAS: "KS",
-      KANS: "KS",
-      KENTUCKY: "KY",
-      KENTUKY: "KY",
-      LOUISIANA: "LA",
-      LOUSIANA: "LA",
-      MAINE: "ME",
-      MARYLAND: "MD",
-      MARRYLAND: "MD",
-      MASSACHUSETTS: "MA",
-      MASSACHUSETS: "MA",
-      MASS: "MA",
-      MICHIGAN: "MI",
-      MICH: "MI",
-      MINNESOTA: "MN",
-      MINN: "MN",
-      MISSISSIPPI: "MS",
-      MISSISIPPI: "MS",
-      MISS: "MS",
-      MISSOURI: "MO",
-      MONTANA: "MT",
-      MONT: "MT",
-      NEBRASKA: "NE",
-      NEBR: "NE",
-      NEVADA: "NV",
-      NEVEDA: "NV",
-      "NEW HAMPSHIRE": "NH",
-      "N HAMPSHIRE": "NH",
-      "N.H.": "NH",
-      "NEW JERSEY": "NJ",
-      "N JERSEY": "NJ",
-      "N.J.": "NJ",
-      "NEW MEXICO": "NM",
-      "N MEXICO": "NM",
-      "N.M.": "NM",
-      "NEW YORK": "NY",
-      "N YORK": "NY",
-      "N.Y.": "NY",
-      "NORTH CAROLINA": "NC",
-      "N CAROLINA": "NC",
-      "N.C.": "NC",
-      "NORTH DAKOTA": "ND",
-      "N DAKOTA": "ND",
-      "N.D.": "ND",
-      OHIO: "OH",
-      OKLAHOMA: "OK",
-      OAKLAHOMA: "OK",
-      OREGON: "OR",
-      ORGON: "OR",
-      PENNSYLVANIA: "PA",
-      PENSYLVANIA: "PA",
-      PENN: "PA",
-      "RHODE ISLAND": "RI",
-      "R ISLAND": "RI",
-      "R.I.": "RI",
-      "SOUTH CAROLINA": "SC",
-      "S CAROLINA": "SC",
-      "S.C.": "SC",
-      "SOUTH DAKOTA": "SD",
-      "S DAKOTA": "SD",
-      "S.D.": "SD",
-      TENNESSEE: "TN",
-      TENNESEE: "TN",
-      TENN: "TN",
-      TEXAS: "TX",
-      TEX: "TX",
-      UTAH: "UT",
-      VERMONT: "VT",
-      VIRGINIA: "VA",
-      WASHINGTON: "WA",
-      WASH: "WA",
-      "WEST VIRGINIA": "WV",
-      "W VIRGINIA": "WV",
-      "W.V.": "WV",
-      WISCONSIN: "WI",
-      WISC: "WI",
-      WYOMING: "WY",
-      WYO: "WY",
+      ALABAMA: 'AL',
+      ALBAMA: 'AL',
+      ALA: 'AL',
+      ALASKA: 'AK',
+      ALSAKA: 'AK',
+      ARIZONA: 'AZ',
+      ARIZONIA: 'AZ',
+      ARKANSAS: 'AR',
+      ARKANSAW: 'AR',
+      CALIFORNIA: 'CA',
+      CALIFORNA: 'CA',
+      CALIFORNNIA: 'CA',
+      CALIF: 'CA',
+      CALI: 'CA',
+      COLORADO: 'CO',
+      COLORODO: 'CO',
+      CONNECTICUT: 'CT',
+      CONNETICUT: 'CT',
+      CONN: 'CT',
+      DELAWARE: 'DE',
+      DEL: 'DE',
+      FLORIDA: 'FL',
+      FLA: 'FL',
+      FLORDIA: 'FL',
+      GEORGIA: 'GA',
+      GERGIA: 'GA',
+      HAWAII: 'HI',
+      HAWAI: 'HI',
+      IDAHO: 'ID',
+      ILLINOIS: 'IL',
+      ILLNOIS: 'IL',
+      ILL: 'IL',
+      INDIANA: 'IN',
+      IND: 'IN',
+      IOWA: 'IA',
+      KANSAS: 'KS',
+      KANS: 'KS',
+      KENTUCKY: 'KY',
+      KENTUKY: 'KY',
+      LOUISIANA: 'LA',
+      LOUSIANA: 'LA',
+      MAINE: 'ME',
+      MARYLAND: 'MD',
+      MARRYLAND: 'MD',
+      MASSACHUSETTS: 'MA',
+      MASSACHUSETS: 'MA',
+      MASS: 'MA',
+      MICHIGAN: 'MI',
+      MICH: 'MI',
+      MINNESOTA: 'MN',
+      MINN: 'MN',
+      MISSISSIPPI: 'MS',
+      MISSISIPPI: 'MS',
+      MISS: 'MS',
+      MISSOURI: 'MO',
+      MONTANA: 'MT',
+      MONT: 'MT',
+      NEBRASKA: 'NE',
+      NEBR: 'NE',
+      NEVADA: 'NV',
+      NEVEDA: 'NV',
+      'NEW HAMPSHIRE': 'NH',
+      'N HAMPSHIRE': 'NH',
+      'N.H.': 'NH',
+      'NEW JERSEY': 'NJ',
+      'N JERSEY': 'NJ',
+      'N.J.': 'NJ',
+      'NEW MEXICO': 'NM',
+      'N MEXICO': 'NM',
+      'N.M.': 'NM',
+      'NEW YORK': 'NY',
+      'N YORK': 'NY',
+      'N.Y.': 'NY',
+      'NORTH CAROLINA': 'NC',
+      'N CAROLINA': 'NC',
+      'N.C.': 'NC',
+      'NORTH DAKOTA': 'ND',
+      'N DAKOTA': 'ND',
+      'N.D.': 'ND',
+      OHIO: 'OH',
+      OKLAHOMA: 'OK',
+      OAKLAHOMA: 'OK',
+      OREGON: 'OR',
+      ORGON: 'OR',
+      PENNSYLVANIA: 'PA',
+      PENSYLVANIA: 'PA',
+      PENN: 'PA',
+      'RHODE ISLAND': 'RI',
+      'R ISLAND': 'RI',
+      'R.I.': 'RI',
+      'SOUTH CAROLINA': 'SC',
+      'S CAROLINA': 'SC',
+      'S.C.': 'SC',
+      'SOUTH DAKOTA': 'SD',
+      'S DAKOTA': 'SD',
+      'S.D.': 'SD',
+      TENNESSEE: 'TN',
+      TENNESEE: 'TN',
+      TENN: 'TN',
+      TEXAS: 'TX',
+      TEX: 'TX',
+      UTAH: 'UT',
+      VERMONT: 'VT',
+      VIRGINIA: 'VA',
+      WASHINGTON: 'WA',
+      WASH: 'WA',
+      'WEST VIRGINIA': 'WV',
+      'W VIRGINIA': 'WV',
+      'W.V.': 'WV',
+      WISCONSIN: 'WI',
+      WISC: 'WI',
+      WYOMING: 'WY',
+      WYO: 'WY',
     };
 
     function normalizeState(state: string): string | null {
@@ -1768,11 +1666,11 @@ function AdminDashboardContent() {
       const cleanState = state
         .trim()
         .toUpperCase()
-        .replace(/\s+/g, " ") // Normalize spaces
-        .replace(/\./g, "") // Remove periods
-        .replace(/^N\s/, "NEW ") // Expand N to NEW
-        .replace(/^S\s/, "SOUTH ") // Expand S to SOUTH
-        .replace(/^W\s/, "WEST "); // Expand W to WEST
+        .replace(/\s+/g, ' ') // Normalize spaces
+        .replace(/\./g, '') // Remove periods
+        .replace(/^N\s/, 'NEW ') // Expand N to NEW
+        .replace(/^S\s/, 'SOUTH ') // Expand S to SOUTH
+        .replace(/^W\s/, 'WEST '); // Expand W to WEST
 
       // Check if it's already a valid 2-letter code
       if (cleanState.length === 2 && /^[A-Z]{2}$/.test(cleanState)) {
@@ -1788,10 +1686,7 @@ function AdminDashboardContent() {
       const states = Object.keys(stateMapping);
       for (const validState of states) {
         // Check if the valid state contains our input or vice versa
-        if (
-          validState.includes(cleanState) ||
-          cleanState.includes(validState)
-        ) {
+        if (validState.includes(cleanState) || cleanState.includes(validState)) {
           return stateMapping[validState];
         }
       }
@@ -1806,13 +1701,13 @@ function AdminDashboardContent() {
       reader.onload = async (e) => {
         try {
           const data = new Uint8Array(e.target?.result as ArrayBuffer);
-          const workbook = XLSX.read(data, { type: "array" });
+          const workbook = XLSX.read(data, { type: 'array' });
           const firstSheetName = workbook.SheetNames[0];
           const worksheet = workbook.Sheets[firstSheetName];
           const jsonData = XLSX.utils.sheet_to_json(worksheet, {
             header: 1,
             raw: true,
-            dateNF: "yyyy-mm-dd",
+            dateNF: 'yyyy-mm-dd',
           });
 
           const keys = jsonData[0] as string[];
@@ -1820,10 +1715,10 @@ function AdminDashboardContent() {
             const rowData: any = {};
             keys.forEach((key, index) => {
               const value = row[index];
-              const dbColumnName = key.replace(/\s+/g, "_");
+              const dbColumnName = key.replace(/\s+/g, '_');
 
               // Handle state field specifically
-              if (dbColumnName === "State") {
+              if (dbColumnName === 'State') {
                 if (value) {
                   rowData[dbColumnName] = normalizeState(value.toString());
                 } else {
@@ -1831,13 +1726,10 @@ function AdminDashboardContent() {
                 }
               }
               // Handle date fields
-              else if (
-                dbColumnName === "SoldDate" ||
-                dbColumnName === "DateRec"
-              ) {
+              else if (dbColumnName === 'SoldDate' || dbColumnName === 'DateRec') {
                 if (value) {
                   let dateValue;
-                  if (typeof value === "number") {
+                  if (typeof value === 'number') {
                     // Convert Excel serial number to full timestamp
                     dateValue = new Date((value - 25569) * 86400 * 1000);
                   } else {
@@ -1853,29 +1745,25 @@ function AdminDashboardContent() {
               // Handle numeric fields
               else if (
                 [
-                  "Qty",
-                  "Cost",
-                  "SoldPrice",
-                  "Acct",
-                  "Margin",
-                  "RetailPrice",
-                  "SoldDisc",
-                  "AvailableQty",
+                  'Qty',
+                  'Cost',
+                  'SoldPrice',
+                  'Acct',
+                  'Margin',
+                  'RetailPrice',
+                  'SoldDisc',
+                  'AvailableQty',
                 ].includes(dbColumnName)
               ) {
                 rowData[dbColumnName] = value ? Number(value) : null;
               }
               // Handle integer fields
-              else if (
-                ["Stloc", "Cat", "Sub", "TypeAcct"].includes(dbColumnName)
-              ) {
+              else if (['Stloc', 'Cat', 'Sub', 'TypeAcct'].includes(dbColumnName)) {
                 rowData[dbColumnName] = value ? parseInt(value) : null;
               }
               // Handle percentage field
-              else if (dbColumnName === "MarginPerc") {
-                rowData[dbColumnName] = value
-                  ? value.toString().replace("%", "")
-                  : null;
+              else if (dbColumnName === 'MarginPerc') {
+                rowData[dbColumnName] = value ? value.toString().replace('%', '') : null;
               }
               // Handle all other fields as strings
               else {
@@ -1892,32 +1780,28 @@ function AdminDashboardContent() {
 
           for (let i = 0; i < formattedData.length; i += batchSize) {
             const batch = formattedData.slice(i, i + batchSize);
-            const { error } = await supabase
-              .from("detailed_sales_data")
-              .insert(batch);
+            const { error } = await supabase.from('detailed_sales_data').insert(batch);
 
             if (error) {
-              console.error("Error inserting data batch:", error);
+              console.error('Error inserting data batch:', error);
               throw error;
             }
 
             processedCount += batch.length;
-            onProgress(
-              Math.round((processedCount / formattedData.length) * 100)
-            );
+            onProgress(Math.round((processedCount / formattedData.length) * 100));
           }
 
           toast.success(`Successfully uploaded ${processedCount} records`);
           resolve();
         } catch (error) {
-          console.error("Error processing file:", error);
+          console.error('Error processing file:', error);
           toast.error(`File processing error: ${error}`);
           reject(error);
         }
       };
 
       reader.onerror = (error) => {
-        console.error("File reading error:", error);
+        console.error('File reading error:', error);
         toast.error(`File reading error: ${error}`);
         reject(error);
       };
@@ -1931,17 +1815,17 @@ function AdminDashboardContent() {
     mutationFn: async (file: File) => {
       const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
       if (file.size > MAX_FILE_SIZE) {
-        throw new Error("File size exceeds 50MB limit");
+        throw new Error('File size exceeds 50MB limit');
       }
 
       const upload = (progress: number) => {
-        queryClient.setQueryData(["salesUploadProgress"], progress);
+        queryClient.setQueryData(['salesUploadProgress'], progress);
       };
       return handleSalesDataUpload(file, upload);
     },
     onSuccess: () => {
-      queryClient.setQueryData(["salesUploadProgress"], 100);
-      toast.success("Sales data uploaded and processed successfully");
+      queryClient.setQueryData(['salesUploadProgress'], 100);
+      toast.success('Sales data uploaded and processed successfully');
       updateFileDataMutation.mutate({
         file: null,
         fileName: null,
@@ -1950,7 +1834,7 @@ function AdminDashboardContent() {
     },
     onError: (error: Error) => {
       toast.error(`Upload failed: ${error.message}`);
-      queryClient.setQueryData(["salesUploadProgress"], 0);
+      queryClient.setQueryData(['salesUploadProgress'], 0);
     },
   });
 
@@ -1958,19 +1842,17 @@ function AdminDashboardContent() {
     mutationFn: async (file: File) => {
       const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
       if (file.size > MAX_FILE_SIZE) {
-        throw new Error("File size exceeds 50MB limit");
+        throw new Error('File size exceeds 50MB limit');
       }
 
       const upload = (progress: number) => {
-        queryClient.setQueryData(["historicalSalesUploadProgress"], progress);
+        queryClient.setQueryData(['historicalSalesUploadProgress'], progress);
       };
       return handleHistoricalSalesUpload(file, upload);
     },
     onSuccess: () => {
-      queryClient.setQueryData(["historicalSalesUploadProgress"], 100);
-      toast.success(
-        "Historical sales data uploaded and processed successfully"
-      );
+      queryClient.setQueryData(['historicalSalesUploadProgress'], 100);
+      toast.success('Historical sales data uploaded and processed successfully');
       updateHistoricalFileDataMutation.mutate({
         file: null,
         fileName: null,
@@ -1979,54 +1861,46 @@ function AdminDashboardContent() {
     },
     onError: (error: Error) => {
       toast.error(`Upload failed: ${error.message}`);
-      queryClient.setQueryData(["historicalSalesUploadProgress"], 0);
+      queryClient.setQueryData(['historicalSalesUploadProgress'], 0);
     },
   });
 
   const { data: salesUploadProgress = 0 } = useQuery({
-    queryKey: ["salesUploadProgress"],
-    queryFn: () => queryClient.getQueryData(["salesUploadProgress"]) ?? 0,
+    queryKey: ['salesUploadProgress'],
+    queryFn: () => queryClient.getQueryData(['salesUploadProgress']) ?? 0,
     enabled: uploadSalesDataMutation.isPending,
   });
 
   const { data: historicalSalesUploadProgress = 0 } = useQuery({
-    queryKey: ["historicalSalesUploadProgress"],
-    queryFn: () =>
-      queryClient.getQueryData(["historicalSalesUploadProgress"]) ?? 0,
+    queryKey: ['historicalSalesUploadProgress'],
+    queryFn: () => queryClient.getQueryData(['historicalSalesUploadProgress']) ?? 0,
     enabled: uploadHistoricalSalesMutation.isPending,
   });
 
   // Add this near your other queries
   const drosCancellationsQuery = useQuery({
-    queryKey: [
-      "drosCancellations",
-      dateRange?.from?.toISOString(),
-      dateRange?.to?.toISOString(),
-    ],
+    queryKey: ['drosCancellations', dateRange?.from?.toISOString(), dateRange?.to?.toISOString()],
     queryFn: async () => {
       if (!dateRange?.from || !dateRange?.to) return null;
 
       const { data, error } = await supabase
-        .from("Auditsinput")
-        .select("*")
-        .eq("dros_cancel", "Yes")
-        .gte("trans_date", dateRange.from.toISOString())
-        .lte("trans_date", dateRange.to.toISOString());
+        .from('Auditsinput')
+        .select('*')
+        .eq('dros_cancel', 'Yes')
+        .gte('trans_date', dateRange.from.toISOString())
+        .lte('trans_date', dateRange.to.toISOString());
 
       if (error) throw error;
 
       // Process the data and calculate totals
-      const variants = data.reduce(
-        (acc: Record<string, { qty: number }>, item) => {
-          const key = `${item.salesreps} - ${format(new Date(item.trans_date), "MM/dd/yyyy")}`;
-          if (!acc[key]) {
-            acc[key] = { qty: 0 };
-          }
-          acc[key].qty += 1;
-          return acc;
-        },
-        {}
-      );
+      const variants = data.reduce((acc: Record<string, { qty: number }>, item) => {
+        const key = `${item.salesreps} - ${format(new Date(item.trans_date), 'MM/dd/yyyy')}`;
+        if (!acc[key]) {
+          acc[key] = { qty: 0 };
+        }
+        acc[key].qty += 1;
+        return acc;
+      }, {});
 
       return {
         qty: data.length, // Change total to qty to match the expected structure
@@ -2037,9 +1911,9 @@ function AdminDashboardContent() {
   });
 
   return (
-    <RoleBasedWrapper allowedRoles={["admin", "ceo", "super admin", "dev"]}>
+    <RoleBasedWrapper allowedRoles={['admin', 'ceo', 'super admin', 'dev']}>
       <div
-        className={`space-y-4 ${state === "collapsed" ? "w-[calc(100vw-20rem)] " : "w-[calc(100vw-20rem)] "} transition-all duration-300`}
+        className={`space-y-4 ${state === 'collapsed' ? 'w-[calc(100vw-20rem)] ' : 'w-[calc(100vw-20rem)] '} transition-all duration-300`}
       >
         {/* <Card className="mb-6">
           <CardHeader>
@@ -2054,14 +1928,10 @@ function AdminDashboardContent() {
               <TabsTrigger value="sales">Daily Sales Review</TabsTrigger>
 
               <>
-                <TabsTrigger value="sales-glance">
-                  Sales At A Glance
-                </TabsTrigger>
+                <TabsTrigger value="sales-glance">Sales At A Glance</TabsTrigger>
               </>
 
-              <TabsTrigger value="sales-employee">
-                Sales By Employee
-              </TabsTrigger>
+              <TabsTrigger value="sales-employee">Sales By Employee</TabsTrigger>
               <TabsTrigger value="sales-kpis">KPIs</TabsTrigger>
               <TabsTrigger value="metrics">Key Metrics</TabsTrigger>
             </TabsList>
@@ -2094,7 +1964,7 @@ function AdminDashboardContent() {
                     <ScrollArea
                       className={classNames(
                         styles.noScroll,
-                        "h-[calc(100vh-150px)] overflow-hidden relative"
+                        'h-[calc(100vh-150px)] overflow-hidden relative'
                       )}
                     >
                       <div className="h-full w-full overflow-hidden">
@@ -2133,7 +2003,7 @@ function AdminDashboardContent() {
                       title="Daily Range Walk Reports"
                       date={rangeWalk?.date_of_walk || null}
                       icon={<MagnifyingGlassIcon className="h-6 w-6" />}
-                      extraInfo={rangeWalk?.user_name || ""}
+                      extraInfo={rangeWalk?.user_name || ''}
                     />
                     <ReportCard
                       title="Daily Deposits"
@@ -2143,10 +2013,8 @@ function AdminDashboardContent() {
                       type="deposit"
                       details={[
                         {
-                          name: dailyDeposit?.register || "",
-                          value:
-                            dailyDeposit?.total_to_deposit?.toFixed(2) ||
-                            "0.00",
+                          name: dailyDeposit?.register || '',
+                          value: dailyDeposit?.total_to_deposit?.toFixed(2) || '0.00',
                         },
                       ]}
                     />
@@ -2159,10 +2027,8 @@ function AdminDashboardContent() {
                       }
                       icon={<DrawingPinIcon className="h-6 w-6" />}
                       extraInfo={`${certificates?.length} certificate${
-                        certificates && certificates.length !== 1 ? "s" : ""
-                      } need${
-                        certificates && certificates.length === 1 ? "s" : ""
-                      } renewal`}
+                        certificates && certificates.length !== 1 ? 's' : ''
+                      } need${certificates && certificates.length === 1 ? 's' : ''} renewal`}
                       type="certificate"
                       details={certificates?.map((cert) => ({
                         ...cert,
@@ -2197,16 +2063,10 @@ function AdminDashboardContent() {
                                 {suggestions &&
                                   suggestions.map((suggestion) => (
                                     <TableRow key={suggestion.id}>
+                                      <TableCell>{suggestion.created_by}</TableCell>
+                                      <TableCell>{suggestion.suggestion}</TableCell>
                                       <TableCell>
-                                        {suggestion.created_by}
-                                      </TableCell>
-                                      <TableCell>
-                                        {suggestion.suggestion}
-                                      </TableCell>
-                                      <TableCell>
-                                        {new Date(
-                                          suggestion.created_at || ""
-                                        ).toLocaleDateString()}
+                                        {new Date(suggestion.created_at || '').toLocaleDateString()}
                                       </TableCell>
                                       <TableCell>
                                         {suggestion.is_read ? (
@@ -2231,13 +2091,9 @@ function AdminDashboardContent() {
                                             <PopoverTrigger asChild>
                                               <Button
                                                 variant="outline"
-                                                disabled={
-                                                  suggestion.is_read ?? false
-                                                }
+                                                disabled={suggestion.is_read ?? false}
                                               >
-                                                {suggestion.is_read
-                                                  ? "Replied"
-                                                  : "Reply"}
+                                                {suggestion.is_read ? 'Replied' : 'Reply'}
                                               </Button>
                                             </PopoverTrigger>
                                             <PopoverContent className="w-80">
@@ -2252,12 +2108,8 @@ function AdminDashboardContent() {
                                                   )
                                                 }
                                                 onClose={() => {
-                                                  const closeEvent = new Event(
-                                                    "click"
-                                                  );
-                                                  document.dispatchEvent(
-                                                    closeEvent
-                                                  );
+                                                  const closeEvent = new Event('click');
+                                                  document.dispatchEvent(closeEvent);
                                                 }}
                                               />
                                             </PopoverContent>
@@ -2265,27 +2117,19 @@ function AdminDashboardContent() {
                                           {suggestion.is_read && (
                                             <Popover>
                                               <PopoverTrigger asChild>
-                                                <Button variant="outline">
-                                                  View
-                                                </Button>
+                                                <Button variant="outline">View</Button>
                                               </PopoverTrigger>
                                               <PopoverContent className="w-80">
                                                 <div className="space-y-2">
-                                                  <h4 className="font-medium">
-                                                    Reply Sent
-                                                  </h4>
-                                                  <p className="text-sm">
-                                                    {suggestion.reply}
+                                                  <h4 className="font-medium">Reply Sent</h4>
+                                                  <p className="text-sm">{suggestion.reply}</p>
+                                                  <p className="text-xs text-gray-500">
+                                                    Replied by: {suggestion.replied_by}
                                                   </p>
                                                   <p className="text-xs text-gray-500">
-                                                    Replied by:{" "}
-                                                    {suggestion.replied_by}
-                                                  </p>
-                                                  <p className="text-xs text-gray-500">
-                                                    Replied at:{" "}
+                                                    Replied at:{' '}
                                                     {new Date(
-                                                      suggestion.replied_at ||
-                                                        ""
+                                                      suggestion.replied_at || ''
                                                     ).toLocaleString()}
                                                   </p>
                                                 </div>
@@ -2393,12 +2237,11 @@ function AdminDashboardContent() {
                                     // Add UTC offset to preserve the date
                                     new Date(
                                       selectedRange.start.getTime() +
-                                        selectedRange.start.getTimezoneOffset() *
-                                          60000
+                                        selectedRange.start.getTimezoneOffset() * 60000
                                     ),
-                                    "PPP"
+                                    'PPP'
                                   )
-                                : "Select Date"}
+                                : 'Select Date'}
                             </Button>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0" align="start">
@@ -2438,33 +2281,29 @@ function AdminDashboardContent() {
                             className="hidden"
                           />
                           <span>
-                            {detailedSalesFileData?.fileName ||
-                              "Select Detailed Sales File"}
+                            {detailedSalesFileData?.fileName || 'Select Detailed Sales File'}
                           </span>
                         </label>
                         <Button
                           variant="outline"
                           onClick={() =>
                             detailedSalesFileData?.file &&
-                            uploadDetailedSalesMutation.mutate(
-                              detailedSalesFileData.file
-                            )
+                            uploadDetailedSalesMutation.mutate(detailedSalesFileData.file)
                           }
                           className="w-full"
                           disabled={
-                            uploadDetailedSalesMutation.isPending ||
-                            !detailedSalesFileData?.file
+                            uploadDetailedSalesMutation.isPending || !detailedSalesFileData?.file
                           }
                         >
                           {uploadDetailedSalesMutation.isPending
-                            ? "Uploading Detailed Sales Data..."
-                            : "Upload & Process Detailed Sales Data"}
+                            ? 'Uploading Detailed Sales Data...'
+                            : 'Upload & Process Detailed Sales Data'}
                         </Button>
 
                         {uploadDetailedSalesMutation.isPending && (
                           <Progress
                             value={
-                              typeof detailedSalesUploadProgress === "number"
+                              typeof detailedSalesUploadProgress === 'number'
                                 ? detailedSalesUploadProgress
                                 : 0
                             }
@@ -2482,10 +2321,10 @@ function AdminDashboardContent() {
               {/* Sales Chart*/}
 
               <div
-                className={`relative col-span-full ${state === "collapsed" ? "w-[calc(100vw-40rem)]" : "w-[calc(100vw-40rem)]"} h-full overflow-hidden flex-1 transition-all duration-300`}
+                className={`relative col-span-full ${state === 'collapsed' ? 'w-[calc(100vw-40rem)]' : 'w-[calc(100vw-40rem)]'} h-full overflow-hidden flex-1 transition-all duration-300`}
               >
                 <Card
-                  className={`relative ${state === "collapsed" ? "w-[calc(100vw-40rem)]" : "w-[calc(100vw-40rem)]"} h-full overflow-hidden flex-1 transition-all duration-300`}
+                  className={`relative ${state === 'collapsed' ? 'w-[calc(100vw-40rem)]' : 'w-[calc(100vw-40rem)]'} h-full overflow-hidden flex-1 transition-all duration-300`}
                 >
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -2495,16 +2334,13 @@ function AdminDashboardContent() {
                   </CardHeader>
                   <div className="overflow-hidden">
                     <ScrollArea
-                      className={classNames(
-                        styles.noScroll,
-                        "w-full overflow-auto relative"
-                      )}
+                      className={classNames(styles.noScroll, 'w-full overflow-auto relative')}
                     >
                       <CardContent className="flex-grow overflow-auto">
                         <div className="h-full">
                           {selectedRange ? (
                             <div
-                              className={`${state === "collapsed" ? "w-[calc(100vw-40rem)]" : "w-[calc(100vw-40rem)]"} transition-all duration-300`}
+                              className={`${state === 'collapsed' ? 'w-[calc(100vw-40rem)]' : 'w-[calc(100vw-40rem)]'} transition-all duration-300`}
                             >
                               <SalesRangeStackedBarChart
                                 selectedRange={{
@@ -2572,27 +2408,17 @@ function AdminDashboardContent() {
                     <div className="flex items-center gap-4 mb-8">
                       <Popover>
                         <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className="flex max-w-[700px] justify-start"
-                          >
-                            {selectedEmployees.includes("all") ? (
-                              "All Employees"
+                          <Button variant="outline" className="flex max-w-[700px] justify-start">
+                            {selectedEmployees.includes('all') ? (
+                              'All Employees'
                             ) : (
                               <div className="flex gap-1 flex-wrap">
                                 {selectedEmployees.map((id) => {
-                                  const emp = validEmployees?.find(
-                                    (e) => e.lanid === id
-                                  );
+                                  const emp = validEmployees?.find((e) => e.lanid === id);
                                   return (
-                                    <Badge
-                                      key={id}
-                                      variant="secondary"
-                                      className="mr-1"
-                                    >
-                                      {`${emp?.name || ""} ${
-                                        emp?.last_name || ""
-                                      }`.trim() || "Unknown"}
+                                    <Badge key={id} variant="secondary" className="mr-1">
+                                      {`${emp?.name || ''} ${emp?.last_name || ''}`.trim() ||
+                                        'Unknown'}
                                     </Badge>
                                   );
                                 })}
@@ -2605,18 +2431,16 @@ function AdminDashboardContent() {
                             <CommandInput
                               placeholder="Search employees..."
                               value={searchQuery}
-                              onValueChange={(value) =>
-                                searchQueryMutation.mutate(value)
-                              }
+                              onValueChange={(value) => searchQueryMutation.mutate(value)}
                             />
                             <CommandList>
                               {/* <CommandEmpty>No employee found.</CommandEmpty> */}
                               <CommandGroup>
                                 <CommandItem
                                   onSelect={() => {
-                                    selectedEmployeesMutation.mutate(["all"]);
+                                    selectedEmployeesMutation.mutate(['all']);
                                     commandOpenMutation.mutate(false);
-                                    searchQueryMutation.mutate("");
+                                    searchQueryMutation.mutate('');
                                   }}
                                 >
                                   All Employees
@@ -2628,12 +2452,10 @@ function AdminDashboardContent() {
                                       selectedEmployeesMutation.mutate(
                                         (() => {
                                           const prev = selectedEmployees;
-                                          if (prev.includes("all"))
-                                            return [employee.lanid];
+                                          if (prev.includes('all')) return [employee.lanid];
                                           if (prev.includes(employee.lanid)) {
                                             return prev.filter(
-                                              (id: string) =>
-                                                id !== employee.lanid
+                                              (id: string) => id !== employee.lanid
                                             );
                                           }
                                           return [...prev, employee.lanid];
@@ -2641,8 +2463,7 @@ function AdminDashboardContent() {
                                       );
                                     }}
                                   >
-                                    {`${employee.name || ""}`.trim() ||
-                                      "Unknown"}
+                                    {`${employee.name || ''}`.trim() || 'Unknown'}
                                   </CommandItem>
                                 ))}
                               </CommandGroup>
@@ -2654,7 +2475,7 @@ function AdminDashboardContent() {
                       <Button
                         variant="outline"
                         onClick={() => {
-                          selectedEmployeesMutation.mutate(["all"]);
+                          selectedEmployeesMutation.mutate(['all']);
                         }}
                       >
                         Reset Filters
@@ -2751,7 +2572,7 @@ function AdminDashboardContent() {
                   <ScrollArea
                     className={classNames(
                       styles.noScroll,
-                      "h-[calc(100vh-300px)] overflow-auto relative"
+                      'h-[calc(100vh-300px)] overflow-auto relative'
                     )}
                   >
                     <CardContent className="flex-grow overflow-auto">
@@ -2796,10 +2617,7 @@ function AdminDashboardContent() {
                           <TableRow key={row.id}>
                             {row.getVisibleCells().map((cell) => (
                               <TableCell key={cell.id}>
-                                {flexRender(
-                                  cell.column.columnDef.cell,
-                                  cell.getContext()
-                                )}
+                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
                               </TableCell>
                             ))}
                           </TableRow>
@@ -2807,9 +2625,7 @@ function AdminDashboardContent() {
                       </TableBody>
                     </Table>
                     {metricsData?.metrics2024 && (
-                      <CustomerFrequencyCard2024
-                        metrics={metricsData.metrics2024}
-                      />
+                      <CustomerFrequencyCard2024 metrics={metricsData.metrics2024} />
                     )}
                   </CardContent>
                 </Card>
@@ -2832,10 +2648,7 @@ function AdminDashboardContent() {
                           <TableRow key={row.id}>
                             {row.getVisibleCells().map((cell) => (
                               <TableCell key={cell.id}>
-                                {flexRender(
-                                  cell.column.columnDef.cell,
-                                  cell.getContext()
-                                )}
+                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
                               </TableCell>
                             ))}
                           </TableRow>
@@ -2843,9 +2656,7 @@ function AdminDashboardContent() {
                       </TableBody>
                     </Table>
                     {metricsData?.metrics2025 && (
-                      <CustomerFrequencyCard2025
-                        metrics={metricsData.metrics2025}
-                      />
+                      <CustomerFrequencyCard2025 metrics={metricsData.metrics2025} />
                     )}
                   </CardContent>
                 </Card>
@@ -2858,30 +2669,22 @@ function AdminDashboardContent() {
     </RoleBasedWrapper>
   );
 
-  function ReportCard({
-    title,
-    date,
-    icon,
-    extraInfo,
-    type,
-    details,
-  }: ReportCardProps) {
-    const timeZone = "America/Los_Angeles";
+  function ReportCard({ title, date, icon, extraInfo, type, details }: ReportCardProps) {
+    const timeZone = 'America/Los_Angeles';
 
     const formatLocalDate = (dateValue: string | Date) => {
-      if (!dateValue) return "N/A";
+      if (!dateValue) return 'N/A';
 
-      const parsedDate =
-        typeof dateValue === "string" ? parseISO(dateValue) : dateValue;
+      const parsedDate = typeof dateValue === 'string' ? parseISO(dateValue) : dateValue;
       const zonedDate = toZonedTime(parsedDate, timeZone);
 
-      return formatTZ(zonedDate, "PPP", { timeZone });
+      return formatTZ(zonedDate, 'PPP', { timeZone });
     };
 
     const isSubmitted = () => {
       if (!date) return false;
 
-      const submissionDate = typeof date === "string" ? parseISO(date) : date;
+      const submissionDate = typeof date === 'string' ? parseISO(date) : date;
       const currentDate = new Date();
       const startOfToday = new Date(currentDate);
       startOfToday.setHours(0, 0, 0, 0);
@@ -2892,13 +2695,13 @@ function AdminDashboardContent() {
       sevenDaysAgo.setDate(currentDate.getDate() - 7);
       sevenDaysAgo.setHours(0, 0, 0, 0);
 
-      if (type === "maintenance") {
+      if (type === 'maintenance') {
         return submissionDate >= sevenDaysAgo;
-      } else if (type === "certificate") {
+      } else if (type === 'certificate') {
         return false;
-      } else if (type === "dailyChecklist") {
+      } else if (type === 'dailyChecklist') {
         return submissionDate >= oneDayAgo;
-      } else if (type === "deposit") {
+      } else if (type === 'deposit') {
         return submissionDate >= startOfToday;
       } else {
         return submissionDate >= oneDayAgo;
@@ -2908,21 +2711,16 @@ function AdminDashboardContent() {
     return (
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">
-            {DOMPurify.sanitize(title)}
-          </CardTitle>
+          <CardTitle className="text-sm font-medium">{DOMPurify.sanitize(title)}</CardTitle>
           {icon}
         </CardHeader>
         <CardContent>
-          {type === "certificate" && !date ? (
+          {type === 'certificate' && !date ? (
             <>
               <p className="text-sm text-gray-500">No renewals needed</p>
               <div className="flex items-center mt-2">
                 <CheckCircledIcon className="text-green-500 mr-2" />
-                <Badge
-                  variant="outline"
-                  className="bg-green-100 text-green-800"
-                >
+                <Badge variant="outline" className="bg-green-100 text-green-800">
                   All Current
                 </Badge>
               </div>
@@ -2931,61 +2729,50 @@ function AdminDashboardContent() {
             <>
               <p className="text-sm text-gray-500">
                 {DOMPurify.sanitize(
-                  type === "certificate"
-                    ? "Oldest expiration:"
-                    : type === "dailyChecklist"
-                      ? "Last updated:"
-                      : "Last submitted:"
+                  type === 'certificate'
+                    ? 'Oldest expiration:'
+                    : type === 'dailyChecklist'
+                      ? 'Last updated:'
+                      : 'Last submitted:'
                 )}
               </p>
-              <p className="font-semibold">
-                {DOMPurify.sanitize(formatLocalDate(date))}
-              </p>
+              <p className="font-semibold">{DOMPurify.sanitize(formatLocalDate(date))}</p>
               {extraInfo && (
                 <p className="text-sm text-gray-500">
                   {DOMPurify.sanitize(
                     `${
-                      type === "maintenance"
-                        ? "Firearm:"
-                        : type === "deposit"
-                          ? "Employee:"
-                          : type === "certificate"
-                            ? "Total:"
-                            : type === "dailyChecklist"
-                              ? "Firearms down for service:"
-                              : "By:"
+                      type === 'maintenance'
+                        ? 'Firearm:'
+                        : type === 'deposit'
+                          ? 'Employee:'
+                          : type === 'certificate'
+                            ? 'Total:'
+                            : type === 'dailyChecklist'
+                              ? 'Firearms down for service:'
+                              : 'By:'
                     } ${extraInfo}`
                   )}
                 </p>
               )}
               <div className="flex items-center mt-2">
-                {type === "certificate" ? (
+                {type === 'certificate' ? (
                   <>
                     <CrossCircledIcon className="text-red-500 mr-2" />
-                    <Badge
-                      variant="outline"
-                      className="bg-red-100 text-red-800"
-                    >
+                    <Badge variant="outline" className="bg-red-100 text-red-800">
                       Renewals Needed
                     </Badge>
                   </>
                 ) : isSubmitted() ? (
                   <>
                     <CheckCircledIcon className="text-green-500 mr-2" />
-                    <Badge
-                      variant="outline"
-                      className="bg-green-100 text-green-800"
-                    >
+                    <Badge variant="outline" className="bg-green-100 text-green-800">
                       Submitted
                     </Badge>
                   </>
                 ) : (
                   <>
                     <CrossCircledIcon className="text-red-500 mr-2" />
-                    <Badge
-                      variant="outline"
-                      className="bg-red-100 text-red-800"
-                    >
+                    <Badge variant="outline" className="bg-red-100 text-red-800">
                       Not Submitted
                     </Badge>
                   </>
@@ -3008,7 +2795,7 @@ function AdminDashboardContent() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    {type === "deposit" ? (
+                    {type === 'deposit' ? (
                       <>
                         <TableHead className="w-[70%]">Register</TableHead>
                         <TableHead className="text-right">Amount</TableHead>
@@ -3026,43 +2813,31 @@ function AdminDashboardContent() {
                 <TableBody>
                   {details.map((item, index) => (
                     <TableRow key={index}>
-                      {type === "deposit" ? (
+                      {type === 'deposit' ? (
                         <>
                           <TableCell className="w-[70%]">
                             {DOMPurify.sanitize((item as DepositDetail).name)}
                           </TableCell>
                           <TableCell className="text-right">
                             <Badge variant="secondary">
-                              $
-                              {DOMPurify.sanitize(
-                                (item as DepositDetail).value
-                              )}
+                              ${DOMPurify.sanitize((item as DepositDetail).value)}
                             </Badge>
                           </TableCell>
                         </>
                       ) : (
                         <>
+                          <TableCell>{DOMPurify.sanitize((item as Certificate).name)}</TableCell>
                           <TableCell>
-                            {DOMPurify.sanitize((item as Certificate).name)}
+                            {DOMPurify.sanitize((item as Certificate).certificate)}
                           </TableCell>
                           <TableCell>
-                            {DOMPurify.sanitize(
-                              (item as Certificate).certificate
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {DOMPurify.sanitize(
-                              (item as Certificate).action_status
-                            )}
+                            {DOMPurify.sanitize((item as Certificate).action_status)}
                           </TableCell>
                           <TableCell>
                             <Badge variant="destructive">
                               {(item as Certificate).expiration
-                                ? format(
-                                    (item as Certificate).expiration,
-                                    "MM/dd/yyyy"
-                                  )
-                                : "No date"}
+                                ? format((item as Certificate).expiration, 'MM/dd/yyyy')
+                                : 'No date'}
                             </Badge>
                           </TableCell>
                         </>
@@ -3086,27 +2861,18 @@ function AdminDashboardContent() {
           <CardTitle>Customer Visit Frequency 2025</CardTitle>
         </CardHeader>
         <CardContent> */}
-        <h1 className="text-2xl font-bold mb-4">
-          Customer Visit Frequency 2025
-        </h1>
+        <h1 className="text-2xl font-bold mb-4">Customer Visit Frequency 2025</h1>
         <div className="grid grid-cols-1 gap-4">
           {metrics.customerFrequency.map((freq) => (
             <Card key={freq.visits} className="bg-muted/50">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">
-                  {freq.visits}
-                </CardTitle>
+                <CardTitle className="text-sm font-medium">{freq.visits}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{freq.percentage}%</div>
-                <p className="text-sm text-muted-foreground mt-1">
-                  of total customers
-                </p>
+                <p className="text-sm text-muted-foreground mt-1">of total customers</p>
                 <div className="mt-2 h-2 w-full bg-secondary rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-primary"
-                    style={{ width: `${freq.percentage}%` }}
-                  />
+                  <div className="h-full bg-primary" style={{ width: `${freq.percentage}%` }} />
                 </div>
               </CardContent>
             </Card>
@@ -3124,27 +2890,18 @@ function AdminDashboardContent() {
           <CardTitle>Customer Visit Frequency 2024</CardTitle>
         </CardHeader>
         <CardContent> */}
-        <h1 className="text-2xl font-bold mb-4">
-          Customer Visit Frequency 2024
-        </h1>
+        <h1 className="text-2xl font-bold mb-4">Customer Visit Frequency 2024</h1>
         <div className="grid grid-cols-1 gap-4">
           {metrics.customerFrequency.map((freq) => (
             <Card key={freq.visits} className="bg-muted/50">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">
-                  {freq.visits}
-                </CardTitle>
+                <CardTitle className="text-sm font-medium">{freq.visits}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{freq.percentage}%</div>
-                <p className="text-sm text-muted-foreground mt-1">
-                  of total customers
-                </p>
+                <p className="text-sm text-muted-foreground mt-1">of total customers</p>
                 <div className="mt-2 h-2 w-full bg-secondary rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-primary"
-                    style={{ width: `${freq.percentage}%` }}
-                  />
+                  <div className="h-full bg-primary" style={{ width: `${freq.percentage}%` }} />
                 </div>
               </CardContent>
             </Card>

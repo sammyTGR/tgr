@@ -1,7 +1,7 @@
-"use client";
-import Link from "next/link";
-import { CardTitle, CardHeader, CardContent, Card } from "@/components/ui/card";
-import { TextGenerateEffect } from "./ui/text-generate-effect";
+'use client';
+import Link from 'next/link';
+import { CardTitle, CardHeader, CardContent, Card } from '@/components/ui/card';
+import { TextGenerateEffect } from './ui/text-generate-effect';
 import {
   ActivityLogIcon,
   ArchiveIcon,
@@ -16,8 +16,8 @@ import {
   ReaderIcon,
   StopwatchIcon,
   TextIcon,
-} from "@radix-ui/react-icons";
-import { DollarSignIcon } from "lucide-react";
+} from '@radix-ui/react-icons';
+import { DollarSignIcon } from 'lucide-react';
 
 export const AdminReviewAuditsCard = () => (
   <>
@@ -82,9 +82,7 @@ export const CalendarCard = () => (
           <CardTitle>Calendar</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-gray-500 dark:text-gray-400 text-center">
-            Check Your Schedule
-          </p>
+          <p className="text-gray-500 dark:text-gray-400 text-center">Check Your Schedule</p>
         </CardContent>
       </Card>
     </Link>
@@ -208,9 +206,7 @@ export const DepositsCard = () => (
           <CardTitle>Submit Daily Deposits</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-gray-500 dark:text-gray-400 text-center">
-            Submit Daily Deposits.
-          </p>
+          <p className="text-gray-500 dark:text-gray-400 text-center">Submit Daily Deposits.</p>
         </CardContent>
       </Card>
     </Link>

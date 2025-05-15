@@ -1,8 +1,13 @@
-import React, { useState } from "react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { ChevronDown } from "lucide-react";
-import { CheckIcon } from "@radix-ui/react-icons"; // Import the CheckIcon
+import React, { useState } from 'react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
+import { ChevronDown } from 'lucide-react';
+import { CheckIcon } from '@radix-ui/react-icons'; // Import the CheckIcon
 
 interface FacetedFilterProps {
   columnId: string;
@@ -27,12 +32,12 @@ export const DataTableFacetedFilter: React.FC<FacetedFilterProps> = ({
       updatedValues = [...selectedValues, value];
     }
     setSelectedValues(updatedValues);
-    onSelect(updatedValues);  // Pass the array of selected values directly
+    onSelect(updatedValues); // Pass the array of selected values directly
   };
 
   const clearFilter = () => {
     setSelectedValues([]);
-    onSelect([]);  // Clear the filter
+    onSelect([]); // Clear the filter
   };
 
   return (
@@ -45,14 +50,9 @@ export const DataTableFacetedFilter: React.FC<FacetedFilterProps> = ({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           {options.map((option) => (
-            <DropdownMenuItem
-              key={option.value}
-              onSelect={() => handleSelect(option.value)}
-            >
+            <DropdownMenuItem key={option.value} onSelect={() => handleSelect(option.value)}>
               <div className="flex items-center">
-                {selectedValues.includes(option.value) && (
-                  <CheckIcon className="mr-2" />
-                )}
+                {selectedValues.includes(option.value) && <CheckIcon className="mr-2" />}
                 <span>{option.label}</span>
               </div>
             </DropdownMenuItem>
@@ -65,7 +65,7 @@ export const DataTableFacetedFilter: React.FC<FacetedFilterProps> = ({
         onClick={clearFilter}
         style={{
           opacity: selectedValues.length > 0 ? 1 : 0,
-          pointerEvents: selectedValues.length > 0 ? "auto" : "none",
+          pointerEvents: selectedValues.length > 0 ? 'auto' : 'none',
         }}
       >
         Clear Filter
@@ -73,4 +73,3 @@ export const DataTableFacetedFilter: React.FC<FacetedFilterProps> = ({
     </div>
   );
 };
-

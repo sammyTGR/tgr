@@ -1,7 +1,7 @@
-"use server";
+'use server';
 
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
 
 export type BulletinPost = {
   id: number;
@@ -28,9 +28,9 @@ export async function getBulletinPosts(): Promise<BulletinPost[]> {
   const supabase = createRouteHandlerClient({ cookies });
 
   const { data, error } = await supabase
-    .from("bulletin_posts")
-    .select("*")
-    .order("created_at", { ascending: false });
+    .from('bulletin_posts')
+    .select('*')
+    .order('created_at', { ascending: false });
 
   if (error) throw new Error(error.message);
   return data;
@@ -41,9 +41,9 @@ export async function getAcknowledgments(): Promise<Acknowledgment[]> {
   const supabase = createRouteHandlerClient({ cookies });
 
   const { data, error } = await supabase
-    .from("bulletin_acknowledgments")
-    .select("*")
-    .order("acknowledged_at", { ascending: false });
+    .from('bulletin_acknowledgments')
+    .select('*')
+    .order('acknowledged_at', { ascending: false });
 
   if (error) throw new Error(error.message);
   return data;
@@ -58,7 +58,7 @@ export async function createAcknowledgment(
 ): Promise<void> {
   const supabase = createRouteHandlerClient({ cookies });
 
-  const { error } = await supabase.from("bulletin_acknowledgments").insert({
+  const { error } = await supabase.from('bulletin_acknowledgments').insert({
     post_id: postId,
     employee_id: employeeId,
     employee_name: employeeName,

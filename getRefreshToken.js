@@ -23,7 +23,7 @@ const authUrl = oauth2Client.generateAuthUrl({
 console.log('Authorize this app by visiting this url:', authUrl);
 rl.question('Enter the code from that page here: ', async (code) => {
   try {
-    console.log("Authorization code received:", code);
+    console.log('Authorization code received:', code);
     const { tokens } = await oauth2Client.getToken(code.trim());
     console.log('Refresh Token:', tokens.refresh_token);
     rl.close();

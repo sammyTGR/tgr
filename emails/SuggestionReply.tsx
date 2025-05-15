@@ -8,8 +8,8 @@ import {
   Text,
   Button,
   Hr,
-} from "@react-email/components";
-import * as React from "react";
+} from '@react-email/components';
+import * as React from 'react';
 
 interface SuggestionReplyProps {
   employeeName: string;
@@ -42,8 +42,8 @@ export const SuggestionReply = ({
         <Text style={text}>{replyText}</Text>
         <Hr style={hr} />
         <Text style={text}>
-          Thank you for your valuable input. If you have any questions, please
-          don't hesitate to reach out!
+          Thank you for your valuable input. If you have any questions, please don't hesitate to
+          reach out!
         </Text>
       </Container>
     </Body>
@@ -53,59 +53,59 @@ export const SuggestionReply = ({
 export default SuggestionReply;
 
 const main = {
-  backgroundColor: "#ffffff",
+  backgroundColor: '#ffffff',
   fontFamily:
     '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif',
 };
 
 const container = {
-  backgroundColor: "#ffffff",
-  margin: "0 auto",
-  padding: "20px 0 48px",
-  marginBottom: "64px",
+  backgroundColor: '#ffffff',
+  margin: '0 auto',
+  padding: '20px 0 48px',
+  marginBottom: '64px',
 };
 
 const heading = {
-  fontSize: "32px",
-  lineHeight: "1.3",
-  fontWeight: "700",
-  color: "#484848",
+  fontSize: '32px',
+  lineHeight: '1.3',
+  fontWeight: '700',
+  color: '#484848',
 };
 
 const paragraph = {
-  fontSize: "18px",
-  lineHeight: "1.4",
-  color: "#484848",
+  fontSize: '18px',
+  lineHeight: '1.4',
+  color: '#484848',
 };
 
 const hr = {
-  borderColor: "#cccccc",
-  margin: "20px 0",
+  borderColor: '#cccccc',
+  margin: '20px 0',
 };
 
 const button = {
-  backgroundColor: "#5469d4",
-  borderRadius: "5px",
-  color: "#fff",
-  fontSize: "16px",
-  fontWeight: "bold",
-  textDecoration: "none",
-  textAlign: "center" as const,
-  display: "block",
-  width: "200px",
-  padding: "14px 7px",
+  backgroundColor: '#5469d4',
+  borderRadius: '5px',
+  color: '#fff',
+  fontSize: '16px',
+  fontWeight: 'bold',
+  textDecoration: 'none',
+  textAlign: 'center' as const,
+  display: 'block',
+  width: '200px',
+  padding: '14px 7px',
 };
 
 const h1 = {
-  color: "#333",
-  fontSize: "24px",
-  fontWeight: "bold",
-  paddingTop: "32px",
-  paddingBottom: "32px",
+  color: '#333',
+  fontSize: '24px',
+  fontWeight: 'bold',
+  paddingTop: '32px',
+  paddingBottom: '32px',
 };
 
 const text = {
-  color: "#333",
-  fontSize: "16px",
-  lineHeight: "26px",
+  color: '#333',
+  fontSize: '16px',
+  lineHeight: '26px',
 };

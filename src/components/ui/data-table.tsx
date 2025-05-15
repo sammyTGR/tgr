@@ -1,4 +1,4 @@
-import * as React from "react";
+import * as React from 'react';
 import {
   ColumnFiltersState,
   SortingState,
@@ -9,7 +9,7 @@ import {
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
-} from "@tanstack/react-table";
+} from '@tanstack/react-table';
 
 import {
   Table,
@@ -18,39 +18,33 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+} from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { ChevronDown } from "lucide-react";
-import { DataTablePagination } from "@/app/admin/audits/review/pagination";
-import { ColumnDef, AuditData } from "@/app/admin/audits/review/columns"; // Import the extended type and AuditData type
-import { Cross2Icon } from "@radix-ui/react-icons";
+} from '@/components/ui/dropdown-menu';
+import { ChevronDown } from 'lucide-react';
+import { DataTablePagination } from '@/app/admin/audits/review/pagination';
+import { ColumnDef, AuditData } from '@/app/admin/audits/review/columns'; // Import the extended type and AuditData type
+import { Cross2Icon } from '@radix-ui/react-icons';
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
 }
 
-export function DataTable<TData, TValue>({
-  columns,
-  data,
-}: DataTableProps<TData, TValue>) {
+export function DataTable<TData, TValue>({ columns, data }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
-  );
-  const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({});
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [localFilters, setLocalFilters] = React.useState({
-    salesreps: "",
-    dros_number: "",
-    error_location: "",
+    salesreps: '',
+    dros_number: '',
+    error_location: '',
   });
 
   const table = useReactTable({
@@ -72,19 +66,17 @@ export function DataTable<TData, TValue>({
     manualSorting: false, // Set based on your data handling strategy
   });
 
-  const hasFilters = Object.values(localFilters).some(
-    (filter) => filter !== ""
-  );
+  const hasFilters = Object.values(localFilters).some((filter) => filter !== '');
 
   const clearFilters = React.useCallback(() => {
     setLocalFilters({
-      salesreps: "",
-      dros_number: "",
-      error_location: "",
+      salesreps: '',
+      dros_number: '',
+      error_location: '',
     });
-    table.getColumn("salesreps")?.setFilterValue("");
-    table.getColumn("dros_number")?.setFilterValue("");
-    table.getColumn("error_location")?.setFilterValue("");
+    table.getColumn('salesreps')?.setFilterValue('');
+    table.getColumn('dros_number')?.setFilterValue('');
+    table.getColumn('error_location')?.setFilterValue('');
     // console.log("Filters cleared");
   }, [table]);
 
@@ -101,33 +93,23 @@ export function DataTable<TData, TValue>({
           <Input
             placeholder="Filter By Sales Rep..."
             value={localFilters.salesreps}
-            onChange={(event) =>
-              handleFilterChange("salesreps", event.target.value)
-            }
+            onChange={(event) => handleFilterChange('salesreps', event.target.value)}
             className="max-w-sm w-full"
           />
           <Input
             placeholder="Filter By DROS"
             value={localFilters.dros_number}
-            onChange={(event) =>
-              handleFilterChange("dros_number", event.target.value)
-            }
+            onChange={(event) => handleFilterChange('dros_number', event.target.value)}
             className="max-w-sm w-full"
           />
           <Input
             placeholder="Filter By Location"
             value={localFilters.error_location}
-            onChange={(event) =>
-              handleFilterChange("error_location", event.target.value)
-            }
+            onChange={(event) => handleFilterChange('error_location', event.target.value)}
             className="max-w-sm w-full"
           />
           {hasFilters && (
-            <Button
-              variant="ghost"
-              onClick={clearFilters}
-              className="h-8 px-2 lg:px-3"
-            >
+            <Button variant="ghost" onClick={clearFilters} className="h-8 px-2 lg:px-3">
               Clear Filters
               <Cross2Icon className="ml-2 h-4 w-4" />
             </Button>
@@ -149,9 +131,7 @@ export function DataTable<TData, TValue>({
                     key={column.id}
                     className="capitalize"
                     checked={column.getIsVisible()}
-                    onCheckedChange={(value) =>
-                      column.toggleVisibility(!!value)
-                    }
+                    onCheckedChange={(value) => column.toggleVisibility(!!value)}
                   >
                     {column.id}
                   </DropdownMenuCheckboxItem>
@@ -179,10 +159,7 @@ export function DataTable<TData, TValue>({
                       >
                         {header.isPlaceholder
                           ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
+                          : flexRender(header.column.columnDef.header, header.getContext())}
                       </TableHead>
                     );
                   })}
@@ -192,10 +169,7 @@ export function DataTable<TData, TValue>({
             <TableBody>
               {table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    data-state={row.getIsSelected() && "selected"}
-                  >
+                  <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'}>
                     {row.getVisibleCells().map((cell) => {
                       const metaStyle = (
                         cell.column.columnDef.meta as {
@@ -207,10 +181,7 @@ export function DataTable<TData, TValue>({
                           key={cell.id}
                           style={metaStyle} // Apply the fixed width style
                         >
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext()
-                          )}
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </TableCell>
                       );
                     })}
@@ -218,10 +189,7 @@ export function DataTable<TData, TValue>({
                 ))
               ) : (
                 <TableRow>
-                  <TableCell
-                    colSpan={columns.length}
-                    className="h-24 text-center"
-                  >
+                  <TableCell colSpan={columns.length} className="h-24 text-center">
                     No results.
                   </TableCell>
                 </TableRow>

@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 // import useRealtimeNotifications from "@/utils/useRealtimeNotifications";
 

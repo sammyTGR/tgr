@@ -1,23 +1,17 @@
-"use client";
+'use client';
 
-import React from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
+import React from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
 import {
   SearchInventoryRequest,
   SearchInventoryResponse,
   SearchInventoryApiResult,
-} from "@/app/api/aim/dtos";
+} from '@/app/api/aim/dtos';
 import {
   Table,
   TableBody,
@@ -25,49 +19,48 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2 } from "lucide-react";
-import { useDebounce } from "@/hooks/use-debounce";
+} from '@/components/ui/table';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Loader2 } from 'lucide-react';
+import { useDebounce } from '@/hooks/use-debounce';
 
 export default function AimPage() {
-  const [searchParams, setSearchParams] =
-    React.useState<SearchInventoryRequest>(
-      new SearchInventoryRequest({
-        SearchStr: "",
-        IncludeSerials: true,
-        IncludeMedia: true,
-        IncludeAccessories: true,
-        IncludePackages: true,
-        IncludeDetails: true,
-        IncludeIconImage: true,
-        ExactModel: false,
-        StartOffset: 0,
-        RecordCount: 50,
-      })
-    );
+  const [searchParams, setSearchParams] = React.useState<SearchInventoryRequest>(
+    new SearchInventoryRequest({
+      SearchStr: '',
+      IncludeSerials: true,
+      IncludeMedia: true,
+      IncludeAccessories: true,
+      IncludePackages: true,
+      IncludeDetails: true,
+      IncludeIconImage: true,
+      ExactModel: false,
+      StartOffset: 0,
+      RecordCount: 50,
+    })
+  );
 
   const debouncedSearchStr = useDebounce(searchParams.SearchStr, 500);
 
   const searchQuery = useQuery({
-    queryKey: ["inventorySearch", debouncedSearchStr, searchParams],
+    queryKey: ['inventorySearch', debouncedSearchStr, searchParams],
     queryFn: async () => {
-      const response = await fetch("/api/inventory", {
-        method: "POST",
+      const response = await fetch('/api/inventory', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify(searchParams),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to fetch inventory");
+        throw new Error('Failed to fetch inventory');
       }
 
       const data: SearchInventoryResponse = await response.json();
 
-      if (data.Status?.StatusCode === "Error") {
-        throw new Error(data.Status.ErrorMessage || "API Error");
+      if (data.Status?.StatusCode === 'Error') {
+        throw new Error(data.Status.ErrorMessage || 'API Error');
       }
 
       return data;
@@ -85,10 +78,7 @@ export default function AimPage() {
     );
   };
 
-  const handleCheckboxChange = (
-    field: keyof SearchInventoryRequest,
-    checked: boolean
-  ) => {
+  const handleCheckboxChange = (field: keyof SearchInventoryRequest, checked: boolean) => {
     setSearchParams(
       (prev) =>
         new SearchInventoryRequest({
@@ -105,9 +95,7 @@ export default function AimPage() {
       <Card className="mb-8">
         <CardHeader>
           <CardTitle>Search Parameters</CardTitle>
-          <CardDescription>
-            Search inventory by manufacturer name or other details
-          </CardDescription>
+          <CardDescription>Search inventory by manufacturer name or other details</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
@@ -131,7 +119,7 @@ export default function AimPage() {
                   id="IncludeSerials"
                   checked={searchParams.IncludeSerials}
                   onCheckedChange={(checked) =>
-                    handleCheckboxChange("IncludeSerials", checked as boolean)
+                    handleCheckboxChange('IncludeSerials', checked as boolean)
                   }
                 />
                 <Label htmlFor="IncludeSerials">Include Serials</Label>
@@ -142,7 +130,7 @@ export default function AimPage() {
                   id="IncludeMedia"
                   checked={searchParams.IncludeMedia}
                   onCheckedChange={(checked) =>
-                    handleCheckboxChange("IncludeMedia", checked as boolean)
+                    handleCheckboxChange('IncludeMedia', checked as boolean)
                   }
                 />
                 <Label htmlFor="IncludeMedia">Include Media</Label>
@@ -153,10 +141,7 @@ export default function AimPage() {
                   id="IncludeAccessories"
                   checked={searchParams.IncludeAccessories}
                   onCheckedChange={(checked) =>
-                    handleCheckboxChange(
-                      "IncludeAccessories",
-                      checked as boolean
-                    )
+                    handleCheckboxChange('IncludeAccessories', checked as boolean)
                   }
                 />
                 <Label htmlFor="IncludeAccessories">Include Accessories</Label>
@@ -167,7 +152,7 @@ export default function AimPage() {
                   id="ExactModel"
                   checked={searchParams.ExactModel}
                   onCheckedChange={(checked) =>
-                    handleCheckboxChange("ExactModel", checked as boolean)
+                    handleCheckboxChange('ExactModel', checked as boolean)
                   }
                 />
                 <Label htmlFor="ExactModel">Exact Model Match</Label>
@@ -178,9 +163,7 @@ export default function AimPage() {
       </Card>
 
       {searchQuery.isError && (
-        <div className="text-red-500 mb-4">
-          Error: {(searchQuery.error as Error).message}
-        </div>
+        <div className="text-red-500 mb-4">Error: {(searchQuery.error as Error).message}</div>
       )}
 
       {searchQuery.isLoading && (
@@ -195,16 +178,13 @@ export default function AimPage() {
             <CardTitle>Search Results</CardTitle>
             <CardDescription>
               Found {searchQuery.data.TotalRecords ?? 0} items
-              {searchQuery.data.StartOffset !== undefined &&
-                searchQuery.data.Records && (
-                  <>
-                    {" "}
-                    (Showing {searchQuery.data.StartOffset + 1} -{" "}
-                    {searchQuery.data.StartOffset +
-                      searchQuery.data.Records.length}
-                    )
-                  </>
-                )}
+              {searchQuery.data.StartOffset !== undefined && searchQuery.data.Records && (
+                <>
+                  {' '}
+                  (Showing {searchQuery.data.StartOffset + 1} -{' '}
+                  {searchQuery.data.StartOffset + searchQuery.data.Records.length})
+                </>
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -221,29 +201,23 @@ export default function AimPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {searchQuery.data.Records.map(
-                    (item: SearchInventoryApiResult) => (
-                      <TableRow key={item.Pk}>
-                        <TableCell className="font-medium">
-                          {item.Model || "N/A"}
-                        </TableCell>
-                        <TableCell>{item.Description || "N/A"}</TableCell>
-                        <TableCell>
-                          {item.CategoryDescription || "N/A"}
-                        </TableCell>
-                        <TableCell>{item.Manufacturer || "N/A"}</TableCell>
-                        <TableCell>{item.Sku || "N/A"}</TableCell>
-                        <TableCell className="text-right">
-                          {item.CustomerPrice
-                            ? new Intl.NumberFormat("en-US", {
-                                style: "currency",
-                                currency: "USD",
-                              }).format(item.CustomerPrice)
-                            : "N/A"}
-                        </TableCell>
-                      </TableRow>
-                    )
-                  )}
+                  {searchQuery.data.Records.map((item: SearchInventoryApiResult) => (
+                    <TableRow key={item.Pk}>
+                      <TableCell className="font-medium">{item.Model || 'N/A'}</TableCell>
+                      <TableCell>{item.Description || 'N/A'}</TableCell>
+                      <TableCell>{item.CategoryDescription || 'N/A'}</TableCell>
+                      <TableCell>{item.Manufacturer || 'N/A'}</TableCell>
+                      <TableCell>{item.Sku || 'N/A'}</TableCell>
+                      <TableCell className="text-right">
+                        {item.CustomerPrice
+                          ? new Intl.NumberFormat('en-US', {
+                              style: 'currency',
+                              currency: 'USD',
+                            }).format(item.CustomerPrice)
+                          : 'N/A'}
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             </ScrollArea>

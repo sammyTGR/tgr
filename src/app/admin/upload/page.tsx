@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { UploadButton } from "@/utils/uploadthing";
-import { toast } from "sonner";
+import { UploadButton } from '@/utils/uploadthing';
+import { toast } from 'sonner';
 
 export default function Home() {
   return (
@@ -11,12 +11,12 @@ export default function Home() {
         endpoint="fileUploader"
         onClientUploadComplete={(res) => {
           // console.log("Files: ", res);
-          toast.success("File uploaded successfully!");
+          toast.success('File uploaded successfully!');
         }}
         onUploadError={(error: Error) => {
           //console.("Upload Error:", error.message);
           //console.("Error Stack:", error.stack);
-          toast.error("Error uploading file: " + error.message);
+          toast.error('Error uploading file: ' + error.message);
         }}
       />
     </main>

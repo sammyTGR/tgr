@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { Trash2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,7 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+} from '@/components/ui/alert-dialog';
 
 interface ChatItem {
   id: string;
@@ -40,7 +40,7 @@ export function ChatSidebar({
   const queryClient = useQueryClient();
 
   const { data: currentUser } = useQuery({
-    queryKey: ["currentUser"],
+    queryKey: ['currentUser'],
     queryFn: async () => {
       const {
         data: { user },
@@ -53,48 +53,48 @@ export function ChatSidebar({
 
   // Subscribe to real-time updates for chats, messages, and chat_participants
   useQuery({
-    queryKey: ["chatSubscription", currentUser?.id],
+    queryKey: ['chatSubscription', currentUser?.id],
     queryFn: async () => {
       const channel = supabase
-        .channel("chat-updates")
+        .channel('chat-updates')
         .on(
-          "postgres_changes",
+          'postgres_changes',
           {
-            event: "*", // Listen to all events (INSERT, UPDATE, DELETE)
-            schema: "public",
-            table: "chats",
+            event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+            schema: 'public',
+            table: 'chats',
           },
           () => {
             queryClient.invalidateQueries({
-              queryKey: ["chats", currentUser?.id],
+              queryKey: ['chats', currentUser?.id],
               exact: true,
             });
           }
         )
         .on(
-          "postgres_changes",
+          'postgres_changes',
           {
-            event: "INSERT",
-            schema: "public",
-            table: "messages",
+            event: 'INSERT',
+            schema: 'public',
+            table: 'messages',
           },
           () => {
             queryClient.invalidateQueries({
-              queryKey: ["chats", currentUser?.id],
+              queryKey: ['chats', currentUser?.id],
               exact: true,
             });
           }
         )
         .on(
-          "postgres_changes",
+          'postgres_changes',
           {
-            event: "INSERT",
-            schema: "public",
-            table: "chat_participants",
+            event: 'INSERT',
+            schema: 'public',
+            table: 'chat_participants',
           },
           () => {
             queryClient.invalidateQueries({
-              queryKey: ["chats", currentUser?.id],
+              queryKey: ['chats', currentUser?.id],
               exact: true,
             });
           }
@@ -109,12 +109,12 @@ export function ChatSidebar({
   });
 
   const { data: chats = [] } = useQuery({
-    queryKey: ["chats", currentUser?.id],
+    queryKey: ['chats', currentUser?.id],
     queryFn: async () => {
       if (!currentUser) return [];
 
       const { data: chatsData, error: chatsError } = await supabase
-        .from("chats")
+        .from('chats')
         .select(
           `
           id,
@@ -130,11 +130,11 @@ export function ChatSidebar({
           )
         `
         )
-        .eq("chat_participants.user_id", currentUser.id)
-        .order("updated_at", { ascending: false });
+        .eq('chat_participants.user_id', currentUser.id)
+        .order('updated_at', { ascending: false });
 
       if (chatsError) {
-        console.error("Error fetching chats:", chatsError);
+        console.error('Error fetching chats:', chatsError);
         throw chatsError;
       }
 
@@ -142,9 +142,7 @@ export function ChatSidebar({
         chatsData?.map((chat) => {
           const unreadCount =
             chat.messages?.filter((msg) => {
-              const hasRead = msg.message_reads?.some(
-                (read) => read.user_id === currentUser?.id
-              );
+              const hasRead = msg.message_reads?.some((read) => read.user_id === currentUser?.id);
               return !hasRead;
             }).length || 0;
 
@@ -164,14 +162,14 @@ export function ChatSidebar({
 
   const deleteChat = useMutation({
     mutationFn: async (chatId: string) => {
-      const { error } = await supabase.from("chats").delete().eq("id", chatId);
+      const { error } = await supabase.from('chats').delete().eq('id', chatId);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["chats"] });
+      queryClient.invalidateQueries({ queryKey: ['chats'] });
     },
     onError: (error) => {
-      console.error("Failed to delete chat:", error);
+      console.error('Failed to delete chat:', error);
     },
   });
 
@@ -192,15 +190,13 @@ export function ChatSidebar({
         <AlertDialogHeader>
           <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
           <AlertDialogDescription>
-            This action cannot be undone. This will permanently delete the chat
-            and remove all messages.
+            This action cannot be undone. This will permanently delete the chat and remove all
+            messages.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={() => onDeleteChat(chatId)}>
-            Delete
-          </AlertDialogAction>
+          <AlertDialogAction onClick={() => onDeleteChat(chatId)}>Delete</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
@@ -240,7 +236,7 @@ export function ChatSidebar({
                           {chat.unreadCount} new
                         </span>
                       ) : (
-                        "All caught up"
+                        'All caught up'
                       )}
                     </p>
                   </div>

@@ -1,6 +1,6 @@
-import { JsonServiceClient } from "@servicestack/client";
-import https from "https";
-import fetch from "node-fetch";
+import { JsonServiceClient } from '@servicestack/client';
+import https from 'https';
+import fetch from 'node-fetch';
 
 interface EndpointResponse {
   NewEndpointDomain: string;
@@ -30,14 +30,12 @@ export class AimService {
 
   private async getEndpoint(): Promise<EndpointResponse> {
     try {
-      const baseUrl =
-        process.env.AIM_API_URL ||
-        "https://active-ewebservice.biz/aeServices30/api";
+      const baseUrl = process.env.AIM_API_URL || 'https://active-ewebservice.biz/aeServices30/api';
       const response = await fetch(`${baseUrl}/GetEndpoint`, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
         },
         body: JSON.stringify({
           ApiKey: process.env.API_KEY,
@@ -57,21 +55,18 @@ export class AimService {
 
       return (await response.json()) as EndpointResponse;
     } catch (error: any) {
-      console.error("GetEndpoint error:", error);
+      console.error('GetEndpoint error:', error);
       throw new Error(`Failed to get endpoint: ${error.message}`);
     }
   }
 
-  private async getSecurityToken(
-    endpointDomain: string,
-    oauthToken: string
-  ): Promise<string> {
+  private async getSecurityToken(endpointDomain: string, oauthToken: string): Promise<string> {
     try {
       const response = await fetch(`${endpointDomain}/api/GetSecurityToken`, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
           APIKey: process.env.API_KEY!,
           OAuthToken: oauthToken,
           AppId: process.env.APP_ID!,
@@ -89,16 +84,13 @@ export class AimService {
       });
 
       if (!response.ok) {
-        throw new Error(
-          `GetSecurityToken failed with status ${response.status}`
-        );
+        throw new Error(`GetSecurityToken failed with status ${response.status}`);
       }
 
-      const securityResponse: SecurityResponse =
-        (await response.json()) as SecurityResponse;
+      const securityResponse: SecurityResponse = (await response.json()) as SecurityResponse;
       return securityResponse.Token;
     } catch (error: any) {
-      console.error("GetSecurityToken error:", error);
+      console.error('GetSecurityToken error:', error);
       throw new Error(`Failed to get security token: ${error.message}`);
     }
   }
@@ -111,10 +103,7 @@ export class AimService {
       this.oauthToken = endpointResponse.OAuthToken;
 
       // Step 2: Get security token
-      this.securityToken = await this.getSecurityToken(
-        this.endpointDomain,
-        this.oauthToken
-      );
+      this.securityToken = await this.getSecurityToken(this.endpointDomain, this.oauthToken);
 
       // Step 3: Create client with all required headers
       const client = new JsonServiceClient(this.endpointDomain);
@@ -127,7 +116,7 @@ export class AimService {
 
       return client;
     } catch (error: any) {
-      console.error("Client initialization error:", error);
+      console.error('Client initialization error:', error);
       throw new Error(`Failed to initialize client: ${error.message}`);
     }
   }

@@ -1,26 +1,21 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
+import { useState, useEffect } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { X, Plus, Trash } from "lucide-react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+} from '@/components/ui/select';
+import { X, Plus, Trash } from 'lucide-react';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
 interface AddPatchNoteDialogProps {
   open: boolean;
@@ -37,23 +32,19 @@ interface AddPatchNoteDialogProps {
   } | null;
 }
 
-type ChangeType = "added" | "changed" | "fixed" | "removed";
+type ChangeType = 'added' | 'changed' | 'fixed' | 'removed';
 
 interface ChangeSection {
   type: ChangeType;
   items: string[];
 }
 
-export function AddPatchNoteDialog({
-  open,
-  onOpenChange,
-  editNote,
-}: AddPatchNoteDialogProps) {
-  const [version, setVersion] = useState(editNote?.version || "");
-  const [title, setTitle] = useState(editNote?.title || "");
-  const [description, setDescription] = useState(editNote?.description || "");
+export function AddPatchNoteDialog({ open, onOpenChange, editNote }: AddPatchNoteDialogProps) {
+  const [version, setVersion] = useState(editNote?.version || '');
+  const [title, setTitle] = useState(editNote?.title || '');
+  const [description, setDescription] = useState(editNote?.description || '');
   const [changes, setChanges] = useState<ChangeSection[]>(
-    editNote?.changes || [{ type: "added", items: [""] }]
+    editNote?.changes || [{ type: 'added', items: [''] }]
   );
 
   useEffect(() => {
@@ -74,31 +65,31 @@ export function AddPatchNoteDialog({
     mutationFn: async (patchNote: any) => {
       if (editNote) {
         const { error } = await supabase
-          .from("patch_notes")
+          .from('patch_notes')
           .update(patchNote)
-          .eq("id", editNote.id);
+          .eq('id', editNote.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("patch_notes").insert(patchNote);
+        const { error } = await supabase.from('patch_notes').insert(patchNote);
         if (error) throw error;
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["patch-notes"] });
+      queryClient.invalidateQueries({ queryKey: ['patch-notes'] });
       resetForm();
       onOpenChange(false);
     },
   });
 
   const resetForm = () => {
-    setVersion("");
-    setTitle("");
-    setDescription("");
-    setChanges([{ type: "added", items: [""] }]);
+    setVersion('');
+    setTitle('');
+    setDescription('');
+    setChanges([{ type: 'added', items: [''] }]);
   };
 
   const addChangeSection = () => {
-    setChanges([...changes, { type: "added", items: [""] }]);
+    setChanges([...changes, { type: 'added', items: [''] }]);
   };
 
   const removeChangeSection = (index: number) => {
@@ -107,7 +98,7 @@ export function AddPatchNoteDialog({
 
   const addChangeItem = (sectionIndex: number) => {
     const newChanges = [...changes];
-    newChanges[sectionIndex].items.push("");
+    newChanges[sectionIndex].items.push('');
     setChanges(newChanges);
   };
 
@@ -125,11 +116,7 @@ export function AddPatchNoteDialog({
     setChanges(newChanges);
   };
 
-  const updateChangeItem = (
-    sectionIndex: number,
-    itemIndex: number,
-    value: string
-  ) => {
+  const updateChangeItem = (sectionIndex: number, itemIndex: number, value: string) => {
     const newChanges = [...changes];
     newChanges[sectionIndex].items[itemIndex] = value;
     setChanges(newChanges);
@@ -141,7 +128,7 @@ export function AddPatchNoteDialog({
     const filteredChanges = changes
       .map((section) => ({
         ...section,
-        items: section.items.filter((item) => item.trim() !== ""),
+        items: section.items.filter((item) => item.trim() !== ''),
       }))
       .filter((section) => section.items.length > 0);
 
@@ -157,9 +144,7 @@ export function AddPatchNoteDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
-            {editNote ? "Edit Patch Note" : "Add New Patch Note"}
-          </DialogTitle>
+          <DialogTitle>{editNote ? 'Edit Patch Note' : 'Add New Patch Note'}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -202,28 +187,18 @@ PATCH: Bug fixes (1.0.1, 1.0.2, etc.)`}
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <Label>Changes</Label>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={addChangeSection}
-              >
+              <Button type="button" variant="outline" size="sm" onClick={addChangeSection}>
                 <Plus className="w-4 h-4 mr-2" />
                 Add Section
               </Button>
             </div>
 
             {changes.map((section, sectionIndex) => (
-              <div
-                key={sectionIndex}
-                className="space-y-2 p-4 border rounded-lg"
-              >
+              <div key={sectionIndex} className="space-y-2 p-4 border rounded-lg">
                 <div className="flex items-center gap-2">
                   <Select
                     value={section.type}
-                    onValueChange={(value: ChangeType) =>
-                      updateChangeType(sectionIndex, value)
-                    }
+                    onValueChange={(value: ChangeType) => updateChangeType(sectionIndex, value)}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -249,13 +224,7 @@ PATCH: Bug fixes (1.0.1, 1.0.2, etc.)`}
                   <div key={itemIndex} className="flex items-center gap-2">
                     <Input
                       value={item}
-                      onChange={(e) =>
-                        updateChangeItem(
-                          sectionIndex,
-                          itemIndex,
-                          e.target.value
-                        )
-                      }
+                      onChange={(e) => updateChangeItem(sectionIndex, itemIndex, e.target.value)}
                       placeholder="Change description"
                     />
                     <Button
@@ -283,15 +252,11 @@ PATCH: Bug fixes (1.0.1, 1.0.2, etc.)`}
           </div>
 
           <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
             <Button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending ? "Saving..." : editNote ? "Update" : "Save"}
+              {mutation.isPending ? 'Saving...' : editNote ? 'Update' : 'Save'}
             </Button>
           </div>
         </form>

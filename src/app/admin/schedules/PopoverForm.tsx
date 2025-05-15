@@ -1,27 +1,23 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-} from "@/components/ui/popover";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+import { useState } from 'react';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { toast } from "sonner";
-import dynamic from "next/dynamic";
-import { parseISO } from "date-fns";
-import { format, toZonedTime } from "date-fns-tz";
-import { useQuery } from "@tanstack/react-query";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+} from '@/components/ui/select';
+import { toast } from 'sonner';
+import dynamic from 'next/dynamic';
+import { parseISO } from 'date-fns';
+import { format, toZonedTime } from 'date-fns-tz';
+import { useQuery } from '@tanstack/react-query';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
 interface TimesheetData {
   id: number;
@@ -49,12 +45,12 @@ interface PopoverFormProps {
   buttonText: string;
   placeholder: string;
   formType:
-    | "generate"
-    | "addSchedule"
-    | "generateAll"
-    | "clearSchedule"
-    | "editTimesheet"
-    | "updateSchedule";
+    | 'generate'
+    | 'addSchedule'
+    | 'generateAll'
+    | 'clearSchedule'
+    | 'editTimesheet'
+    | 'updateSchedule';
   row?: TimesheetData;
   fetchSchedule?: (
     employeeId: number,
@@ -68,7 +64,7 @@ const ClientPopoverForm = dynamic(() => Promise.resolve(PopoverForm), {
   ssr: false,
 });
 
-const timeZone = "America/Los_Angeles";
+const timeZone = 'America/Los_Angeles';
 
 interface Employee {
   employee_id: number;
@@ -90,89 +86,75 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
   const supabase = createClientComponentClient();
 
   const { data: employees } = useQuery({
-    queryKey: ["activeHourlyAndSalaryEmployees"],
+    queryKey: ['activeHourlyAndSalaryEmployees'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("employees")
-        .select("employee_id, name")
-        .eq("status", "active")
-        .in("pay_type", ["hourly", "salary"])
-        .order("name");
+        .from('employees')
+        .select('employee_id, name')
+        .eq('status', 'active')
+        .in('pay_type', ['hourly', 'salary'])
+        .order('name');
 
       if (error) throw error;
       return data;
     },
   });
 
-  const [employeeName, setEmployeeName] = useState("");
-  const [weeks, setWeeks] = useState("");
-  const [date, setDate] = useState("");
+  const [employeeName, setEmployeeName] = useState('');
+  const [weeks, setWeeks] = useState('');
+  const [date, setDate] = useState('');
   const [employeeId, setEmployeeId] = useState<number | null>(null);
-  const [startTime, setStartTime] = useState("");
-  const [endTime, setEndTime] = useState("");
-  const [lunchStart, setLunchStart] = useState(row?.lunch_start || "");
-  const [lunchEnd, setLunchEnd] = useState(row?.lunch_end || "");
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
+  const [lunchStart, setLunchStart] = useState(row?.lunch_start || '');
+  const [lunchEnd, setLunchEnd] = useState(row?.lunch_end || '');
 
   const handleSubmit = async () => {
-    if (formType === "generate" || formType === "clearSchedule") {
-      const selectedEmployee = employees?.find(
-        (emp) => emp.employee_id === employeeId
-      );
-      onSubmit(selectedEmployee?.name || "", weeks);
-      if (formType === "generate") {
-        toast.success(
-          `Published ${weeks} weeks of schedules for ${selectedEmployee?.name}!`
-        );
+    if (formType === 'generate' || formType === 'clearSchedule') {
+      const selectedEmployee = employees?.find((emp) => emp.employee_id === employeeId);
+      onSubmit(selectedEmployee?.name || '', weeks);
+      if (formType === 'generate') {
+        toast.success(`Published ${weeks} weeks of schedules for ${selectedEmployee?.name}!`);
       } else {
         toast.success(`Cleared all of ${selectedEmployee?.name}'s schedules!`);
       }
-    } else if (formType === "generateAll") {
-      onSubmit("", weeks);
-      toast.success(
-        `${weeks} weeks of schedules have been published for the crew!`
-      );
+    } else if (formType === 'generateAll') {
+      onSubmit('', weeks);
+      toast.success(`${weeks} weeks of schedules have been published for the crew!`);
     } else if (
-      (formType === "addSchedule" || formType === "updateSchedule") &&
+      (formType === 'addSchedule' || formType === 'updateSchedule') &&
       employeeId &&
       date &&
       startTime &&
       endTime
     ) {
-      const selectedEmployee = employees?.find(
-        (emp) => emp.employee_id === employeeId
-      );
+      const selectedEmployee = employees?.find((emp) => emp.employee_id === employeeId);
 
       const formattedStartTime = `${startTime}:00`;
       const formattedEndTime = `${endTime}:00`;
       // Convert the date to Pacific Time
       const pacificDate = toZonedTime(parseISO(date), timeZone);
       // Format the date for the API
-      const formattedDate = format(pacificDate, "yyyy-MM-dd");
+      const formattedDate = format(pacificDate, 'yyyy-MM-dd');
 
-      onSubmit(
-        selectedEmployee?.name || "",
-        undefined,
-        date,
-        formattedStartTime,
-        formattedEndTime
-      );
+      onSubmit(selectedEmployee?.name || '', undefined, date, formattedStartTime, formattedEndTime);
 
       // Call the update_schedule_status API for both add and update
-      await fetch("/api/update_schedule_status", {
-        method: "POST",
+      await fetch('/api/update_schedule_status', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           employee_id: employeeId,
           schedule_date: date,
-          status: formType === "addSchedule" ? "added_day" : "updated_shift",
+          status: formType === 'addSchedule' ? 'added_day' : 'updated_shift',
           start_time: formattedStartTime,
           end_time: formattedEndTime,
         }),
       });
 
-      if (formType === "addSchedule") {
+      if (formType === 'addSchedule') {
         toast.success(
           `Added a shift for ${selectedEmployee?.name} on ${formattedDate} from ${startTime} - ${endTime}!`
         );
@@ -181,9 +163,9 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
           `Updated shift for ${selectedEmployee?.name} on ${formattedDate} from ${startTime} - ${endTime}!`
         );
       }
-    } else if (formType === "editTimesheet") {
+    } else if (formType === 'editTimesheet') {
       onSubmit(
-        row?.employee_name || "",
+        row?.employee_name || '',
         undefined,
         undefined,
         undefined,
@@ -191,9 +173,7 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
         lunchStart,
         lunchEnd
       );
-      toast.success(
-        `Updated lunch times for ${row?.employee_name} on ${row?.event_date}!`
-      );
+      toast.success(`Updated lunch times for ${row?.employee_name} on ${row?.event_date}!`);
     }
     resetForm();
     if (onOpenChange) {
@@ -202,13 +182,13 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
   };
 
   const resetForm = () => {
-    setEmployeeName("");
-    setWeeks("");
-    setDate("");
-    setStartTime("");
-    setEndTime("");
-    setLunchStart("");
-    setLunchEnd("");
+    setEmployeeName('');
+    setWeeks('');
+    setDate('');
+    setStartTime('');
+    setEndTime('');
+    setLunchStart('');
+    setLunchEnd('');
     setEmployeeId(null);
   };
 
@@ -216,17 +196,17 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
     const newDate = e.target.value;
     setDate(newDate);
 
-    if (formType === "updateSchedule" && employeeId && fetchSchedule) {
+    if (formType === 'updateSchedule' && employeeId && fetchSchedule) {
       // Convert the date to Pacific Time before fetching the schedule
       const pacificDate = toZonedTime(parseISO(newDate), timeZone);
-      const formattedDate = format(pacificDate, "yyyy-MM-dd");
+      const formattedDate = format(pacificDate, 'yyyy-MM-dd');
       const schedule = await fetchSchedule(employeeId, formattedDate);
       if (schedule) {
         setStartTime(schedule.start_time.slice(0, 5));
         setEndTime(schedule.end_time.slice(0, 5));
       } else {
-        setStartTime("");
-        setEndTime("");
+        setStartTime('');
+        setEndTime('');
       }
     }
   };
@@ -238,10 +218,8 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
       </PopoverTrigger>
       <PopoverContent align="end" className="p-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700">
-            {placeholder}
-          </label>
-          {formType === "generateAll" ? (
+          <label className="block text-sm font-medium text-gray-700">{placeholder}</label>
+          {formType === 'generateAll' ? (
             <Input
               type="number"
               value={weeks}
@@ -249,7 +227,7 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
               placeholder="Number of weeks"
               className="mt-2"
             />
-          ) : formType === "editTimesheet" ? (
+          ) : formType === 'editTimesheet' ? (
             <>
               <Label>Lunch Start</Label>
               <Input
@@ -258,24 +236,18 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
                 onChange={(e) => setLunchStart(e.target.value)}
               />
               <Label>Lunch End</Label>
-              <Input
-                type="time"
-                value={lunchEnd}
-                onChange={(e) => setLunchEnd(e.target.value)}
-              />
+              <Input type="time" value={lunchEnd} onChange={(e) => setLunchEnd(e.target.value)} />
             </>
           ) : (
             <>
-              {(formType === "generate" ||
-                formType === "clearSchedule" ||
-                formType === "addSchedule" ||
-                formType === "updateSchedule") &&
+              {(formType === 'generate' ||
+                formType === 'clearSchedule' ||
+                formType === 'addSchedule' ||
+                formType === 'updateSchedule') &&
                 employees && (
                   <div>
                     <Label>Employee</Label>
-                    <Select
-                      onValueChange={(value) => setEmployeeId(Number(value))}
-                    >
+                    <Select onValueChange={(value) => setEmployeeId(Number(value))}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select Employee" />
                       </SelectTrigger>
@@ -292,7 +264,7 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
                     </Select>
                   </div>
                 )}
-              {formType === "generate" && (
+              {formType === 'generate' && (
                 <Input
                   type="number"
                   value={weeks}
@@ -301,16 +273,11 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
                   className="mt-2"
                 />
               )}
-              {(formType === "addSchedule" ||
-                formType === "updateSchedule") && (
+              {(formType === 'addSchedule' || formType === 'updateSchedule') && (
                 <>
                   <div>
                     <Label>Date</Label>
-                    <Input
-                      type="date"
-                      value={date}
-                      onChange={handleDateChange}
-                    />
+                    <Input type="date" value={date} onChange={handleDateChange} />
                   </div>
                   <div>
                     <Label>Start Time</Label>

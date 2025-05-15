@@ -1,6 +1,6 @@
 // src/app/TGR/certifications/CertificationTable.tsx
-import React, { useEffect, useState } from "react";
-import { format } from "date-fns";
+import React, { useEffect, useState } from 'react';
+import { format } from 'date-fns';
 
 interface Certification {
   id: string;
@@ -18,10 +18,10 @@ const CertificationTable: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch("/api/fetch-certifications-data", {
-          method: "POST",
+        const response = await fetch('/api/fetch-certifications-data', {
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
           },
           body: JSON.stringify({
             pageIndex: 0,
@@ -33,7 +33,7 @@ const CertificationTable: React.FC = () => {
         const result = await response.json();
         setCertifications(result.data);
       } catch (error) {
-        console.error("Error fetching certifications data:", error);
+        console.error('Error fetching certifications data:', error);
       } finally {
         setLoading(false);
       }
@@ -45,9 +45,9 @@ const CertificationTable: React.FC = () => {
   const formatExpirationDate = (date: string) => {
     const parsedDate = new Date(date);
     if (isNaN(parsedDate.getTime())) {
-      return "Invalid Date";
+      return 'Invalid Date';
     }
-    return format(parsedDate, "MM-dd-yyyy");
+    return format(parsedDate, 'MM-dd-yyyy');
   };
 
   if (loading) {

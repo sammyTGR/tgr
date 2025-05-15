@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { useEffect } from "react";
-import { toast } from "sonner";
-import { supabase } from "@/utils/supabase/client";
-import { useRole } from "@/context/RoleContext";
-import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from 'react';
+import { toast } from 'sonner';
+import { supabase } from '@/utils/supabase/client';
+import { useRole } from '@/context/RoleContext';
+import { usePathname, useRouter } from 'next/navigation';
 
 const useRealtimeNotifications = () => {
   const { user } = useRole();
@@ -19,18 +19,18 @@ const useRealtimeNotifications = () => {
     const fetchSender = async (senderId: string) => {
       try {
         const { data: senderData, error: senderError } = await supabase
-          .from("employees")
-          .select("user_uuid, name, is_online")
-          .eq("user_uuid", senderId)
+          .from('employees')
+          .select('user_uuid, name, is_online')
+          .eq('user_uuid', senderId)
           .single();
 
         if (senderError) {
-          console.error("Error fetching sender:", senderError?.message);
+          console.error('Error fetching sender:', senderError?.message);
         }
 
         return senderData?.name || senderId;
       } catch (error) {
-        console.error("Error in fetchSender:", error);
+        console.error('Error in fetchSender:', error);
         return senderId;
       }
     };
@@ -46,16 +46,16 @@ const useRealtimeNotifications = () => {
           shouldNotify = payload.new.receiver_id === user.id;
         }
 
-        if (shouldNotify && payload.new.message.trim() !== "") {
+        if (shouldNotify && payload.new.message.trim() !== '') {
           const senderName = await fetchSender(payload.new.sender_id);
           const chatName = senderName;
 
           // Check if the user is on the chat page
-          const isOnChatPage = pathname === "/TGR/crew/chat";
+          const isOnChatPage = pathname === '/TGR/crew/chat';
 
           // Fetch the current chat context from localStorage
-          const currentChat = localStorage.getItem("currentChat");
-          const isChatActive = localStorage.getItem("isChatActive") === "true";
+          const currentChat = localStorage.getItem('currentChat');
+          const isChatActive = localStorage.getItem('isChatActive') === 'true';
 
           // console.log("Notification context:", {
           //   isOnChatPage,
@@ -74,7 +74,7 @@ const useRealtimeNotifications = () => {
             toast(`New message from ${chatName}`, {
               description: payload.new.message,
               action: {
-                label: "Open",
+                label: 'Open',
                 onClick: () => {
                   router.push(`/TGR/crew/chat?dm=${payload.new.sender_id}`);
                 },
@@ -83,18 +83,18 @@ const useRealtimeNotifications = () => {
           }
         }
       } catch (error) {
-        console.error("Error handling message:", error);
+        console.error('Error handling message:', error);
       }
     };
 
     const directMessageChannel = client
-      .channel("direct-messages")
+      .channel('direct-messages')
       .on(
-        "postgres_changes",
+        'postgres_changes',
         {
-          event: "INSERT",
-          schema: "public",
-          table: "direct_messages",
+          event: 'INSERT',
+          schema: 'public',
+          table: 'direct_messages',
           filter: `receiver_id=eq.${user.id}`,
         },
         async (payload) => {

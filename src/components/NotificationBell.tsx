@@ -1,26 +1,19 @@
-"use client";
+'use client';
 
-import { Bell, Trash2 } from "lucide-react";
-import { Button } from "./ui/button";
-import {
-  useRealTimeNotifications,
-  Notification,
-} from "@/hooks/useRealTimeNotifications";
+import { Bell, Trash2 } from 'lucide-react';
+import { Button } from './ui/button';
+import { useRealTimeNotifications, Notification } from '@/hooks/useRealTimeNotifications';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
-} from "./ui/dropdown-menu";
-import { useRouter } from "next/navigation";
+} from './ui/dropdown-menu';
+import { useRouter } from 'next/navigation';
 
 export function NotificationBell() {
-  const {
-    unreadNotifications = [],
-    markAsRead,
-    markAllAsRead,
-  } = useRealTimeNotifications();
+  const { unreadNotifications = [], markAsRead, markAllAsRead } = useRealTimeNotifications();
   const router = useRouter();
 
   const handleNotificationClick = async (notification: Notification) => {
@@ -28,7 +21,7 @@ export function NotificationBell() {
       await markAsRead(notification.id);
       router.push(`/messages?chat=${notification.chat_id}`);
     } catch (error) {
-      console.error("Error handling notification click:", error);
+      console.error('Error handling notification click:', error);
     }
   };
 
@@ -36,7 +29,7 @@ export function NotificationBell() {
     try {
       await markAllAsRead();
     } catch (error) {
-      console.error("Error clearing notifications:", error);
+      console.error('Error clearing notifications:', error);
     }
   };
 

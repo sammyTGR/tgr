@@ -1,5 +1,5 @@
-import * as React from "react";
-import { useRouter } from "next/navigation";
+import * as React from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Card,
   CardContent,
@@ -7,8 +7,8 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { HoveredLink } from "@/components/ui/navbar-menu";
+} from '@/components/ui/card';
+import { HoveredLink } from '@/components/ui/navbar-menu';
 
 function FirstLine({ className }: { className?: string }) {
   const router = useRouter();
@@ -17,7 +17,7 @@ function FirstLine({ className }: { className?: string }) {
     <div className="flex flex-col items-center justify-center w-[515px]">
       <Card className="flex flex-col w-full">
         <CardHeader>
-          <CardTitle style={{ color: "#1583B3" }}>
+          <CardTitle style={{ color: '#1583B3' }}>
             Springfield Armory F I R S T L I N E Discount Program
           </CardTitle>
           <div className="space-y-1">
@@ -28,10 +28,7 @@ function FirstLine({ className }: { className?: string }) {
         <CardContent>
           <div className="max-w-full">
             <p>Customer Must Present Valid Department ID</p>
-            <p>
-              Qualifying Departments & Agencies (Must Copy ID Front & Back Of
-              ID):
-            </p>
+            <p>Qualifying Departments & Agencies (Must Copy ID Front & Back Of ID):</p>
             <hr className="my-4" />
             <ul className="list-disc pl-4">
               <li>Law Enforcement:</li>
@@ -39,15 +36,9 @@ function FirstLine({ className }: { className?: string }) {
                 <li>- Sworn Law Enforcement Officers</li>
                 <ul className="list-none list-inside pl-4">
                   <li>- Federal, State, County & City</li>
-                  <li>
-                    - Also Includes Retired LE Officers With “Retired”
-                    Credentials
-                  </li>
+                  <li>- Also Includes Retired LE Officers With “Retired” Credentials</li>
                 </ul>
-                <li>
-                  - Corrections Officers, including Parole and Probation
-                  Officers
-                </li>
+                <li>- Corrections Officers, including Parole and Probation Officers</li>
                 <li>- LE Academy Cadets</li>
                 <li>- State Licensed Armed Security Officers</li>
                 <ul className="list-none list-inside pl-4">
@@ -61,9 +52,7 @@ function FirstLine({ className }: { className?: string }) {
                 <li>- Military Personnel</li>
                 <ul className="list-none list-inside pl-4">
                   <li>- Including Reservists & National Guard (w/ ID)</li>
-                  <li>
-                    - Also Includes Retired Military With “Retired” Credentials
-                  </li>
+                  <li>- Also Includes Retired Military With “Retired” Credentials</li>
                 </ul>
                 <li>- Honorably Discharged Veterans</li>
                 <ul className="list-none list-inside pl-4">

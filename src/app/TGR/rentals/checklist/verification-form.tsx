@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { supabase } from "@/utils/supabase/client";
-import { toast } from "sonner";
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { supabase } from '@/utils/supabase/client';
+import { toast } from 'sonner';
 import {
   AlertDialog,
   AlertDialogTrigger,
@@ -13,7 +13,7 @@ import {
   AlertDialogDescription,
   AlertDialogCancel,
   AlertDialogAction,
-} from "@/components/ui/alert-dialog";
+} from '@/components/ui/alert-dialog';
 
 interface VerificationFormProps {
   firearmId: number;
@@ -56,46 +56,41 @@ export function VerificationForm({
     }
 
     const noteText = allVerified
-      ? "Verified"
+      ? 'Verified'
       : withGunsmith
-      ? "With Gunsmith"
-      : rentalOnRange
-      ? "Currently Rented Out"
-      : "";
+        ? 'With Gunsmith'
+        : rentalOnRange
+          ? 'Currently Rented Out'
+          : '';
 
     // Save verification data
-    const { error: verificationError } = await supabase
-      .from("firearm_verifications")
-      .upsert({
-        firearm_id: firearmId,
-        verified_by: userUuid,
-        verification_date: verificationDate,
-        verification_time: verificationTime,
-        serial_verified: serialVerified,
-        condition_verified: conditionVerified,
-        magazine_attached: magazineAttached,
-        notes: noteText,
-      });
+    const { error: verificationError } = await supabase.from('firearm_verifications').upsert({
+      firearm_id: firearmId,
+      verified_by: userUuid,
+      verification_date: verificationDate,
+      verification_time: verificationTime,
+      serial_verified: serialVerified,
+      condition_verified: conditionVerified,
+      magazine_attached: magazineAttached,
+      notes: noteText,
+    });
 
     if (verificationError) {
-      console.error("Error saving verification:", verificationError.message);
+      console.error('Error saving verification:', verificationError.message);
       return;
     }
 
     // Update firearms maintenance notes and verified_status
     const { error: maintenanceError } = await supabase
-      .from("firearms_maintenance")
+      .from('firearms_maintenance')
       .update({
         rental_notes: noteText,
-        verified_status: allVerified ? "Verified" : null,
+        verified_status: allVerified ? 'Verified' : null,
       })
-      .eq("id", firearmId);
+      .eq('id', firearmId);
 
     if (maintenanceError) {
-      console.error(
-        "Error updating firearms maintenance:",
-        maintenanceError.message
-      );
+      console.error('Error updating firearms maintenance:', maintenanceError.message);
       return;
     }
 
@@ -139,10 +134,9 @@ export function VerificationForm({
         </div>
         <div className="space-y-4">
           <p className="text-sm text-red-500">
-            The overall condition is defined as ensuring the sights or optic are
-            on, aligned and in working order, the frame is in the same
-            condition, the slide/bolt is locked back, and the firearm is
-            cleared.
+            The overall condition is defined as ensuring the sights or optic are on, aligned and in
+            working order, the frame is in the same condition, the slide/bolt is locked back, and
+            the firearm is cleared.
           </p>
         </div>
       </div>
@@ -159,19 +153,14 @@ export function VerificationForm({
           <AlertDialogHeader>
             <AlertDialogTitle>Firearm Not Verified</AlertDialogTitle>
             <AlertDialogDescription>
-              Since this firearm doesn&apos;t pass verification, please bring it
-              to management <span className="text-red-500">IMMEDIATELY</span> to
-              report the damage, then mark the firearm as &quot;With
-              Gunsmith&quot;.
+              Since this firearm doesn&apos;t pass verification, please bring it to management{' '}
+              <span className="text-red-500">IMMEDIATELY</span> to report the damage, then mark the
+              firearm as &quot;With Gunsmith&quot;.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setShowAlertDialog(false)}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={() => setShowAlertDialog(false)}>
-              Got It!
-            </AlertDialogAction>
+            <AlertDialogCancel onClick={() => setShowAlertDialog(false)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => setShowAlertDialog(false)}>Got It!</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

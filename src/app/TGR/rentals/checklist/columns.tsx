@@ -1,4 +1,4 @@
-import { ColumnDef } from "@tanstack/react-table";
+import { ColumnDef } from '@tanstack/react-table';
 
 // Ensure FirearmsMaintenanceData is properly defined
 export interface FirearmsMaintenanceData {
@@ -21,17 +21,17 @@ export interface FirearmsMaintenanceData {
 // Define columns with the correct order
 export const columns: ColumnDef<FirearmsMaintenanceData>[] = [
   {
-    accessorKey: "firearm_name",
-    header: "Firearm Name",
+    accessorKey: 'firearm_name',
+    header: 'Firearm Name',
   },
   {
-    accessorKey: "maintenance_notes",
-    header: "Gunsmithing Notes",
+    accessorKey: 'maintenance_notes',
+    header: 'Gunsmithing Notes',
     cell: ({ row }) => <span>{row.original.maintenance_notes}</span>,
   },
   {
-    accessorKey: "notes",
-    header: "Checklist Notes",
+    accessorKey: 'notes',
+    header: 'Checklist Notes',
     cell: ({ row }) => <span>{row.original.notes}</span>,
   },
   // {

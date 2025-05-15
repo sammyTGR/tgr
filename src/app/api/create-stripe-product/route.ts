@@ -1,22 +1,19 @@
-"use server";
+'use server';
 
-import { NextResponse } from "next/server";
-import { stripe } from "@/utils/stripe/config";
-import { createClient } from "@/utils/supabase/server";
+import { NextResponse } from 'next/server';
+import { stripe } from '@/utils/stripe/config';
+import { createClient } from '@/utils/supabase/server';
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    console.log("Received request body:", body); // Debug log
+    console.log('Received request body:', body); // Debug log
 
     const { name, title, description, price, start_time, end_time } = body;
 
     // Validate required fields
     if (!name && !title) {
-      return NextResponse.json(
-        { error: "Product name is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Product name is required' }, { status: 400 });
     }
 
     const productName = name || title; // Use either name or title
@@ -28,19 +25,19 @@ export async function POST(req: Request) {
         name: productName.trim(),
         description: description?.trim(),
         metadata: {
-          product_type: "training",
-          training: "true",
+          product_type: 'training',
+          training: 'true',
           start_time: start_time?.toString(),
           end_time: end_time?.toString(),
         },
       });
     } catch (stripeError) {
-      console.error("Error creating Stripe product:", stripeError);
+      console.error('Error creating Stripe product:', stripeError);
       return NextResponse.json(
-        { 
-          error: "Error creating Stripe product", 
+        {
+          error: 'Error creating Stripe product',
           details: stripeError,
-          requestData: body // Log the full request data
+          requestData: body, // Log the full request data
         },
         { status: 500 }
       );
@@ -52,13 +49,13 @@ export async function POST(req: Request) {
       stripePrice = await stripe.prices.create({
         product: product.id,
         unit_amount: Math.round(price * 100), // Stripe uses cents
-        currency: "usd",
+        currency: 'usd',
       });
       // console.log("Stripe price created:", stripePrice);
     } catch (stripeError) {
-      console.error("Error creating Stripe price:", stripeError);
+      console.error('Error creating Stripe price:', stripeError);
       return NextResponse.json(
-        { error: "Error creating Stripe price", details: stripeError },
+        { error: 'Error creating Stripe price', details: stripeError },
         { status: 500 }
       );
     }
@@ -69,7 +66,7 @@ export async function POST(req: Request) {
     let data, error;
     try {
       const result = await supabase
-        .from("class_schedules")
+        .from('class_schedules')
         .insert({
           title: productName, // Use 'title' instead of 'name' to match the table structure
           description,
@@ -87,17 +84,17 @@ export async function POST(req: Request) {
 
       // console.log("Supabase insert result:", { data, error });
     } catch (supabaseError) {
-      console.error("Error inserting into class_schedules:", supabaseError);
+      console.error('Error inserting into class_schedules:', supabaseError);
       return NextResponse.json(
-        { error: "Error creating class schedule", details: supabaseError },
+        { error: 'Error creating class schedule', details: supabaseError },
         { status: 500 }
       );
     }
 
     if (error) {
-      console.error("Error inserting into class_schedules:", error);
+      console.error('Error inserting into class_schedules:', error);
       return NextResponse.json(
-        { error: "Error creating class schedule", details: error },
+        { error: 'Error creating class schedule', details: error },
         { status: 500 }
       );
     }
@@ -109,9 +106,9 @@ export async function POST(req: Request) {
       productMetadata: product.metadata,
     });
   } catch (error) {
-    console.error("Unexpected error:", error);
+    console.error('Unexpected error:', error);
     return NextResponse.json(
-      { error: "Unexpected error occurred", details: error },
+      { error: 'Unexpected error occurred', details: error },
       { status: 500 }
     );
   }

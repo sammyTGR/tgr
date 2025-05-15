@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import * as React from "react";
+import * as React from 'react';
 import {
   useReactTable,
   ColumnDef,
@@ -14,13 +14,13 @@ import {
   ExpandedState,
   getExpandedRowModel,
   getSortedRowModel,
-} from "@tanstack/react-table";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { ScheduleRowActions } from "./schedule-row-actions";
-import { SchedulePagination } from "./schedule-pagination";
-import { CaretUpIcon, Cross2Icon } from "@radix-ui/react-icons";
-import { CaretDownIcon } from "@radix-ui/react-icons";
+} from '@tanstack/react-table';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { ScheduleRowActions } from './schedule-row-actions';
+import { SchedulePagination } from './schedule-pagination';
+import { CaretUpIcon, Cross2Icon } from '@radix-ui/react-icons';
+import { CaretDownIcon } from '@radix-ui/react-icons';
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -43,40 +43,32 @@ export function DataTable<TData, TValue>({
 }: DataTableProps<TData, TValue>) {
   // Set default sorting state
   const defaultSorting: SortingState = [
-    { id: "employee_name", desc: false },
-    { id: "day_of_week", desc: false },
+    { id: 'employee_name', desc: false },
+    { id: 'day_of_week', desc: false },
   ];
 
-  const [localSorting, setLocalSorting] =
-    React.useState<SortingState>(defaultSorting);
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
-  );
-  const [searchInput, setSearchInput] = React.useState("");
-  const [grouping, setGrouping] = React.useState<GroupingState>([
-    "employee_name",
-  ]);
+  const [localSorting, setLocalSorting] = React.useState<SortingState>(defaultSorting);
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+  const [searchInput, setSearchInput] = React.useState('');
+  const [grouping, setGrouping] = React.useState<GroupingState>(['employee_name']);
   const [expanded, setExpanded] = React.useState<ExpandedState>({});
 
   const sortedColumns = React.useMemo(() => {
     return columns.map((column) => {
-      if (column.id === "day_of_week") {
+      if (column.id === 'day_of_week') {
         return {
           ...column,
           sortingFn: (rowA: any, rowB: any, columnId: string) => {
             const days = [
-              "Sunday",
-              "Monday",
-              "Tuesday",
-              "Wednesday",
-              "Thursday",
-              "Friday",
-              "Saturday",
+              'Sunday',
+              'Monday',
+              'Tuesday',
+              'Wednesday',
+              'Thursday',
+              'Friday',
+              'Saturday',
             ];
-            return (
-              days.indexOf(rowA.getValue(columnId)) -
-              days.indexOf(rowB.getValue(columnId))
-            );
+            return days.indexOf(rowA.getValue(columnId)) - days.indexOf(rowB.getValue(columnId));
           },
         };
       }
@@ -94,10 +86,7 @@ export function DataTable<TData, TValue>({
       expanded,
     },
     onSortingChange: (updater) => {
-      const newSorting =
-        typeof updater === "function"
-          ? updater(sorting || localSorting)
-          : updater;
+      const newSorting = typeof updater === 'function' ? updater(sorting || localSorting) : updater;
       if (onSortingChange) {
         onSortingChange(newSorting);
       } else {
@@ -115,15 +104,15 @@ export function DataTable<TData, TValue>({
     initialState: {
       pagination: { pageSize: showPagination ? 7 : data.length },
       sorting: defaultSorting,
-      grouping: ["employee_name"],
+      grouping: ['employee_name'],
     },
     manualSorting: false,
     sortDescFirst: false,
   });
 
   const handleResetFilter = () => {
-    table.getColumn("employee_name")?.setFilterValue("");
-    setSearchInput("");
+    table.getColumn('employee_name')?.setFilterValue('');
+    setSearchInput('');
   };
 
   return (
@@ -134,9 +123,7 @@ export function DataTable<TData, TValue>({
           value={searchInput}
           onChange={(event) => {
             setSearchInput(event.target.value);
-            table
-              .getColumn("employee_name")
-              ?.setFilterValue(event.target.value);
+            table.getColumn('employee_name')?.setFilterValue(event.target.value);
           }}
           className="max-w-sm w-full"
         />
@@ -161,10 +148,7 @@ export function DataTable<TData, TValue>({
                     <div className="flex items-center">
                       {header.isPlaceholder
                         ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
+                        : flexRender(header.column.columnDef.header, header.getContext())}
                       {{
                         asc: <CaretUpIcon className="ml-2 h-4 w-4" />,
                         desc: <CaretDownIcon className="ml-2 h-4 w-4" />,
@@ -184,10 +168,7 @@ export function DataTable<TData, TValue>({
                   </td>
                 ))}
                 <td>
-                  <ScheduleRowActions
-                    row={row}
-                    fetchReferenceSchedules={fetchReferenceSchedules}
-                  />
+                  <ScheduleRowActions row={row} fetchReferenceSchedules={fetchReferenceSchedules} />
                 </td>
               </tr>
             ))}

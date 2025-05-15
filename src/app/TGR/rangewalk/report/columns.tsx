@@ -1,13 +1,10 @@
-"use client";
-import { ColumnDef as BaseColumnDef } from "@tanstack/react-table";
-import { DataTableColumnHeader } from "./data-table-column-header";
-import { UUID } from "crypto";
-import { DataTableRowActions } from "./data-table-row-actions";
+'use client';
+import { ColumnDef as BaseColumnDef } from '@tanstack/react-table';
+import { DataTableColumnHeader } from './data-table-column-header';
+import { UUID } from 'crypto';
+import { DataTableRowActions } from './data-table-row-actions';
 
-export type ColumnDef<TData, TValue = unknown> = BaseColumnDef<
-  TData,
-  TValue
-> & {
+export type ColumnDef<TData, TValue = unknown> = BaseColumnDef<TData, TValue> & {
   meta?: {
     style?: React.CSSProperties;
   };
@@ -28,24 +25,19 @@ export type RangeWalkData = {
 
 export const columns: ColumnDef<RangeWalkData>[] = [
   {
-    accessorKey: "user_name",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Submitted By" />
-    ),
+    accessorKey: 'user_name',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Submitted By" />,
     meta: {
-      style: { width: "125px" },
+      style: { width: '125px' },
     },
   },
   {
-    accessorKey: "date_of_walk",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Date of Walk" />
-    ),
+    accessorKey: 'date_of_walk',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Date of Walk" />,
     sortingFn: (a, b) =>
-      new Date(a.original.date_of_walk).getTime() -
-      new Date(b.original.date_of_walk).getTime(),
+      new Date(a.original.date_of_walk).getTime() - new Date(b.original.date_of_walk).getTime(),
     meta: {
-      style: { width: "125px" },
+      style: { width: '125px' },
     },
   },
   // {
@@ -58,21 +50,17 @@ export const columns: ColumnDef<RangeWalkData>[] = [
   //   },
   // },
   {
-    accessorKey: "lanes_with_problems",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Lanes with Problems" />
-    ),
+    accessorKey: 'lanes_with_problems',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Lanes with Problems" />,
     meta: {
-      style: { width: "250px" },
+      style: { width: '250px' },
     },
   },
   {
-    accessorKey: "description",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Details Of Problems" />
-    ),
+    accessorKey: 'description',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Details Of Problems" />,
     meta: {
-      style: { width: "450px" },
+      style: { width: '450px' },
     },
   },
   // {
@@ -85,21 +73,17 @@ export const columns: ColumnDef<RangeWalkData>[] = [
   //   },
   // },
   {
-    accessorKey: "repair_notes",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Repair Notes" />
-    ),
+    accessorKey: 'repair_notes',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Repair Notes" />,
     meta: {
-      style: { width: "350px" },
+      style: { width: '350px' },
     },
   },
   {
-    accessorKey: "repair_notes_user",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Repaired By" />
-    ),
+    accessorKey: 'repair_notes_user',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Repaired By" />,
     meta: {
-      style: { width: "75px" },
+      style: { width: '75px' },
     },
   },
 ];

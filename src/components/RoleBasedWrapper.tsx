@@ -1,7 +1,7 @@
-import { ReactNode } from "react";
-import { useRouter } from "next/navigation";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ProgressBar } from "@/components/ProgressBar";
+import { ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { ProgressBar } from '@/components/ProgressBar';
 
 interface RoleBasedWrapperProps {
   children: ReactNode;
@@ -17,23 +17,23 @@ function RoleBasedWrapper({ children, allowedRoles }: RoleBasedWrapperProps) {
   const queryClient = useQueryClient();
 
   const { data, isLoading, error } = useQuery<UserData>({
-    queryKey: ["userRole"],
+    queryKey: ['userRole'],
     queryFn: async () => {
       // First check cookie
       const roleHeader = document.cookie
-        .split("; ")
-        .find((row) => row.startsWith("X-User-Role="))
-        ?.split("=")[1];
+        .split('; ')
+        .find((row) => row.startsWith('X-User-Role='))
+        ?.split('=')[1];
 
       if (roleHeader) {
         return { role: roleHeader };
       }
 
       // If no cookie, fetch from API
-      const response = await fetch("/api/getUserRole");
+      const response = await fetch('/api/getUserRole');
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || "Failed to fetch user role");
+        throw new Error(error.error || 'Failed to fetch user role');
       }
 
       const userData: UserData = await response.json();
@@ -45,7 +45,7 @@ function RoleBasedWrapper({ children, allowedRoles }: RoleBasedWrapperProps) {
 
       // Check access immediately after getting the role
       if (!allowedRoles.includes(userData.role)) {
-        router.replace("/");
+        router.replace('/');
         return userData;
       }
 

@@ -1,5 +1,5 @@
-import { CertificationData } from "./types";
-import { supabase } from "@/utils/supabase/client";
+import { CertificationData } from './types';
+import { supabase } from '@/utils/supabase/client';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,12 +8,12 @@ import {
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { DotsHorizontalIcon } from "@radix-ui/react-icons";
-import RoleBasedWrapper from "@/components/RoleBasedWrapper";
-import { PopoverForm } from "./PopoverForm";
-import { toast } from "sonner";
+} from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
+import { DotsHorizontalIcon } from '@radix-ui/react-icons';
+import RoleBasedWrapper from '@/components/RoleBasedWrapper';
+import { PopoverForm } from './PopoverForm';
+import { toast } from 'sonner';
 
 const CertificationTableRowActions = ({
   certification,
@@ -24,28 +24,25 @@ const CertificationTableRowActions = ({
 }) => {
   const handleUpdate = async (actionStatus: string) => {
     const { error } = await supabase
-      .from("certifications")
+      .from('certifications')
       .update({ action_status: actionStatus })
-      .eq("id", certification.id);
+      .eq('id', certification.id);
 
     if (!error) {
       onUpdate(certification.id, { action_status: actionStatus });
     } else {
-      console.error("Error updating certification:", error);
+      console.error('Error updating certification:', error);
     }
   };
 
   const handleDelete = async () => {
-    const { error } = await supabase
-      .from("certifications")
-      .delete()
-      .eq("id", certification.id);
+    const { error } = await supabase.from('certifications').delete().eq('id', certification.id);
 
     if (error) {
-      console.error("Error deleting certification:", error);
-      toast.error("Failed to delete certification.");
+      console.error('Error deleting certification:', error);
+      toast.error('Failed to delete certification.');
     } else {
-      toast.success("Certification deleted successfully.");
+      toast.success('Certification deleted successfully.');
       onUpdate(certification.id, {});
     }
   };
@@ -58,17 +55,13 @@ const CertificationTableRowActions = ({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => handleUpdate("Renewal Started")}>
+        <DropdownMenuItem onClick={() => handleUpdate('Renewal Started')}>
           Renewal Started
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleUpdate("Submitted")}>
-          Submitted
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleUpdate("")}>
-          Clear Status
-        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleUpdate('Submitted')}>Submitted</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleUpdate('')}>Clear Status</DropdownMenuItem>
 
-        <RoleBasedWrapper allowedRoles={["admin", "super admin", "dev", "ceo"]}>
+        <RoleBasedWrapper allowedRoles={['admin', 'super admin', 'dev', 'ceo']}>
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>Edit Certificate</DropdownMenuSubTrigger>
             <DropdownMenuSubContent>
@@ -82,9 +75,7 @@ const CertificationTableRowActions = ({
               />
             </DropdownMenuSubContent>
           </DropdownMenuSub>
-          <DropdownMenuItem onClick={handleDelete}>
-            Delete Certificate
-          </DropdownMenuItem>
+          <DropdownMenuItem onClick={handleDelete}>Delete Certificate</DropdownMenuItem>
         </RoleBasedWrapper>
       </DropdownMenuContent>
     </DropdownMenu>

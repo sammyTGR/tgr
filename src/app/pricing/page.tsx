@@ -1,13 +1,9 @@
-import Pricing from "@/components/ui/Pricing";
-import { createClient } from "@/utils/supabase/server";
-import {
-  getProducts,
-  getSubscription,
-  getUser,
-} from "@/utils/supabase/queries";
-import { syncStripeData } from "@/utils/stripe/syncStripeData";
-import { cache } from "react";
-import { useSidebar } from "@/components/ui/sidebar";
+import Pricing from '@/components/ui/Pricing';
+import { createClient } from '@/utils/supabase/server';
+import { getProducts, getSubscription, getUser } from '@/utils/supabase/queries';
+import { syncStripeData } from '@/utils/stripe/syncStripeData';
+import { cache } from 'react';
+import { useSidebar } from '@/components/ui/sidebar';
 
 const cachedSyncStripeData = cache(async () => {
   // console.log("Syncing Stripe data");
@@ -26,11 +22,5 @@ export default async function PricingPage() {
     getSubscription(supabase),
   ]);
 
-  return (
-    <Pricing
-      user={user}
-      products={products ?? []}
-      subscription={subscription}
-    />
-  );
+  return <Pricing user={user} products={products ?? []} subscription={subscription} />;
 }

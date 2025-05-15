@@ -1,6 +1,6 @@
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
+import { NextResponse } from 'next/server';
 
 export async function GET() {
   const supabase = createRouteHandlerClient({ cookies });
@@ -11,7 +11,7 @@ export async function GET() {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Get the current date and 30 days ago
@@ -21,7 +21,7 @@ export async function GET() {
 
     // Update the query to join with employees table
     const { data: timesheets, error } = await supabase
-      .from("employee_clock_events")
+      .from('employee_clock_events')
       .select(
         `
         *,
@@ -34,7 +34,7 @@ export async function GET() {
       )
       // .gte("event_date", thirtyDaysAgo.toISOString().split("T")[0])
       // .lte("event_date", today.toISOString().split("T")[0])
-      .order("event_date", { ascending: false });
+      .order('event_date', { ascending: false });
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
@@ -42,10 +42,10 @@ export async function GET() {
 
     const formattedTimesheets = timesheets.map((timesheet) => {
       const formatTime = (time: string | null) => {
-        if (!time) return "";
-        return new Date(`1970-01-01T${time}`).toLocaleTimeString("en-US", {
-          hour: "2-digit",
-          minute: "2-digit",
+        if (!time) return '';
+        return new Date(`1970-01-01T${time}`).toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
         });
       };
 
@@ -76,7 +76,7 @@ export async function GET() {
         lunch_start: formatTime(timesheet.lunch_start),
         lunch_end: formatTime(timesheet.lunch_end),
         end_time: formatTime(timesheet.end_time),
-        total_hours: totalHours ? `${totalHours} hours` : "",
+        total_hours: totalHours ? `${totalHours} hours` : '',
       };
     });
 
@@ -85,9 +85,6 @@ export async function GET() {
 
     return NextResponse.json(formattedTimesheets);
   } catch (error) {
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

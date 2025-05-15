@@ -1,7 +1,7 @@
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
-import { PostgrestError } from "@supabase/supabase-js";
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
+import { NextResponse } from 'next/server';
+import { PostgrestError } from '@supabase/supabase-js';
 
 export async function POST(request: Request) {
   const supabase = createRouteHandlerClient({ cookies });
@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Base data that's always required
@@ -49,15 +49,14 @@ export async function POST(request: Request) {
       // Transaction Information
       hsc_fsc_number: formData.hscFscNumber?.trim() || null,
       exemption_code: formData.exemptionCode?.trim() || null,
-      eligibility_q1: formData.eligibilityQ1?.toLowerCase()?.trim() || "no",
-      eligibility_q2: formData.eligibilityQ2?.toLowerCase()?.trim() || "no",
-      eligibility_q3: formData.eligibilityQ3?.toLowerCase()?.trim() || "no",
-      eligibility_q4: formData.eligibilityQ4?.toLowerCase()?.trim() || "no",
-      firearms_q1: formData.firearmsQ1?.toLowerCase()?.trim() || "n/a",
-      is_gun_show_transaction:
-        formData.isGunShowTransaction?.toLowerCase()?.trim() || "no",
+      eligibility_q1: formData.eligibilityQ1?.toLowerCase()?.trim() || 'no',
+      eligibility_q2: formData.eligibilityQ2?.toLowerCase()?.trim() || 'no',
+      eligibility_q3: formData.eligibilityQ3?.toLowerCase()?.trim() || 'no',
+      eligibility_q4: formData.eligibilityQ4?.toLowerCase()?.trim() || 'no',
+      firearms_q1: formData.firearmsQ1?.toLowerCase()?.trim() || 'n/a',
+      is_gun_show_transaction: formData.isGunShowTransaction?.toLowerCase()?.trim() || 'no',
       waiting_period_exemption: formData.waitingPeriodExemption?.trim() || null,
-      restriction_exemption: "Return to Owner",
+      restriction_exemption: 'Return to Owner',
 
       // Common Firearm Information
       make: formData.make?.trim(),
@@ -65,15 +64,15 @@ export async function POST(request: Request) {
       serial_number: formData.serialNumber?.trim(),
       other_number: formData.otherNumber?.trim() || null,
       color: formData.color?.toLowerCase()?.trim(),
-      is_new_gun: "used",
+      is_new_gun: 'used',
       comments: formData.comments?.trim() || null,
-      status: "submitted",
-      transaction_type: "handgun-redemption",
+      status: 'submitted',
+      transaction_type: 'handgun-redemption',
     };
 
     // Frame-only specific data
     const frameOnlyData =
-      formData.frameOnly === "yes"
+      formData.frameOnly === 'yes'
         ? {
             frame_only: true,
             calibers: null,
@@ -82,9 +81,9 @@ export async function POST(request: Request) {
             additional_caliber3: null,
             barrel_length: null,
             unit: null,
-            gun_type: "HANDGUN",
+            gun_type: 'HANDGUN',
             category: formData.category?.trim(),
-            regulated: formData.regulated?.toUpperCase()?.trim() || "NO",
+            regulated: formData.regulated?.toUpperCase()?.trim() || 'NO',
           }
         : {
             frame_only: false,
@@ -92,11 +91,9 @@ export async function POST(request: Request) {
             additional_caliber: formData.additionalCaliber?.trim() || null,
             additional_caliber2: formData.additionalCaliber2?.trim() || null,
             additional_caliber3: formData.additionalCaliber3?.trim() || null,
-            barrel_length: formData.barrelLength
-              ? parseFloat(formData.barrelLength)
-              : null,
-            unit: "INCH",
-            gun_type: "HANDGUN",
+            barrel_length: formData.barrelLength ? parseFloat(formData.barrelLength) : null,
+            unit: 'INCH',
+            gun_type: 'HANDGUN',
             category: formData.category?.trim(),
             regulated: null,
           };
@@ -107,33 +104,33 @@ export async function POST(request: Request) {
       ...frameOnlyData,
     };
 
-    console.log("Submitting data:", dbData); // Add this for debugging
+    console.log('Submitting data:', dbData); // Add this for debugging
 
     const { data, error } = await supabase
-      .from("handgun_redemption")
+      .from('handgun_redemption')
       .insert(dbData)
       .select()
       .single();
 
     if (error) {
-      console.error("Supabase error:", error);
+      console.error('Supabase error:', error);
       return NextResponse.json(
-        { error: "Database Error", details: error.message },
+        { error: 'Database Error', details: error.message },
         { status: 500 }
       );
     }
 
     return NextResponse.json(data);
   } catch (error: unknown) {
-    console.error("Error:", error);
+    console.error('Error:', error);
     if (error instanceof Error) {
       return NextResponse.json(
-        { error: "Internal Server Error", details: error.message },
+        { error: 'Internal Server Error', details: error.message },
         { status: 500 }
       );
     }
     return NextResponse.json(
-      { error: "Internal Server Error", details: "An unknown error occurred" },
+      { error: 'Internal Server Error', details: 'An unknown error occurred' },
       { status: 500 }
     );
   }

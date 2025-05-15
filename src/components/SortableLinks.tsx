@@ -1,8 +1,8 @@
-import React, { FC } from "react";
-import { useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import { Card } from "@/components/ui/card";
-import { EditItem } from "@/components/EditItem";
+import React, { FC } from 'react';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { Card } from '@/components/ui/card';
+import { EditItem } from '@/components/EditItem';
 
 interface Item {
   id: number;
@@ -18,19 +18,10 @@ interface SortableLinkCardProps {
   updateItem: (id: number, updatedItem: Partial<Item>) => Promise<void>;
 }
 
-const SortableLinks: FC<SortableLinkCardProps> = ({
-  item,
-  onDelete,
-  updateItem,
-}) => {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: item.id });
+const SortableLinks: FC<SortableLinkCardProps> = ({ item, onDelete, updateItem }) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: item.id,
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -41,11 +32,10 @@ const SortableLinks: FC<SortableLinkCardProps> = ({
   return (
     <div ref={setNodeRef} style={style}>
       <Card className="p-4 relative flex justify-between items-center gap-2 group">
-        <div {...attributes} {...listeners}>{item.name}</div>
-        <div
-          className="absolute top-2 right-2"
-          onClick={(e) => e.stopPropagation()}
-        >
+        <div {...attributes} {...listeners}>
+          {item.name}
+        </div>
+        <div className="absolute top-2 right-2" onClick={(e) => e.stopPropagation()}>
           <EditItem item={item} updateItem={updateItem} deleteItem={onDelete} />
         </div>
       </Card>

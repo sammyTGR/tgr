@@ -1,39 +1,34 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { Row } from "@tanstack/react-table";
-import { DatabaseFirearm } from "./types";
-import { Button } from "@/components/ui/button";
+import { useEffect, useState } from 'react';
+import { Row } from '@tanstack/react-table';
+import { DatabaseFirearm } from './types';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { DotsHorizontalIcon } from "@radix-ui/react-icons";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+} from '@/components/ui/dropdown-menu';
+import { DotsHorizontalIcon } from '@radix-ui/react-icons';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { toast } from "sonner";
-import { supabase } from "@/utils/supabase/client";
-import { useQueryClient } from "@tanstack/react-query";
-import DOMPurify from "isomorphic-dompurify";
-import { X } from "lucide-react";
-import RoleBasedWrapper from "@/components/RoleBasedWrapper";
+} from '@/components/ui/select';
+import { toast } from 'sonner';
+import { supabase } from '@/utils/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
+import DOMPurify from 'isomorphic-dompurify';
+import { X } from 'lucide-react';
+import RoleBasedWrapper from '@/components/RoleBasedWrapper';
 
-interface EditingFirearm extends Omit<DatabaseFirearm, "variations"> {
+interface EditingFirearm extends Omit<DatabaseFirearm, 'variations'> {
   variations: string;
 }
 
@@ -45,41 +40,41 @@ export function FirearmTableRowActions({ row }: FirearmTableRowActionsProps) {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingFirearm, setEditingFirearm] = useState<EditingFirearm>({
     ...row.original,
-    variations: row.original.variations || "",
+    variations: row.original.variations || '',
   });
-  const [currentVariation, setCurrentVariation] = useState("");
+  const [currentVariation, setCurrentVariation] = useState('');
   const queryClient = useQueryClient();
 
   useEffect(() => {
     setEditingFirearm({
       ...row.original,
-      variations: row.original.variations || "",
+      variations: row.original.variations || '',
     });
   }, [row.original]);
 
   const handleDelete = async () => {
     try {
       const { error } = await supabase
-        .from("banned_firearms")
+        .from('banned_firearms')
         .delete()
-        .eq("firearm_id", row.original.firearm_id);
+        .eq('firearm_id', row.original.firearm_id);
 
       if (error) throw error;
 
-      queryClient.invalidateQueries({ queryKey: ["banned-firearms"] });
-      toast.success("Firearm deleted successfully");
+      queryClient.invalidateQueries({ queryKey: ['banned-firearms'] });
+      toast.success('Firearm deleted successfully');
     } catch (error) {
-      console.error("Error deleting firearm:", error);
-      toast.error("Failed to delete firearm");
+      console.error('Error deleting firearm:', error);
+      toast.error('Failed to delete firearm');
     }
   };
 
   const handleEditClick = () => {
     setEditingFirearm({
       ...row.original,
-      variations: row.original.variations || "",
+      variations: row.original.variations || '',
     });
-    setCurrentVariation("");
+    setCurrentVariation('');
     setIsEditDialogOpen(true);
   };
 
@@ -90,27 +85,26 @@ export function FirearmTableRowActions({ row }: FirearmTableRowActionsProps) {
         type: editingFirearm.type,
         manufacturer: DOMPurify.sanitize(editingFirearm.manufacturer.trim()),
         model: DOMPurify.sanitize(editingFirearm.model.trim()),
-        variations:
-          currentVariation.trim() || editingFirearm.variations.trim() || null,
+        variations: currentVariation.trim() || editingFirearm.variations.trim() || null,
       };
       // console.log("Update data being sent:", updateData); // Debug log
 
       const { error, data } = await supabase
-        .from("banned_firearms")
+        .from('banned_firearms')
         .update(updateData)
-        .eq("firearm_id", row.original.firearm_id)
+        .eq('firearm_id', row.original.firearm_id)
         .select();
 
       // console.log("Supabase response:", data);
 
       if (error) throw error;
 
-      queryClient.invalidateQueries({ queryKey: ["banned-firearms"] });
-      toast.success("Firearm updated successfully");
+      queryClient.invalidateQueries({ queryKey: ['banned-firearms'] });
+      toast.success('Firearm updated successfully');
       setIsEditDialogOpen(false);
     } catch (error) {
-      console.error("Error updating firearm:", error);
-      toast.error("Failed to update firearm");
+      console.error('Error updating firearm:', error);
+      toast.error('Failed to update firearm');
     }
   };
 
@@ -130,7 +124,7 @@ export function FirearmTableRowActions({ row }: FirearmTableRowActionsProps) {
   const handleRemoveVariation = () => {
     setEditingFirearm((prev) => ({
       ...prev,
-      variations: "",
+      variations: '',
     }));
   };
 
@@ -145,7 +139,7 @@ export function FirearmTableRowActions({ row }: FirearmTableRowActionsProps) {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuItem onClick={handleEditClick}>
-            {" "}
+            {' '}
             {/* Use the new handler */}
             Edit
           </DropdownMenuItem>
@@ -165,7 +159,7 @@ export function FirearmTableRowActions({ row }: FirearmTableRowActionsProps) {
               <Label>Type</Label>
               <Select
                 value={editingFirearm.type}
-                onValueChange={(value: "rifle" | "handgun") =>
+                onValueChange={(value: 'rifle' | 'handgun') =>
                   setEditingFirearm((prev) => ({ ...prev, type: value }))
                 }
               >
@@ -230,10 +224,7 @@ export function FirearmTableRowActions({ row }: FirearmTableRowActionsProps) {
           </div>
 
           <div className="flex justify-end gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setIsEditDialogOpen(false)}
-            >
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
               Cancel
             </Button>
             <Button onClick={handleUpdate}>Save Changes</Button>

@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import RoleBasedWrapper from "@/components/RoleBasedWrapper";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import AdminDashboardContent from "../page";
+import * as React from 'react';
+import RoleBasedWrapper from '@/components/RoleBasedWrapper';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import AdminDashboardContent from '../page';
 
 export default function DevDashboard() {
   return (
-    <RoleBasedWrapper allowedRoles={["dev"]}>
+    <RoleBasedWrapper allowedRoles={['dev']}>
       <div className="container ml-6 md:ml-6 lg:ml-6 md:w-[calc(100vw-10rem)] lg:w-[calc(100vw-20rem)] py-4">
         <Card className="mb-6">
           <CardHeader>

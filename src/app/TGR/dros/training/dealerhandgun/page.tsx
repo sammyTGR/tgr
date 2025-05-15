@@ -1,32 +1,32 @@
-"use client";
-import * as React from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import DOMPurify from "isomorphic-dompurify";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+'use client';
+import * as React from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import DOMPurify from 'isomorphic-dompurify';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { useRouter } from "next/navigation";
+} from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { useRouter } from 'next/navigation';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { toast } from "@/components/ui/use-toast";
-import { supabase } from "@/utils/supabase/client";
-import { useMemo } from "react";
-import { useForm, UseFormSetValue } from "react-hook-form";
+} from '@/components/ui/dialog';
+import { toast } from '@/components/ui/use-toast';
+import { supabase } from '@/utils/supabase/client';
+import { useMemo } from 'react';
+import { useForm, UseFormSetValue } from 'react-hook-form';
 import {
   Form,
   FormControl,
@@ -34,8 +34,8 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { FORM_OPTIONS } from "../components/formOptions";
+} from '@/components/ui/form';
+import { FORM_OPTIONS } from '../components/formOptions';
 
 export type FormData = {
   firstName: string;
@@ -91,71 +91,68 @@ type ZipCodeData = {
 };
 
 const initialFormState: Partial<FormData> = {
-  firstName: "",
-  middleName: "",
-  lastName: "",
-  suffix: "",
-  streetAddress: "",
-  zipCode: "",
-  city: "",
-  state: "",
-  gender: "",
-  hairColor: "",
-  eyeColor: "",
-  heightFeet: "",
-  heightInches: "",
-  weight: "",
-  dateOfBirth: "",
-  idType: "",
-  idNumber: "",
-  race: "",
-  isUsCitizen: "",
-  placeOfBirth: "",
-  phoneNumber: "",
-  aliasFirstName: "",
-  aliasMiddleName: "",
-  aliasLastName: "",
-  aliasSuffix: "",
-  hscFscNumber: "",
-  exemptionCode: "",
-  eligibilityQ1: "",
-  eligibilityQ2: "",
-  eligibilityQ3: "",
-  eligibilityQ4: "",
-  firearmsQ1: "",
-  isGunShowTransaction: "",
-  waitingPeriodExemption: "",
-  restrictionExemption: "",
-  make: "",
-  model: "",
-  serialNumber: "",
-  otherNumber: "",
-  color: "",
-  isNewGun: "",
-  firearmSafetyDevice: "",
-  comments: "",
-  transaction_type: "dealer-handgun",
+  firstName: '',
+  middleName: '',
+  lastName: '',
+  suffix: '',
+  streetAddress: '',
+  zipCode: '',
+  city: '',
+  state: '',
+  gender: '',
+  hairColor: '',
+  eyeColor: '',
+  heightFeet: '',
+  heightInches: '',
+  weight: '',
+  dateOfBirth: '',
+  idType: '',
+  idNumber: '',
+  race: '',
+  isUsCitizen: '',
+  placeOfBirth: '',
+  phoneNumber: '',
+  aliasFirstName: '',
+  aliasMiddleName: '',
+  aliasLastName: '',
+  aliasSuffix: '',
+  hscFscNumber: '',
+  exemptionCode: '',
+  eligibilityQ1: '',
+  eligibilityQ2: '',
+  eligibilityQ3: '',
+  eligibilityQ4: '',
+  firearmsQ1: '',
+  isGunShowTransaction: '',
+  waitingPeriodExemption: '',
+  restrictionExemption: '',
+  make: '',
+  model: '',
+  serialNumber: '',
+  otherNumber: '',
+  color: '',
+  isNewGun: '',
+  firearmSafetyDevice: '',
+  comments: '',
+  transaction_type: 'dealer-handgun',
 };
 
-const useZipCodeLookup = (
-  zipCode: string,
-  setValue: UseFormSetValue<FormData>
-) => {
+const useZipCodeLookup = (zipCode: string, setValue: UseFormSetValue<FormData>) => {
   return useQuery({
-    queryKey: ["zipCode", zipCode],
+    queryKey: ['zipCode', zipCode],
     queryFn: async (): Promise<ZipCodeData | null> => {
       if (zipCode.length !== 5) return null;
 
       const { data, error } = await supabase
-        .from("zip_codes")
-        .select("primary_city, state, acceptable_cities")
-        .eq("zip", zipCode)
+        .from('zip_codes')
+        .select('primary_city, state, acceptable_cities')
+        .eq('zip', zipCode)
         .single();
 
       if (error) throw error;
 
       if (data) {
-        setValue("state", data.state, { shouldValidate: true });
+        setValue('state', data.state, { shouldValidate: true });
       }
 
       return data;
@@ -193,13 +190,11 @@ interface FormOptionsData {
 
 const useHandgunDetails = (make: string, model: string) => {
   return useQuery({
-    queryKey: ["handgunDetails", make, model],
+    queryKey: ['handgunDetails', make, model],
     queryFn: async () => {
       if (!make || !model) return null;
-      const response = await fetch(
-        `/api/fetchRoster?make=${make}&model=${model}`
-      );
-      if (!response.ok) throw new Error("Network response was not ok");
+      const response = await fetch(`/api/fetchRoster?make=${make}&model=${model}`);
+      if (!response.ok) throw new Error('Network response was not ok');
       return response.json();
     },
     enabled: !!make && !!model,
@@ -212,18 +207,15 @@ const DealerHandgunSalePage = () => {
 
   const form = useForm<FormData>({
     defaultValues: initialFormState,
-    mode: "onBlur",
-    reValidateMode: "onBlur",
+    mode: 'onBlur',
+    reValidateMode: 'onBlur',
   });
 
   // Watch the zipCode field
-  const zipCode = form.watch("zipCode");
+  const zipCode = form.watch('zipCode');
 
   // Pass setValue to the hook
-  const { data: zipData, isLoading: isZipLoading } = useZipCodeLookup(
-    zipCode || "",
-    form.setValue
-  );
+  const { data: zipData, isLoading: isZipLoading } = useZipCodeLookup(zipCode || '', form.setValue);
 
   // Replace form state management with react-hook-form
   const onSubmit = (data: FormData) => {
@@ -233,33 +225,33 @@ const DealerHandgunSalePage = () => {
   // Form submission mutation
   const { mutate: submitForm, isPending: isSubmitting } = useMutation({
     mutationFn: async (data: FormData) => {
-      const response = await fetch("/api/dealerHandgun", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/dealerHandgun', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...data,
-          transaction_type: "dealer-handgun",
+          transaction_type: 'dealer-handgun',
         }),
       });
-      if (!response.ok) throw new Error("Failed to submit form");
+      if (!response.ok) throw new Error('Failed to submit form');
       return response.json();
     },
     onSuccess: () => {
-      toast({ title: "Success", description: "Form submitted successfully" });
-      router.push("/TGR/dros/training");
+      toast({ title: 'Success', description: 'Form submitted successfully' });
+      router.push('/TGR/dros/training');
     },
     onError: (error: Error) => {
       toast({
-        title: "Error",
+        title: 'Error',
         description: error.message,
-        variant: "destructive",
+        variant: 'destructive',
       });
     },
   });
 
   // Dialog state mutation
   const { data: isDialogOpen, mutate: setDialogOpen } = useMutation({
-    mutationKey: ["previewDialog"],
+    mutationKey: ['previewDialog'],
     mutationFn: (isOpen: boolean) => Promise.resolve(isOpen),
   });
 
@@ -267,10 +259,10 @@ const DealerHandgunSalePage = () => {
     mutationFn: () => Promise.resolve(),
     onSuccess: () => {
       // Invalidate all relevant queries to reset their data
-      queryClient.invalidateQueries({ queryKey: ["handgunRoster"] });
-      queryClient.invalidateQueries({ queryKey: ["formOptions"] });
+      queryClient.invalidateQueries({ queryKey: ['handgunRoster'] });
+      queryClient.invalidateQueries({ queryKey: ['formOptions'] });
       // Reset the selected make
-      setSelectedMake("");
+      setSelectedMake('');
     },
   });
 
@@ -284,7 +276,7 @@ const DealerHandgunSalePage = () => {
 
   // Example query - replace with your actual data fetching logic
   const { data: formData } = useQuery({
-    queryKey: ["formOptions"],
+    queryKey: ['formOptions'],
     queryFn: async () => {
       // Replace with your actual API call
       return {
@@ -314,29 +306,27 @@ const DealerHandgunSalePage = () => {
 
   // Update the handgun roster query
   const { data: handgunData, isLoading: isLoadingHandguns } = useQuery({
-    queryKey: ["handgunRoster"],
+    queryKey: ['handgunRoster'],
     queryFn: async () => {
-      const response = await fetch("/api/fetchRoster");
+      const response = await fetch('/api/fetchRoster');
       if (!response.ok) {
-        throw new Error("Failed to fetch handgun roster");
+        throw new Error('Failed to fetch handgun roster');
       }
       return response.json();
     },
   });
 
   // Watch the make and model fields
-  const selectedMake = form.watch("make");
-  const selectedModel = form.watch("model");
+  const selectedMake = form.watch('make');
+  const selectedModel = form.watch('model');
 
   // Update the handgun details query
   const { data: handgunDetails } = useQuery({
-    queryKey: ["handgunDetails", selectedMake, selectedModel],
+    queryKey: ['handgunDetails', selectedMake, selectedModel],
     queryFn: async () => {
       if (!selectedMake || !selectedModel) return null;
-      const response = await fetch(
-        `/api/fetchRoster?make=${selectedMake}&model=${selectedModel}`
-      );
-      if (!response.ok) throw new Error("Network response was not ok");
+      const response = await fetch(`/api/fetchRoster?make=${selectedMake}&model=${selectedModel}`);
+      if (!response.ok) throw new Error('Network response was not ok');
       return response.json();
     },
     enabled: !!selectedMake && !!selectedModel,
@@ -350,17 +340,17 @@ const DealerHandgunSalePage = () => {
 
   // Mutation for selected make (instead of useState)
   const { mutate: setSelectedMake } = useMutation({
-    mutationKey: ["selectedMake"],
+    mutationKey: ['selectedMake'],
     mutationFn: async (make: string) => {
       // First update the form state
       const updatedForm = {
         ...initialFormState,
         make: make,
-        model: "",
+        model: '',
       } as Partial<FormData>;
 
-      form.setValue("make", make);
-      form.setValue("model", "");
+      form.setValue('make', make);
+      form.setValue('model', '');
       return make;
     },
   });
@@ -383,13 +373,12 @@ const DealerHandgunSalePage = () => {
               <div className="space-y-2">
                 <h3 className="font-bold">Purchaser Information</h3>
                 <p>
-                  Name: {formValues.firstName} {formValues.middleName}{" "}
-                  {formValues.lastName} {formValues.suffix}
+                  Name: {formValues.firstName} {formValues.middleName} {formValues.lastName}{' '}
+                  {formValues.suffix}
                 </p>
                 <p>Address: {formValues.streetAddress}</p>
                 <p>
-                  Location: {formValues.city}, {formValues.state}{" "}
-                  {formValues.zipCode}
+                  Location: {formValues.city}, {formValues.state} {formValues.zipCode}
                 </p>
                 <p>Phone: {formValues.phoneNumber}</p>
                 <p>ID Type: {formValues.idType}</p>
@@ -417,18 +406,14 @@ const DealerHandgunSalePage = () => {
                 <p>Serial Number: {formValues.serialNumber}</p>
                 <p>Other Number: {formValues.otherNumber}</p>
                 <p>Color: {formValues.color}</p>
-                <p>
-                  Condition: {formValues.isNewGun === "new" ? "New" : "Used"}
-                </p>
+                <p>Condition: {formValues.isNewGun === 'new' ? 'New' : 'Used'}</p>
                 <p>Safety Device: {formValues.firearmSafetyDevice}</p>
               </div>
 
               <div className="space-y-2">
                 <h3 className="font-bold">Additional Information</h3>
                 <p>Gun Show Transaction: {formValues.isGunShowTransaction}</p>
-                <p>
-                  Waiting Period Exemption: {formValues.waitingPeriodExemption}
-                </p>
+                <p>Waiting Period Exemption: {formValues.waitingPeriodExemption}</p>
                 <p>Restriction Exemption: {formValues.restrictionExemption}</p>
                 <p>Comments: {formValues.comments}</p>
               </div>
@@ -451,9 +436,7 @@ const DealerHandgunSalePage = () => {
                   <span className="font-medium">Eligibility Question 4:</span>
                   <span>{formValues.eligibilityQ4}</span>
 
-                  <span className="font-medium">
-                    Firearms Possession Question:
-                  </span>
+                  <span className="font-medium">Firearms Possession Question:</span>
                   <span>{formValues.firearmsQ1}</span>
                 </div>
               </div>
@@ -463,11 +446,8 @@ const DealerHandgunSalePage = () => {
               <Button variant="outline" onClick={() => setDialogOpen(false)}>
                 Edit
               </Button>
-              <Button
-                onClick={() => submitForm(formValues)}
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? "Submitting..." : "Confirm & Submit"}
+              <Button onClick={() => submitForm(formValues)} disabled={isSubmitting}>
+                {isSubmitting ? 'Submitting...' : 'Confirm & Submit'}
               </Button>
             </div>
           </div>
@@ -480,14 +460,12 @@ const DealerHandgunSalePage = () => {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)}>
         <div className="container mx-auto py-8 max-w-6xl">
-          <h1 className="text-2xl font-bold text-center mb-8">
-            Submit Dealer Handgun Sale
-          </h1>
+          <h1 className="text-2xl font-bold text-center mb-8">Submit Dealer Handgun Sale</h1>
 
           <Alert variant="destructive" className="mb-6">
             <AlertDescription>
-              ATTENTION: NAVIGATING AWAY FROM THIS PAGE BEFORE SUBMITTING THE
-              TRANSACTION MAY RESULT IN DATA LOSS.
+              ATTENTION: NAVIGATING AWAY FROM THIS PAGE BEFORE SUBMITTING THE TRANSACTION MAY RESULT
+              IN DATA LOSS.
             </AlertDescription>
           </Alert>
 
@@ -520,9 +498,7 @@ const DealerHandgunSalePage = () => {
                   name="firstName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="required">
-                        Purchaser First Name
-                      </FormLabel>
+                      <FormLabel className="required">Purchaser First Name</FormLabel>
                       <FormControl>
                         <Input {...field} />
                       </FormControl>
@@ -550,9 +526,7 @@ const DealerHandgunSalePage = () => {
                   name="lastName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="required">
-                        Purchaser Last Name
-                      </FormLabel>
+                      <FormLabel className="required">Purchaser Last Name</FormLabel>
                       <FormControl>
                         <Input {...field} />
                       </FormControl>
@@ -619,7 +593,7 @@ const DealerHandgunSalePage = () => {
                             field.onChange(value);
                             // Don't auto-set the city when zip code is entered
                           }}
-                          value={field.value || ""}
+                          value={field.value || ''}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Select City" />
@@ -667,19 +641,13 @@ const DealerHandgunSalePage = () => {
                     <FormItem>
                       <FormLabel className="required">Gender</FormLabel>
                       <FormControl>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value}
-                        >
+                        <Select onValueChange={field.onChange} value={field.value}>
                           <SelectTrigger>
                             <SelectValue placeholder="Select gender" />
                           </SelectTrigger>
                           <SelectContent>
                             {formData?.genders.map((gender) => (
-                              <SelectItem
-                                key={gender}
-                                value={gender.toLowerCase()}
-                              >
+                              <SelectItem key={gender} value={gender.toLowerCase()}>
                                 {gender}
                               </SelectItem>
                             ))}
@@ -698,19 +666,13 @@ const DealerHandgunSalePage = () => {
                     <FormItem>
                       <FormLabel className="required">Hair Color</FormLabel>
                       <FormControl>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value}
-                        >
+                        <Select onValueChange={field.onChange} value={field.value}>
                           <SelectTrigger>
                             <SelectValue placeholder="Select Color" />
                           </SelectTrigger>
                           <SelectContent>
                             {formData?.hairColors.map((color) => (
-                              <SelectItem
-                                key={color}
-                                value={color.toLowerCase()}
-                              >
+                              <SelectItem key={color} value={color.toLowerCase()}>
                                 {color}
                               </SelectItem>
                             ))}
@@ -729,19 +691,13 @@ const DealerHandgunSalePage = () => {
                     <FormItem>
                       <FormLabel className="required">Eye Color</FormLabel>
                       <FormControl>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value}
-                        >
+                        <Select onValueChange={field.onChange} value={field.value}>
                           <SelectTrigger>
                             <SelectValue placeholder="Select Color" />
                           </SelectTrigger>
                           <SelectContent>
                             {formData?.eyeColors.map((color) => (
-                              <SelectItem
-                                key={color}
-                                value={color.toLowerCase()}
-                              >
+                              <SelectItem key={color} value={color.toLowerCase()}>
                                 {color}
                               </SelectItem>
                             ))}
@@ -757,10 +713,8 @@ const DealerHandgunSalePage = () => {
                   <Label className="required">Height (Feet / Inches)</Label>
                   <div className="flex gap-2">
                     <Select
-                      {...form.register("heightFeet")}
-                      onValueChange={(value) =>
-                        form.setValue("heightFeet", value)
-                      }
+                      {...form.register('heightFeet')}
+                      onValueChange={(value) => form.setValue('heightFeet', value)}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Feet" />
@@ -774,10 +728,8 @@ const DealerHandgunSalePage = () => {
                       </SelectContent>
                     </Select>
                     <Select
-                      {...form.register("heightInches")}
-                      onValueChange={(value) =>
-                        form.setValue("heightInches", value)
-                      }
+                      {...form.register('heightInches')}
+                      onValueChange={(value) => form.setValue('heightInches', value)}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Inches" />
@@ -795,16 +747,12 @@ const DealerHandgunSalePage = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="weight">Weight</Label>
-                  <Input {...form.register("weight")} id="weight" />
+                  <Input {...form.register('weight')} id="weight" />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="dob">Date of Birth</Label>
-                  <Input
-                    {...form.register("dateOfBirth")}
-                    id="dob"
-                    type="date"
-                  />
+                  <Input {...form.register('dateOfBirth')} id="dob" type="date" />
                 </div>
               </div>
 
@@ -813,8 +761,8 @@ const DealerHandgunSalePage = () => {
                 <div className="space-y-2">
                   <Label className="required">Purchaser ID Type</Label>
                   <Select
-                    {...form.register("idType")}
-                    onValueChange={(value) => form.setValue("idType", value)}
+                    {...form.register('idType')}
+                    onValueChange={(value) => form.setValue('idType', value)}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select ID Type" />
@@ -831,14 +779,14 @@ const DealerHandgunSalePage = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="purchaserId">Purchaser ID Number</Label>
-                  <Input {...form.register("idNumber")} id="purchaserId" />
+                  <Input {...form.register('idNumber')} id="purchaserId" />
                 </div>
 
                 <div className="space-y-2">
                   <Label className="required">Race</Label>
                   <Select
-                    {...form.register("race")}
-                    onValueChange={(value) => form.setValue("race", value)}
+                    {...form.register('race')}
+                    onValueChange={(value) => form.setValue('race', value)}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select Race" />
@@ -856,10 +804,8 @@ const DealerHandgunSalePage = () => {
                 <div className="space-y-2">
                   <Label className="required">U.S. Citizen</Label>
                   <Select
-                    {...form.register("isUsCitizen")}
-                    onValueChange={(value) =>
-                      form.setValue("isUsCitizen", value)
-                    }
+                    {...form.register('isUsCitizen')}
+                    onValueChange={(value) => form.setValue('isUsCitizen', value)}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select" />
@@ -879,10 +825,8 @@ const DealerHandgunSalePage = () => {
                 <div className="space-y-2">
                   <Label className="required">Place of Birth</Label>
                   <Select
-                    {...form.register("placeOfBirth")}
-                    onValueChange={(value) =>
-                      form.setValue("placeOfBirth", value)
-                    }
+                    {...form.register('placeOfBirth')}
+                    onValueChange={(value) => form.setValue('placeOfBirth', value)}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select Place of Birth" />
@@ -899,64 +843,45 @@ const DealerHandgunSalePage = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="phoneNumber">Telephone Number</Label>
-                  <Input {...form.register("phoneNumber")} id="phoneNumber" />
-                  <div className="text-sm text-gray-500">
-                    (Format as: ##########)
-                  </div>
+                  <Input {...form.register('phoneNumber')} id="phoneNumber" />
+                  <div className="text-sm text-gray-500">(Format as: ##########)</div>
                 </div>
               </div>
 
               {/* Alias Information */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="aliasFirstName">
-                    Purchaser Alias First Name
-                  </Label>
-                  <Input
-                    {...form.register("aliasFirstName")}
-                    id="aliasFirstName"
-                  />
+                  <Label htmlFor="aliasFirstName">Purchaser Alias First Name</Label>
+                  <Input {...form.register('aliasFirstName')} id="aliasFirstName" />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="aliasMiddleName">
-                    Purchaser Alias Middle Name
-                  </Label>
-                  <Input
-                    {...form.register("aliasMiddleName")}
-                    id="aliasMiddleName"
-                  />
+                  <Label htmlFor="aliasMiddleName">Purchaser Alias Middle Name</Label>
+                  <Input {...form.register('aliasMiddleName')} id="aliasMiddleName" />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="aliasLastName">
-                    Purchaser Alias Last Name
-                  </Label>
-                  <Input
-                    {...form.register("aliasLastName")}
-                    id="aliasLastName"
-                  />
+                  <Label htmlFor="aliasLastName">Purchaser Alias Last Name</Label>
+                  <Input {...form.register('aliasLastName')} id="aliasLastName" />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="aliasSuffix">Purchaser Alias Suffix</Label>
-                  <Input {...form.register("aliasSuffix")} id="aliasSuffix" />
+                  <Input {...form.register('aliasSuffix')} id="aliasSuffix" />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="hscFscNumber">HSC / FSC Number</Label>
-                  <Input {...form.register("hscFscNumber")} id="hscFscNumber" />
+                  <Input {...form.register('hscFscNumber')} id="hscFscNumber" />
                 </div>
 
                 <div className="space-y-2">
                   <Label className="required">HSC / FSX Exemption Code</Label>
                   <Select
-                    {...form.register("exemptionCode")}
-                    onValueChange={(value) =>
-                      form.setValue("exemptionCode", value)
-                    }
+                    {...form.register('exemptionCode')}
+                    onValueChange={(value) => form.setValue('exemptionCode', value)}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select Exemption Code" />
@@ -978,23 +903,17 @@ const DealerHandgunSalePage = () => {
                   {/* Question 1 */}
                   <div className="space-y-2">
                     <Label className="required block text-sm font-medium">
-                      <span className="font-bold">
-                        Firearms Eligibility Question 1:
-                      </span>{" "}
-                      Has purchaser: (1) ever been convicted of a felony, any
-                      offense specified in Penal Code (PC) section 29905, an
-                      offense specified in PC 23515(a), (b), or (d), a
-                      misdemeanor PC 273.5 offense, (2) been convicted in the
-                      last 10 years of a misdemeanor offense specified in PC
-                      29805, or (3) been adjudged a ward of the juvenile court
-                      for committing an offense specified in PC 29805 and is not
-                      30 years of age or older?
+                      <span className="font-bold">Firearms Eligibility Question 1:</span> Has
+                      purchaser: (1) ever been convicted of a felony, any offense specified in Penal
+                      Code (PC) section 29905, an offense specified in PC 23515(a), (b), or (d), a
+                      misdemeanor PC 273.5 offense, (2) been convicted in the last 10 years of a
+                      misdemeanor offense specified in PC 29805, or (3) been adjudged a ward of the
+                      juvenile court for committing an offense specified in PC 29805 and is not 30
+                      years of age or older?
                     </Label>
                     <Select
-                      {...form.register("eligibilityQ1")}
-                      onValueChange={(value) =>
-                        form.setValue("eligibilityQ1", value)
-                      }
+                      {...form.register('eligibilityQ1')}
+                      onValueChange={(value) => form.setValue('eligibilityQ1', value)}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select" />
@@ -1009,21 +928,16 @@ const DealerHandgunSalePage = () => {
                   {/* Question 2 */}
                   <div className="space-y-2">
                     <Label className="required block text-sm font-medium">
-                      <span className="font-bold">
-                        Firearms Eligibility Question 2:
-                      </span>{" "}
-                      Has a court ever found, as specified in Welfare and
-                      Institutions Code (WIC) section 8103, the purchaser to be
-                      a danger to others from mental illness, a mentally
-                      disordered sex offender, not guilty by reason of insanity,
-                      mentally incompetent to stand trial, or gravely disabled
-                      to be placed under a conservatorship?
+                      <span className="font-bold">Firearms Eligibility Question 2:</span> Has a
+                      court ever found, as specified in Welfare and Institutions Code (WIC) section
+                      8103, the purchaser to be a danger to others from mental illness, a mentally
+                      disordered sex offender, not guilty by reason of insanity, mentally
+                      incompetent to stand trial, or gravely disabled to be placed under a
+                      conservatorship?
                     </Label>
                     <Select
-                      {...form.register("eligibilityQ2")}
-                      onValueChange={(value) =>
-                        form.setValue("eligibilityQ2", value)
-                      }
+                      {...form.register('eligibilityQ2')}
+                      onValueChange={(value) => form.setValue('eligibilityQ2', value)}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select" />
@@ -1037,22 +951,16 @@ const DealerHandgunSalePage = () => {
                   {/* Question 3 */}
                   <div className="space-y-2">
                     <Label className="required block text-sm font-medium">
-                      <span className="font-bold">
-                        Firearms Eligibility Question 3:
-                      </span>{" "}
-                      Is purchaser a danger/threat to self or others under WIC
-                      section 8100, a person certified for intensive treatment
-                      as described in WIC section 5103(g), or a person described
-                      in WIC section 8103(f) who has ever been admitted to a
-                      mental health facility as a danger to self or others at
-                      least twice within 1 year or admitted once within the past
-                      5 years?
+                      <span className="font-bold">Firearms Eligibility Question 3:</span> Is
+                      purchaser a danger/threat to self or others under WIC section 8100, a person
+                      certified for intensive treatment as described in WIC section 5103(g), or a
+                      person described in WIC section 8103(f) who has ever been admitted to a mental
+                      health facility as a danger to self or others at least twice within 1 year or
+                      admitted once within the past 5 years?
                     </Label>
                     <Select
-                      {...form.register("eligibilityQ3")}
-                      onValueChange={(value) =>
-                        form.setValue("eligibilityQ3", value)
-                      }
+                      {...form.register('eligibilityQ3')}
+                      onValueChange={(value) => form.setValue('eligibilityQ3', value)}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select" />
@@ -1066,19 +974,14 @@ const DealerHandgunSalePage = () => {
                   {/* Question 4 */}
                   <div className="space-y-2">
                     <Label className="required block text-sm font-medium">
-                      <span className="font-bold">
-                        Firearms Eligibility Question 4:
-                      </span>{" "}
-                      Is purchaser currently the subject of any restraining
-                      order specified in PC section 29825, a Gun Violence
-                      Restraining Order, or a probation condition prohibiting
-                      firearm possession?
+                      <span className="font-bold">Firearms Eligibility Question 4:</span> Is
+                      purchaser currently the subject of any restraining order specified in PC
+                      section 29825, a Gun Violence Restraining Order, or a probation condition
+                      prohibiting firearm possession?
                     </Label>
                     <Select
-                      {...form.register("eligibilityQ4")}
-                      onValueChange={(value) =>
-                        form.setValue("eligibilityQ4", value)
-                      }
+                      {...form.register('eligibilityQ4')}
+                      onValueChange={(value) => form.setValue('eligibilityQ4', value)}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select" />
@@ -1093,19 +996,14 @@ const DealerHandgunSalePage = () => {
                   {/* Firearms Possession Question 1 */}
                   <div className="space-y-2">
                     <Label className="required block text-sm font-medium">
-                      <span className="font-bold">
-                        Firearms Possession Question 1:
-                      </span>{" "}
-                      If you currently own or possess firearms, have you checked
-                      and confirmed possession of those firearms within the past
-                      30 days? If you do not currently own or possess firearms,
-                      you must select not applicable (N/A).
+                      <span className="font-bold">Firearms Possession Question 1:</span> If you
+                      currently own or possess firearms, have you checked and confirmed possession
+                      of those firearms within the past 30 days? If you do not currently own or
+                      possess firearms, you must select not applicable (N/A).
                     </Label>
                     <Select
-                      {...form.register("firearmsQ1")}
-                      onValueChange={(value) =>
-                        form.setValue("firearmsQ1", value)
-                      }
+                      {...form.register('firearmsQ1')}
+                      onValueChange={(value) => form.setValue('firearmsQ1', value)}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select" />
@@ -1130,10 +1028,8 @@ const DealerHandgunSalePage = () => {
                     <div className="space-y-2">
                       <Label className="required">Gun Show Transaction</Label>
                       <Select
-                        {...form.register("isGunShowTransaction")}
-                        onValueChange={(value) =>
-                          form.setValue("isGunShowTransaction", value)
-                        }
+                        {...form.register('isGunShowTransaction')}
+                        onValueChange={(value) => form.setValue('isGunShowTransaction', value)}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select" />
@@ -1147,10 +1043,8 @@ const DealerHandgunSalePage = () => {
                     <div className="space-y-2">
                       <Label>Waiting Period Exemption</Label>
                       <Select
-                        {...form.register("waitingPeriodExemption")}
-                        onValueChange={(value) =>
-                          form.setValue("waitingPeriodExemption", value)
-                        }
+                        {...form.register('waitingPeriodExemption')}
+                        onValueChange={(value) => form.setValue('waitingPeriodExemption', value)}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select Waiting Period Exemption" />
@@ -1171,10 +1065,8 @@ const DealerHandgunSalePage = () => {
                   <div className="space-y-2">
                     <Label>30-Day Restriction Exemption</Label>
                     <Select
-                      {...form.register("restrictionExemption")}
-                      onValueChange={(value) =>
-                        form.setValue("restrictionExemption", value)
-                      }
+                      {...form.register('restrictionExemption')}
+                      onValueChange={(value) => form.setValue('restrictionExemption', value)}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select 30-Day Restriction Exemption" />
@@ -1193,18 +1085,16 @@ const DealerHandgunSalePage = () => {
                     <div className="space-y-2">
                       <Label className="required">Make</Label>
                       <Select
-                        {...form.register("make")}
+                        {...form.register('make')}
                         disabled={isLoadingHandguns}
                         onValueChange={(value) => {
-                          form.setValue("make", value);
-                          form.setValue("model", ""); // Reset model when make changes
+                          form.setValue('make', value);
+                          form.setValue('model', ''); // Reset model when make changes
                         }}
                       >
                         <SelectTrigger>
                           <SelectValue
-                            placeholder={
-                              isLoadingHandguns ? "Loading..." : "Select Make"
-                            }
+                            placeholder={isLoadingHandguns ? 'Loading...' : 'Select Make'}
                           />
                         </SelectTrigger>
                         <SelectContent>
@@ -1224,10 +1114,8 @@ const DealerHandgunSalePage = () => {
                       <div className="space-y-2">
                         <Label className="required">Model</Label>
                         <Select
-                          {...form.register("model")}
-                          onValueChange={(value) =>
-                            form.setValue("model", value)
-                          }
+                          {...form.register('model')}
+                          onValueChange={(value) => form.setValue('model', value)}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Select Model" />
@@ -1249,26 +1137,23 @@ const DealerHandgunSalePage = () => {
                     <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mt-4 p-4 border rounded-md bg-muted">
                       <div className="space-y-2">
                         <Label>Caliber</Label>
-                        <Input value={handgunDetails.caliber || ""} readOnly />
+                        <Input value={handgunDetails.caliber || ''} readOnly />
                       </div>
                       <div className="space-y-2">
                         <Label>Barrel Length</Label>
-                        <Input
-                          value={handgunDetails.barrelLength || ""}
-                          readOnly
-                        />
+                        <Input value={handgunDetails.barrelLength || ''} readOnly />
                       </div>
                       <div className="space-y-2">
                         <Label>Unit</Label>
-                        <Input value={handgunDetails.unit || ""} readOnly />
+                        <Input value={handgunDetails.unit || ''} readOnly />
                       </div>
                       <div className="space-y-2">
                         <Label>Material</Label>
-                        <Input value={handgunDetails.material || ""} readOnly />
+                        <Input value={handgunDetails.material || ''} readOnly />
                       </div>
                       <div className="space-y-2">
                         <Label>Category</Label>
-                        <Input value={handgunDetails.category || ""} readOnly />
+                        <Input value={handgunDetails.category || ''} readOnly />
                       </div>
                     </div>
                   )}
@@ -1277,16 +1162,14 @@ const DealerHandgunSalePage = () => {
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="space-y-2">
                       <Label className="required">Serial Number</Label>
-                      <Input {...form.register("serialNumber")} />
+                      <Input {...form.register('serialNumber')} />
                     </div>
                     <div className="space-y-2">
                       <Label className="required">Re-enter Serial Number</Label>
                       <Input
                         onChange={(e) => {
                           const reenteredSerial = e.target.value;
-                          if (
-                            reenteredSerial === initialFormState?.serialNumber
-                          ) {
+                          if (reenteredSerial === initialFormState?.serialNumber) {
                             // Serial numbers match - you could add visual feedback here
                           } else {
                             // Serial numbers don't match - you could add visual feedback here
@@ -1296,13 +1179,13 @@ const DealerHandgunSalePage = () => {
                     </div>
                     <div className="space-y-2">
                       <Label>Other Number</Label>
-                      <Input {...form.register("otherNumber")} />
+                      <Input {...form.register('otherNumber')} />
                     </div>
                     <div className="space-y-2">
                       <Label className="required">Color</Label>
                       <Select
-                        {...form.register("color")}
-                        onValueChange={(value) => form.setValue("color", value)}
+                        {...form.register('color')}
+                        onValueChange={(value) => form.setValue('color', value)}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select Color" />
@@ -1322,10 +1205,8 @@ const DealerHandgunSalePage = () => {
                     <div className="space-y-2">
                       <Label className="required">New/Used Gun</Label>
                       <Select
-                        {...form.register("isNewGun")}
-                        onValueChange={(value) =>
-                          form.setValue("isNewGun", value)
-                        }
+                        {...form.register('isNewGun')}
+                        onValueChange={(value) => form.setValue('isNewGun', value)}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select" />
@@ -1337,14 +1218,10 @@ const DealerHandgunSalePage = () => {
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label className="required">
-                        Firearm Safety Device (FSD)
-                      </Label>
+                      <Label className="required">Firearm Safety Device (FSD)</Label>
                       <Select
-                        {...form.register("firearmSafetyDevice")}
-                        onValueChange={(value) =>
-                          form.setValue("firearmSafetyDevice", value)
-                        }
+                        {...form.register('firearmSafetyDevice')}
+                        onValueChange={(value) => form.setValue('firearmSafetyDevice', value)}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select Firearm Safety Device (FSD)" />
@@ -1373,15 +1250,11 @@ const DealerHandgunSalePage = () => {
                       <FormItem>
                         <FormLabel>Comments</FormLabel>
                         <FormControl>
-                          <Textarea
-                            {...field}
-                            className="w-full min-h-[100px]"
-                            maxLength={200}
-                          />
+                          <Textarea {...field} className="w-full min-h-[100px]" maxLength={200} />
                         </FormControl>
                         <FormMessage />
                         <div className="text-sm text-gray-500">
-                          200 character limit. Characters remaining:{" "}
+                          200 character limit. Characters remaining:{' '}
                           {200 - (field.value?.length || 0)}
                         </div>
                       </FormItem>
@@ -1394,10 +1267,7 @@ const DealerHandgunSalePage = () => {
             </CardContent>
           </Card>
           <div className="flex justify-center gap-4 mt-6">
-            <Button
-              variant="outline"
-              onClick={() => router.push("/TGR/dros/training")}
-            >
+            <Button variant="outline" onClick={() => router.push('/TGR/dros/training')}>
               Back
             </Button>
             <PreviewDialog />

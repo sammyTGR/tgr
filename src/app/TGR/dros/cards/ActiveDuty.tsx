@@ -1,5 +1,5 @@
-import * as React from "react";
-import { useRouter } from "next/navigation";
+import * as React from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Card,
   CardContent,
@@ -7,13 +7,8 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import {
-  HoveredLink,
-  Menu,
-  MenuItem,
-  ProductItem,
-} from "@/components/ui/navbar-menu";
+} from '@/components/ui/card';
+import { HoveredLink, Menu, MenuItem, ProductItem } from '@/components/ui/navbar-menu';
 
 function ActiveDuty({ className }: { className?: string }) {
   const router = useRouter();
@@ -26,17 +21,15 @@ function ActiveDuty({ className }: { className?: string }) {
           <CardDescription>
             <span className="text-orange-500">Before Moving Forward - </span>
             <br />
-            <span className="text-orange-500">PRINT</span> THE Federal Doc
-            Worksheet In The Link Below
+            <span className="text-orange-500">PRINT</span> THE Federal Doc Worksheet In The Link
+            Below
             <br />
             <hr className="my-4" />
             <br />
-            If The Transaction Is For A{" "}
-            <span className="text-blue-500">Blue Label</span> Firearm,
+            If The Transaction Is For A <span className="text-blue-500">Blue Label</span> Firearm,
             <br />
-            Don&apos;t Forget To Fill Out The{" "}
-            <span className="text-blue-500">Blue Label</span> Form & Include It
-            In The Pending Packet
+            Don&apos;t Forget To Fill Out The <span className="text-blue-500">Blue Label</span> Form
+            & Include It In The Pending Packet
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -45,8 +38,7 @@ function ActiveDuty({ className }: { className?: string }) {
             <ul className="list-disc pl-4">
               <li>PCS Orders Containing Effective Date & Order Number</li>
               <li>
-                Proof Of CA Residence (Anything Listed In &quot;Address
-                Correction Docs&quot;)
+                Proof Of CA Residence (Anything Listed In &quot;Address Correction Docs&quot;)
               </li>
               <li>
                 Photo Copy Out Of State DL / ID As Normal
@@ -54,7 +46,7 @@ function ActiveDuty({ className }: { className?: string }) {
                   <li>
                     Write Down DOD ID#, Rank & Branch On
                     <span className="text-orange-500">
-                      {" "}
+                      {' '}
                       Federal Doc Worksheet
                       <br className="lg:hidden" />
                       <span className="lg:inline"> (Printable Link Below)</span>
@@ -68,8 +60,7 @@ function ActiveDuty({ className }: { className?: string }) {
             <p>(X21 - Military - Active Duty)</p>
             <hr className="my-4" />
             <p>
-              Military Are <span className="text-red-500">NOT</span> Roster | 30
-              Day Exempt
+              Military Are <span className="text-red-500">NOT</span> Roster | 30 Day Exempt
             </p>
           </div>
         </CardContent>

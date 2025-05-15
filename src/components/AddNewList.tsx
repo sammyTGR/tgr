@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -7,31 +7,27 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import React, { useCallback, useState } from "react";
-import { PlusIcon } from "@radix-ui/react-icons";
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import React, { useCallback, useState } from 'react';
+import { PlusIcon } from '@radix-ui/react-icons';
 
-export function AddNewList({
-  addNewList,
-}: {
-  addNewList: (name: string) => void;
-}) {
-  const [listName, setListName] = useState("");
+export function AddNewList({ addNewList }: { addNewList: (name: string) => void }) {
+  const [listName, setListName] = useState('');
   const [isOpen, setIsOpen] = useState(false);
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
-      if (listName.trim() === "") {
+      if (listName.trim() === '') {
         return;
       }
       try {
         await addNewList(listName);
         // console.log("New list added successfully");
-        setListName("");
+        setListName('');
       } catch (error) {
-        console.error("Error adding new list:", error);
+        console.error('Error adding new list:', error);
       } finally {
         setIsOpen(false);
       }
@@ -55,9 +51,7 @@ export function AddNewList({
           <Input
             id="name"
             value={listName}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              setListName(e.target.value)
-            }
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setListName(e.target.value)}
           />
         </div>
         <DialogFooter>

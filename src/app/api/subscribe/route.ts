@@ -6,10 +6,7 @@ export async function POST(req: Request) {
     const { email, first_name, last_name } = await req.json();
 
     if (!email) {
-      return NextResponse.json(
-        { error: 'Email is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Email is required' }, { status: 400 });
     }
 
     const MailchimpKey = process.env.MAILCHIMP_API_KEY;
@@ -21,10 +18,7 @@ export async function POST(req: Request) {
     }
 
     // Create MD5 hash of lowercase email for Mailchimp subscriber ID
-    const subscriberHash = crypto
-      .createHash('md5')
-      .update(email.toLowerCase())
-      .digest('hex');
+    const subscriberHash = crypto.createHash('md5').update(email.toLowerCase()).digest('hex');
 
     const baseUrl = `https://${MailchimpServer}.api.mailchimp.com/3.0/lists/${MailchimpAudience}/members`;
     const memberUrl = `${baseUrl}/${subscriberHash}`;
@@ -34,16 +28,16 @@ export async function POST(req: Request) {
       status: 'subscribed',
       merge_fields: {
         FNAME: first_name || '',
-        LNAME: last_name || ''
-      }
+        LNAME: last_name || '',
+      },
     };
 
     // First try to update the existing member
     const response = await fetch(memberUrl, {
-      method: "PUT",
+      method: 'PUT',
       headers: {
         Authorization: `Bearer ${MailchimpKey}`,
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify(memberData),
     });
@@ -60,14 +54,10 @@ export async function POST(req: Request) {
     const received = await response.json();
     return NextResponse.json({
       ...received,
-      message: 'Successfully updated subscription'
+      message: 'Successfully updated subscription',
     });
-
   } catch (error) {
     console.error('Error:', error);
-    return NextResponse.json(
-      { error: 'Internal Server Error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

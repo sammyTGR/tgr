@@ -1,4 +1,4 @@
-import * as React from "react";
+import * as React from 'react';
 import {
   ColumnFiltersState,
   SortingState,
@@ -9,8 +9,8 @@ import {
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
-} from "@tanstack/react-table";
-import styles from "./table.module.css";
+} from '@tanstack/react-table';
+import styles from './table.module.css';
 import {
   Table,
   TableBody,
@@ -18,22 +18,22 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+} from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { ChevronDown } from "lucide-react";
-import { DataTablePagination } from "./pagination";
-import { ColumnDef, RangeWalkData } from "./columns";
-import { DataTableRowActions } from "./data-table-row-actions";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import classNames from "classnames";
-import { useQueryClient } from "@tanstack/react-query";
+} from '@/components/ui/dropdown-menu';
+import { ChevronDown } from 'lucide-react';
+import { DataTablePagination } from './pagination';
+import { ColumnDef, RangeWalkData } from './columns';
+import { DataTableRowActions } from './data-table-row-actions';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import classNames from 'classnames';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface DataTableProps<TData extends RangeWalkData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -53,13 +53,10 @@ export function DataTable<TData extends RangeWalkData, TValue>({
   onNotesChange,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
-  );
-  const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({});
-  const [userNameFilter, setUserNameFilter] = React.useState("");
-  const [dateFilter, setDateFilter] = React.useState("");
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
+  const [userNameFilter, setUserNameFilter] = React.useState('');
+  const [dateFilter, setDateFilter] = React.useState('');
 
   const table = useReactTable({
     data,
@@ -85,11 +82,11 @@ export function DataTable<TData extends RangeWalkData, TValue>({
   };
 
   const clearFilters = () => {
-    setUserNameFilter("");
-    setDateFilter("");
+    setUserNameFilter('');
+    setDateFilter('');
 
-    table.getColumn("user_name")?.setFilterValue("");
-    table.getColumn("date_of_walk")?.setFilterValue("");
+    table.getColumn('user_name')?.setFilterValue('');
+    table.getColumn('date_of_walk')?.setFilterValue('');
   };
 
   return (
@@ -101,7 +98,7 @@ export function DataTable<TData extends RangeWalkData, TValue>({
             value={userNameFilter}
             onChange={(event) => {
               setUserNameFilter(event.target.value);
-              table.getColumn("user_name")?.setFilterValue(event.target.value);
+              table.getColumn('user_name')?.setFilterValue(event.target.value);
             }}
             className="max-w-sm"
           />
@@ -110,9 +107,7 @@ export function DataTable<TData extends RangeWalkData, TValue>({
             value={dateFilter}
             onChange={(event) => {
               setDateFilter(event.target.value);
-              table
-                .getColumn("date_of_walk")
-                ?.setFilterValue(event.target.value);
+              table.getColumn('date_of_walk')?.setFilterValue(event.target.value);
             }}
             className="max-w-sm"
           />
@@ -167,10 +162,7 @@ export function DataTable<TData extends RangeWalkData, TValue>({
                       <TableHead key={header.id} style={metaStyle}>
                         {header.isPlaceholder
                           ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
+                          : flexRender(header.column.columnDef.header, header.getContext())}
                       </TableHead>
                     );
                   })}
@@ -181,10 +173,7 @@ export function DataTable<TData extends RangeWalkData, TValue>({
             <TableBody>
               {table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    data-state={row.getIsSelected() && "selected"}
-                  >
+                  <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'}>
                     {row.getVisibleCells().map((cell) => {
                       const metaStyle = (
                         cell.column.columnDef.meta as {
@@ -193,10 +182,7 @@ export function DataTable<TData extends RangeWalkData, TValue>({
                       )?.style;
                       return (
                         <TableCell key={cell.id} style={metaStyle}>
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext()
-                          )}
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </TableCell>
                       );
                     })}
@@ -204,10 +190,7 @@ export function DataTable<TData extends RangeWalkData, TValue>({
                 ))
               ) : (
                 <TableRow>
-                  <TableCell
-                    colSpan={columns.length}
-                    className="h-24 text-center"
-                  >
+                  <TableCell colSpan={columns.length} className="h-24 text-center">
                     No results.
                   </TableCell>
                 </TableRow>

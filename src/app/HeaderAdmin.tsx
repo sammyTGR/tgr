@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { Suspense } from "react";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
+import * as React from 'react';
+import { Suspense } from 'react';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 import {
   ChatBubbleIcon,
   HomeIcon,
@@ -15,16 +15,16 @@ import {
   PersonIcon,
   DashboardIcon,
   QuestionMarkIcon,
-} from "@radix-ui/react-icons";
+} from '@radix-ui/react-icons';
 import {
   NavigationMenuContent,
   NavigationMenuItem,
   NavigationMenuLink,
   NavigationMenuTrigger,
-} from "@/components/ui/navigation-menu";
-import { cn } from "@/lib/utils";
-import RoleBasedWrapper from "@/components/RoleBasedWrapper";
-import { supabase } from "@/utils/supabase/client";
+} from '@/components/ui/navigation-menu';
+import { cn } from '@/lib/utils';
+import RoleBasedWrapper from '@/components/RoleBasedWrapper';
+import { supabase } from '@/utils/supabase/client';
 // import useUnreadMessages from "@/app/api/fetch-unread/route";
 // import useUnreadOrders from "@/app/api/useUnreadOrders/route"; // Import the hook
 // import useUnreadTimeOffRequests from "@/app/api/useUnreadTimeOffRequests/route"; // Import the hook
@@ -38,13 +38,13 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuPortal,
   DropdownMenuSubContent,
-} from "@/components/ui/dropdown-menu";
-import { useTheme } from "next-themes";
-import LoadingIndicator from "@/components/LoadingIndicator";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import dynamic from "next/dynamic";
-import { User } from "@supabase/supabase-js";
+} from '@/components/ui/dropdown-menu';
+import { useTheme } from 'next-themes';
+import LoadingIndicator from '@/components/LoadingIndicator';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import dynamic from 'next/dynamic';
+import { User } from '@supabase/supabase-js';
 
 export interface ChatMessage {
   id: string;
@@ -64,146 +64,146 @@ interface UserData {
 
 const auditComponents = [
   {
-    title: "Audits & Sales Performance",
-    href: "/admin/audits",
-    description: "Enter & Review Audits & Sales Performance",
+    title: 'Audits & Sales Performance',
+    href: '/admin/audits',
+    description: 'Enter & Review Audits & Sales Performance',
   },
   {
-    title: "DROS Guidance",
-    href: "/TGR/dros/guide",
+    title: 'DROS Guidance',
+    href: '/TGR/dros/guide',
     description: "Sometimes We All Need A Lil' Help",
   },
 ];
 
 const schedComponents = [
   {
-    title: "Team Calendar",
-    href: "/TGR/crew/calendar",
-    description: "Calendar & Time Off Requests",
+    title: 'Team Calendar',
+    href: '/TGR/crew/calendar',
+    description: 'Calendar & Time Off Requests',
   },
   {
-    title: "Review Time Off Requests",
-    href: "/admin/timeoffreview",
-    description: "Respond To Time Off Requests",
+    title: 'Review Time Off Requests',
+    href: '/admin/timeoffreview',
+    description: 'Respond To Time Off Requests',
   },
   {
-    title: "Manage Schedules & Timesheets",
-    href: "/admin/schedules",
-    description: "Schedules & Timesheets",
+    title: 'Manage Schedules & Timesheets',
+    href: '/admin/schedules',
+    description: 'Schedules & Timesheets',
   },
 ];
 
 const sopComps = [
   {
-    title: "TGR SOPs",
-    href: "/TGR/sop",
-    description: "SOPs For Front Of The House",
+    title: 'TGR SOPs',
+    href: '/TGR/sop',
+    description: 'SOPs For Front Of The House',
   },
   {
-    title: "Admin SOPs",
-    href: "/admin/sop",
-    description: "SOPs For Back Of The House",
+    title: 'Admin SOPs',
+    href: '/admin/sop',
+    description: 'SOPs For Back Of The House',
   },
 ];
 
 const profileComps = [
   {
-    title: "Staff Profiles",
-    href: "/admin/dashboard",
-    description: "All Profiles",
+    title: 'Staff Profiles',
+    href: '/admin/dashboard',
+    description: 'All Profiles',
   },
   {
-    title: "Weekly Agenda Topics",
-    href: "/admin/meetings",
-    description: "Update This Weekly",
+    title: 'Weekly Agenda Topics',
+    href: '/admin/meetings',
+    description: 'Update This Weekly',
   },
 ];
 
 const manageComps = [
   {
-    title: "Staff Profiles",
-    href: "/admin/dashboard",
-    description: "All Profiles",
+    title: 'Staff Profiles',
+    href: '/admin/dashboard',
+    description: 'All Profiles',
   },
   {
-    title: "Weekly Updates",
-    href: "/admin/meetings",
-    description: "Update These Notes Weekly",
+    title: 'Weekly Updates',
+    href: '/admin/meetings',
+    description: 'Update These Notes Weekly',
   },
 ];
 
 const comboComps = [
   {
-    title: "Safety Waiver",
-    href: "/public/waiver",
-    description: "Submit A Safety Waiver",
+    title: 'Safety Waiver',
+    href: '/public/waiver',
+    description: 'Submit A Safety Waiver',
   },
   {
-    title: "Review Waivers",
-    href: "/sales/waiver/checkin",
-    description: "Review Waivers & Check-Ins",
+    title: 'Review Waivers',
+    href: '/sales/waiver/checkin',
+    description: 'Review Waivers & Check-Ins',
   },
   {
-    title: "View Certifications",
-    href: "/TGR/certifications",
-    description: "View All Certifications",
+    title: 'View Certifications',
+    href: '/TGR/certifications',
+    description: 'View All Certifications',
   },
   {
-    title: "Range Walks & Repairs",
-    href: "/TGR/crew/range",
-    description: "Submit Range Walks & Repairs",
+    title: 'Range Walks & Repairs',
+    href: '/TGR/crew/range',
+    description: 'Submit Range Walks & Repairs',
   },
 
   {
-    title: "Submit Claimed Points",
-    href: "/TGR/crew/points",
-    description: "Report All Submitted Points",
+    title: 'Submit Claimed Points',
+    href: '/TGR/crew/points',
+    description: 'Report All Submitted Points',
   },
   {
-    title: "Submit Daily Deposits",
-    href: "/TGR/deposits",
-    description: "Daily Deposits",
+    title: 'Submit Daily Deposits',
+    href: '/TGR/deposits',
+    description: 'Daily Deposits',
   },
   {
-    title: "Submit Special Orders",
-    href: "/sales/orders",
-    description: "Submit Requests For Customers",
+    title: 'Submit Special Orders',
+    href: '/sales/orders',
+    description: 'Submit Requests For Customers',
   },
   {
-    title: "Special Orders Report",
-    href: "/sales/orderreview",
-    description: "View Submitted Orders",
+    title: 'Special Orders Report',
+    href: '/sales/orderreview',
+    description: 'View Submitted Orders',
   },
   {
-    title: "Rental Firearms Checklist",
-    href: "/TGR/rentals/checklist",
-    description: "Rental Inventory Check",
+    title: 'Rental Firearms Checklist',
+    href: '/TGR/rentals/checklist',
+    description: 'Rental Inventory Check',
   },
   {
-    title: "Newsletter",
-    href: "/public/subscribe",
-    description: "Subscribe To Our Email List",
+    title: 'Newsletter',
+    href: '/public/subscribe',
+    description: 'Subscribe To Our Email List',
   },
   {
-    title: "DROS Training",
-    href: "/TGR/dros/training/",
-    description: "DROS Simulation",
+    title: 'DROS Training',
+    href: '/TGR/dros/training/',
+    description: 'DROS Simulation',
   },
   {
-    title: "Bulletin Board",
-    href: "/TGR/crew/bulletin",
-    description: "Bulletin Board",
+    title: 'Bulletin Board',
+    href: '/TGR/crew/bulletin',
+    description: 'Bulletin Board',
   },
   {
-    title: "Patch Notes",
-    href: "/patch-notes",
-    description: "Site Updates",
+    title: 'Patch Notes',
+    href: '/patch-notes',
+    description: 'Site Updates',
   },
 ];
 
 const LazyNavigationMenu = dynamic(
   () =>
-    import("@/components/ui/navigation-menu").then((module) => ({
+    import('@/components/ui/navigation-menu').then((module) => ({
       default: module.NavigationMenu,
     })),
   {
@@ -213,7 +213,7 @@ const LazyNavigationMenu = dynamic(
 
 const LazyNavigationMenuList = dynamic(
   () =>
-    import("@/components/ui/navigation-menu").then((module) => ({
+    import('@/components/ui/navigation-menu').then((module) => ({
       default: module.NavigationMenuList,
     })),
   {
@@ -223,7 +223,7 @@ const LazyNavigationMenuList = dynamic(
 
 const LazyDropdownMenu = dynamic(
   () =>
-    import("@/components/ui/dropdown-menu").then((module) => ({
+    import('@/components/ui/dropdown-menu').then((module) => ({
       default: module.DropdownMenu,
     })),
   {
@@ -240,7 +240,7 @@ const HeaderAdmin = React.memo(() => {
 
   // Current user query
   const { data: currentUser } = useQuery({
-    queryKey: ["currentUser"],
+    queryKey: ['currentUser'],
     queryFn: async () => {
       const {
         data: { user },
@@ -252,10 +252,10 @@ const HeaderAdmin = React.memo(() => {
 
   // Add session query
   const { data: authData, isLoading: isAuthLoading } = useQuery({
-    queryKey: ["authSession"],
+    queryKey: ['authSession'],
     queryFn: async () => {
-      const response = await fetch("/api/check-session");
-      if (!response.ok) throw new Error("Failed to check session");
+      const response = await fetch('/api/check-session');
+      if (!response.ok) throw new Error('Failed to check session');
       return response.json();
     },
     staleTime: 1000 * 60,
@@ -264,12 +264,12 @@ const HeaderAdmin = React.memo(() => {
 
   // Add user role query
   const { data: userData, refetch: refetchUserRole } = useQuery<UserData>({
-    queryKey: ["userRole"],
+    queryKey: ['userRole'],
     queryFn: async () => {
-      const response = await fetch("/api/getUserRole");
+      const response = await fetch('/api/getUserRole');
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || "Failed to fetch user role");
+        throw new Error(error.error || 'Failed to fetch user role');
       }
       return response.json();
     },
@@ -281,12 +281,12 @@ const HeaderAdmin = React.memo(() => {
 
   // Update employee query to use authData
   const { data: employeeData } = useQuery({
-    queryKey: ["employee", authData?.user?.id],
+    queryKey: ['employee', authData?.user?.id],
     queryFn: async () => {
       const response = await fetch(
         `/api/fetchEmployees?select=employee_id&equals=user_uuid:${authData.user.id}&single=true`
       );
-      if (!response.ok) throw new Error("Failed to fetch employee data");
+      if (!response.ok) throw new Error('Failed to fetch employee data');
       return response.json();
     },
     enabled: !!authData?.user?.id,
@@ -295,33 +295,29 @@ const HeaderAdmin = React.memo(() => {
 
   // Navigation loading state
   const { isLoading } = useQuery({
-    queryKey: ["navigation", pathname, searchParams],
-    queryFn: () =>
-      Promise.resolve(
-        new Promise((resolve) => setTimeout(() => resolve(null), 100))
-      ),
+    queryKey: ['navigation', pathname, searchParams],
+    queryFn: () => Promise.resolve(new Promise((resolve) => setTimeout(() => resolve(null), 100))),
     staleTime: 0,
     refetchInterval: 0,
   });
 
   // Unread messages query
   const { data: unreadMessagesData = { totalUnreadCount: 0 } } = useQuery({
-    queryKey: ["unreadMessages", currentUser?.id],
+    queryKey: ['unreadMessages', currentUser?.id],
     queryFn: async () => {
       const [dmResult, groupResult] = await Promise.all([
         supabase
-          .from("direct_messages")
-          .select("id")
-          .eq("receiver_id", currentUser?.id || "")
-          .eq("is_read", false),
+          .from('direct_messages')
+          .select('id')
+          .eq('receiver_id', currentUser?.id || '')
+          .eq('is_read', false),
         supabase
-          .from("group_chat_messages")
-          .select("id")
-          .not("read_by", "cs", `{${currentUser?.id}}`),
+          .from('group_chat_messages')
+          .select('id')
+          .not('read_by', 'cs', `{${currentUser?.id}}`),
       ]);
 
-      const totalUnreadCount =
-        (dmResult.data?.length || 0) + (groupResult.data?.length || 0);
+      const totalUnreadCount = (dmResult.data?.length || 0) + (groupResult.data?.length || 0);
       return { totalUnreadCount };
     },
     enabled: !!currentUser?.id,
@@ -330,10 +326,10 @@ const HeaderAdmin = React.memo(() => {
 
   // Unread orders query
   const { data: unreadOrdersData = { unreadOrderCount: 0 } } = useQuery({
-    queryKey: ["unreadOrders"],
+    queryKey: ['unreadOrders'],
     queryFn: async () => {
-      const response = await fetch("/api/useUnreadOrders");
-      if (!response.ok) throw new Error("Failed to fetch unread orders");
+      const response = await fetch('/api/useUnreadOrders');
+      if (!response.ok) throw new Error('Failed to fetch unread orders');
       return response.json();
     },
     enabled: !!currentUser,
@@ -342,11 +338,10 @@ const HeaderAdmin = React.memo(() => {
 
   // Unread time-off requests query
   const { data: unreadTimeOffData = { unreadTimeOffCount: 0 } } = useQuery({
-    queryKey: ["unreadTimeOff"],
+    queryKey: ['unreadTimeOff'],
     queryFn: async () => {
-      const response = await fetch("/api/useUnreadTimeOffRequests");
-      if (!response.ok)
-        throw new Error("Failed to fetch unread time-off requests");
+      const response = await fetch('/api/useUnreadTimeOffRequests');
+      if (!response.ok) throw new Error('Failed to fetch unread time-off requests');
       return response.json();
     },
     enabled: !!currentUser,
@@ -361,15 +356,15 @@ const HeaderAdmin = React.memo(() => {
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     queryClient.clear();
-    window.location.href = "/";
+    window.location.href = '/';
   };
 
   const handleChatClick = () => {
-    router.push("/messages");
+    router.push('/messages');
   };
 
   const handleSupportClick = () => {
-    router.push("/support");
+    router.push('/support');
   };
 
   const handleProfileClick = () => {
@@ -379,7 +374,7 @@ const HeaderAdmin = React.memo(() => {
   };
 
   return (
-    <RoleBasedWrapper allowedRoles={["admin", "ceo"]}>
+    <RoleBasedWrapper allowedRoles={['admin', 'ceo']}>
       {isLoading && <LoadingIndicator />}
       <header className="flex justify-between items-center p-2">
         <LazyNavigationMenu>
@@ -389,11 +384,7 @@ const HeaderAdmin = React.memo(() => {
               <NavigationMenuContent>
                 <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
                   {auditComponents.map((component) => (
-                    <ListItem
-                      key={component.title}
-                      title={component.title}
-                      href={component.href}
-                    >
+                    <ListItem key={component.title} title={component.title} href={component.href}>
                       {component.description}
                     </ListItem>
                   ))}
@@ -405,11 +396,7 @@ const HeaderAdmin = React.memo(() => {
               <NavigationMenuContent>
                 <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
                   {schedComponents.map((sched) => (
-                    <ListItem
-                      key={sched.title}
-                      title={sched.title}
-                      href={sched.href}
-                    >
+                    <ListItem key={sched.title} title={sched.title} href={sched.href}>
                       {sched.description}
                     </ListItem>
                   ))}
@@ -421,11 +408,7 @@ const HeaderAdmin = React.memo(() => {
               <NavigationMenuContent>
                 <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-3 lg:w-[600px]">
                   {comboComps.map((component) => (
-                    <ListItem
-                      key={component.title}
-                      title={component.title}
-                      href={component.href}
-                    >
+                    <ListItem key={component.title} title={component.title} href={component.href}>
                       {component.description}
                     </ListItem>
                   ))}
@@ -437,11 +420,7 @@ const HeaderAdmin = React.memo(() => {
               <NavigationMenuContent>
                 <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
                   {manageComps.map((component) => (
-                    <ListItem
-                      key={component.title}
-                      title={component.title}
-                      href={component.href}
-                    >
+                    <ListItem key={component.title} title={component.title} href={component.href}>
                       {component.description}
                     </ListItem>
                   ))}
@@ -453,11 +432,7 @@ const HeaderAdmin = React.memo(() => {
               <NavigationMenuContent>
                 <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
                   {sopComps.map((component) => (
-                    <ListItem
-                      key={component.title}
-                      title={component.title}
-                      href={component.href}
-                    >
+                    <ListItem key={component.title} title={component.title} href={component.href}>
                       {component.description}
                     </ListItem>
                   ))}
@@ -505,11 +480,7 @@ const HeaderAdmin = React.memo(() => {
                 <Suspense fallback={<LoadingIndicator />}>
                   <LazyDropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="mr-2 relative"
-                      >
+                      <Button variant="ghost" size="icon" className="mr-2 relative">
                         <PersonIcon />
                         {unreadMessagesData.totalUnreadCount > 0 && (
                           <span className="absolute -top-1 -right-1 text-red-500 text-xs font-bold">
@@ -528,9 +499,7 @@ const HeaderAdmin = React.memo(() => {
                       <DropdownMenuSeparator />
 
                       <DropdownMenuItem
-                        onSelect={() =>
-                          handleLinkClick("/admin/reports/dashboard")
-                        }
+                        onSelect={() => handleLinkClick('/admin/reports/dashboard')}
                       >
                         <DashboardIcon className="mr-2 h-4 w-4" />
                         <span>Admin Dashboard</span>
@@ -550,11 +519,11 @@ const HeaderAdmin = React.memo(() => {
                         </DropdownMenuSubTrigger>
                         <DropdownMenuPortal>
                           <DropdownMenuSubContent>
-                            <DropdownMenuItem onClick={() => setTheme("light")}>
+                            <DropdownMenuItem onClick={() => setTheme('light')}>
                               <SunIcon className="mr-2 h-4 w-4" />
                               <span>Light</span>
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setTheme("dark")}>
+                            <DropdownMenuItem onClick={() => setTheme('dark')}>
                               <MoonIcon className="mr-2 h-4 w-4" />
                               <span>Dark</span>
                             </DropdownMenuItem>
@@ -563,9 +532,7 @@ const HeaderAdmin = React.memo(() => {
                       </DropdownMenuSub>
                       <DropdownMenuSeparator />
 
-                      <DropdownMenuItem onClick={handleSignOut}>
-                        Sign Out
-                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleSignOut}>Sign Out</DropdownMenuItem>
                     </DropdownMenuContent>
                   </LazyDropdownMenu>
                 </Suspense>
@@ -582,44 +549,41 @@ const HeaderAdmin = React.memo(() => {
   );
 });
 
-HeaderAdmin.displayName = "HeaderAdmin";
+HeaderAdmin.displayName = 'HeaderAdmin';
 
-const ListItem = React.forwardRef<
-  React.ElementRef<"a">,
-  React.ComponentPropsWithoutRef<"a">
->(({ className, title, children, href, ...props }, ref) => {
-  const queryClient = useQueryClient();
-  const router = useRouter();
+const ListItem = React.forwardRef<React.ElementRef<'a'>, React.ComponentPropsWithoutRef<'a'>>(
+  ({ className, title, children, href, ...props }, ref) => {
+    const queryClient = useQueryClient();
+    const router = useRouter();
 
-  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault();
-    queryClient.invalidateQueries({ queryKey: ["navigation"] });
-    router.push(href || "");
-  };
+    const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+      e.preventDefault();
+      queryClient.invalidateQueries({ queryKey: ['navigation'] });
+      router.push(href || '');
+    };
 
-  return (
-    <li>
-      <NavigationMenuLink asChild>
-        <a
-          ref={ref}
-          href={href}
-          onClick={handleClick}
-          className={cn(
-            "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
-            className
-          )}
-          {...props}
-        >
-          <div className="text-sm font-medium leading-none">{title}</div>
-          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-            {children}
-          </p>
-        </a>
-      </NavigationMenuLink>
-    </li>
-  );
-});
+    return (
+      <li>
+        <NavigationMenuLink asChild>
+          <a
+            ref={ref}
+            href={href}
+            onClick={handleClick}
+            className={cn(
+              'block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground',
+              className
+            )}
+            {...props}
+          >
+            <div className="text-sm font-medium leading-none">{title}</div>
+            <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">{children}</p>
+          </a>
+        </NavigationMenuLink>
+      </li>
+    );
+  }
+);
 
-ListItem.displayName = "ListItem";
+ListItem.displayName = 'ListItem';
 
 export default HeaderAdmin;

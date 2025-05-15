@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/utils/supabase/client";
-import { toast } from "sonner";
-import { format } from "date-fns";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/utils/supabase/client';
+import { toast } from 'sonner';
+import { format } from 'date-fns';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Form,
   FormControl,
@@ -15,25 +15,21 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon } from "@radix-ui/react-icons";
-import { cn } from "@/lib/utils";
+} from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { CalendarIcon } from '@radix-ui/react-icons';
+import { cn } from '@/lib/utils';
 import {
   Table,
   TableBody,
@@ -41,37 +37,37 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from '@/components/ui/table';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Pencil, Trash2 } from "lucide-react";
-import { DotsHorizontalIcon } from "@radix-ui/react-icons";
+} from '@/components/ui/dialog';
+import { Pencil, Trash2 } from 'lucide-react';
+import { DotsHorizontalIcon } from '@radix-ui/react-icons';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { ScrollBar } from "@/components/ui/scroll-area";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import classNames from "classnames";
-import styles from "./tracker.module.css";
+} from '@/components/ui/dropdown-menu';
+import { ScrollBar } from '@/components/ui/scroll-area';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import classNames from 'classnames';
+import styles from './tracker.module.css';
 const formSchema = z.object({
-  drosNumber: z.string().min(1, "DROS Number is required"),
-  firstName: z.string().min(1, "First Name is required"),
-  lastName: z.string().min(1, "Last Name is required"),
+  drosNumber: z.string().min(1, 'DROS Number is required'),
+  firstName: z.string().min(1, 'First Name is required'),
+  lastName: z.string().min(1, 'Last Name is required'),
   transactionDate: z.date(),
   earliestPickupDate: z.date(),
   earliestPickupTime: z.string(),
   latestPickupDate: z.date(),
   latestPickupTime: z.string(),
-  phoneNumber: z.string().min(1, "Phone Number is required"),
-  status: z.string().min(1, "Status is required"),
+  phoneNumber: z.string().min(1, 'Phone Number is required'),
+  status: z.string().min(1, 'Status is required'),
   wasCalled: z.boolean(),
   callOutcome: z.string().optional(),
 });
@@ -79,20 +75,20 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 const statusOptions = [
-  "Delayed",
-  "Approved",
-  "Approved After Delay",
-  "Undetermined",
-  "Denied",
-  "Rejected",
+  'Delayed',
+  'Approved',
+  'Approved After Delay',
+  'Undetermined',
+  'Denied',
+  'Rejected',
 ];
 
 const callOutcomeOptions = [
-  "Left VM Explaining Not To Come In Until Informed",
-  "Spoke With Customer & Explained Delay",
+  'Left VM Explaining Not To Come In Until Informed',
+  'Spoke With Customer & Explained Delay',
   "Couldn't Leave VM",
-  "Line Disconnected",
-  "Updated About Status Change To Undetermined",
+  'Line Disconnected',
+  'Updated About Status Change To Undetermined',
 ];
 
 export default function DrosStatusPage() {
@@ -100,12 +96,12 @@ export default function DrosStatusPage() {
 
   // Fetch DROS status entries
   const { data: drosEntries, isLoading } = useQuery({
-    queryKey: ["dros-status"],
+    queryKey: ['dros-status'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("dros_status")
-        .select("*")
-        .order("created_at", { ascending: false });
+        .from('dros_status')
+        .select('*')
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       return data;
@@ -113,31 +109,31 @@ export default function DrosStatusPage() {
   });
 
   // Get current user's email
-  const { data: currentUser = "Unknown" } = useQuery({
-    queryKey: ["currentUser"],
+  const { data: currentUser = 'Unknown' } = useQuery({
+    queryKey: ['currentUser'],
     queryFn: async () => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      return user?.email || "Unknown";
+      return user?.email || 'Unknown';
     },
   });
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      drosNumber: "",
-      firstName: "",
-      lastName: "",
+      drosNumber: '',
+      firstName: '',
+      lastName: '',
       transactionDate: new Date(),
       earliestPickupDate: new Date(),
-      earliestPickupTime: "",
+      earliestPickupTime: '',
       latestPickupDate: new Date(),
-      latestPickupTime: "",
-      phoneNumber: "",
-      status: "",
+      latestPickupTime: '',
+      phoneNumber: '',
+      status: '',
       wasCalled: false,
-      callOutcome: "",
+      callOutcome: '',
     },
   });
 
@@ -149,11 +145,11 @@ export default function DrosStatusPage() {
       } = await supabase.auth.getUser();
 
       // Extract first name from metadata
-      const fullName = user?.user_metadata?.name || "";
-      const firstName = fullName.split(" ")[0];
-      const createdBy = firstName || user?.email || "Unknown";
+      const fullName = user?.user_metadata?.name || '';
+      const firstName = fullName.split(' ')[0];
+      const createdBy = firstName || user?.email || 'Unknown';
 
-      const { error } = await supabase.from("dros_status").insert([
+      const { error } = await supabase.from('dros_status').insert([
         {
           dros_number: formData.drosNumber,
           first_name: formData.firstName,
@@ -174,35 +170,29 @@ export default function DrosStatusPage() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["dros-status"] });
+      queryClient.invalidateQueries({ queryKey: ['dros-status'] });
       form.reset();
-      toast.success("DROS status entry created successfully");
+      toast.success('DROS status entry created successfully');
     },
     onError: (error) => {
-      toast.error("Failed to create DROS status entry");
+      toast.error('Failed to create DROS status entry');
     },
   });
 
   // Update DROS status entry
   const updateMutation = useMutation({
-    mutationFn: async ({
-      id,
-      formData,
-    }: {
-      id: number;
-      formData: FormData;
-    }) => {
+    mutationFn: async ({ id, formData }: { id: number; formData: FormData }) => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
 
       // Extract first name from metadata
-      const fullName = user?.user_metadata?.name || "";
-      const firstName = fullName.split(" ")[0];
-      const updatedBy = firstName || user?.email || "Unknown";
+      const fullName = user?.user_metadata?.name || '';
+      const firstName = fullName.split(' ')[0];
+      const updatedBy = firstName || user?.email || 'Unknown';
 
       const { error } = await supabase
-        .from("dros_status")
+        .from('dros_status')
         .update({
           dros_number: formData.drosNumber,
           first_name: formData.firstName,
@@ -219,35 +209,32 @@ export default function DrosStatusPage() {
           updated_at: new Date().toISOString(),
           updated_by: updatedBy,
         })
-        .eq("id", id);
+        .eq('id', id);
 
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["dros-status"] });
-      toast.success("DROS status entry updated successfully");
+      queryClient.invalidateQueries({ queryKey: ['dros-status'] });
+      toast.success('DROS status entry updated successfully');
     },
     onError: (error) => {
-      console.error("Update error:", error);
-      toast.error("Failed to update DROS status entry");
+      console.error('Update error:', error);
+      toast.error('Failed to update DROS status entry');
     },
   });
 
   // Delete DROS status entry
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      const { error } = await supabase
-        .from("dros_status")
-        .delete()
-        .eq("id", id);
+      const { error } = await supabase.from('dros_status').delete().eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["dros-status"] });
-      toast.success("DROS status entry deleted successfully");
+      queryClient.invalidateQueries({ queryKey: ['dros-status'] });
+      toast.success('DROS status entry deleted successfully');
     },
     onError: (error) => {
-      toast.error("Failed to delete DROS status entry");
+      toast.error('Failed to delete DROS status entry');
     },
   });
 
@@ -321,17 +308,13 @@ export default function DrosStatusPage() {
                         <PopoverTrigger asChild>
                           <FormControl>
                             <Button
-                              variant={"outline"}
+                              variant={'outline'}
                               className={cn(
-                                "w-full pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground"
+                                'w-full pl-3 text-left font-normal',
+                                !field.value && 'text-muted-foreground'
                               )}
                             >
-                              {field.value ? (
-                                format(field.value, "PPP")
-                              ) : (
-                                <span>Pick a date</span>
-                              )}
+                              {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
                               <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                             </Button>
                           </FormControl>
@@ -341,9 +324,7 @@ export default function DrosStatusPage() {
                             mode="single"
                             selected={field.value}
                             onSelect={field.onChange}
-                            disabled={(date) =>
-                              date > new Date() || date < new Date("1900-01-01")
-                            }
+                            disabled={(date) => date > new Date() || date < new Date('1900-01-01')}
                             initialFocus
                           />
                         </PopoverContent>
@@ -363,17 +344,13 @@ export default function DrosStatusPage() {
                         <PopoverTrigger asChild>
                           <FormControl>
                             <Button
-                              variant={"outline"}
+                              variant={'outline'}
                               className={cn(
-                                "w-full pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground"
+                                'w-full pl-3 text-left font-normal',
+                                !field.value && 'text-muted-foreground'
                               )}
                             >
-                              {field.value ? (
-                                format(field.value, "PPP")
-                              ) : (
-                                <span>Pick a date</span>
-                              )}
+                              {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
                               <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                             </Button>
                           </FormControl>
@@ -383,7 +360,7 @@ export default function DrosStatusPage() {
                             mode="single"
                             selected={field.value}
                             onSelect={field.onChange}
-                            disabled={(date) => date < new Date("1900-01-01")}
+                            disabled={(date) => date < new Date('1900-01-01')}
                             initialFocus
                           />
                         </PopoverContent>
@@ -417,17 +394,13 @@ export default function DrosStatusPage() {
                         <PopoverTrigger asChild>
                           <FormControl>
                             <Button
-                              variant={"outline"}
+                              variant={'outline'}
                               className={cn(
-                                "w-full pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground"
+                                'w-full pl-3 text-left font-normal',
+                                !field.value && 'text-muted-foreground'
                               )}
                             >
-                              {field.value ? (
-                                format(field.value, "PPP")
-                              ) : (
-                                <span>Pick a date</span>
-                              )}
+                              {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
                               <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                             </Button>
                           </FormControl>
@@ -437,7 +410,7 @@ export default function DrosStatusPage() {
                             mode="single"
                             selected={field.value}
                             onSelect={field.onChange}
-                            disabled={(date) => date < new Date("1900-01-01")}
+                            disabled={(date) => date < new Date('1900-01-01')}
                             initialFocus
                           />
                         </PopoverContent>
@@ -481,10 +454,7 @@ export default function DrosStatusPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Status</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select status" />
@@ -509,10 +479,7 @@ export default function DrosStatusPage() {
                   render={({ field }) => (
                     <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                       <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
+                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                       </FormControl>
                       <div className="space-y-1 leading-none">
                         <FormLabel>Customer Called</FormLabel>
@@ -521,17 +488,14 @@ export default function DrosStatusPage() {
                   )}
                 />
 
-                {form.watch("wasCalled") && (
+                {form.watch('wasCalled') && (
                   <FormField
                     control={form.control}
                     name="callOutcome"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Call Outcome</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Select call outcome" />
@@ -561,18 +525,18 @@ export default function DrosStatusPage() {
                   type="button"
                   onClick={() => {
                     form.reset({
-                      drosNumber: "",
-                      firstName: "",
-                      lastName: "",
+                      drosNumber: '',
+                      firstName: '',
+                      lastName: '',
                       transactionDate: new Date(),
                       earliestPickupDate: new Date(),
-                      earliestPickupTime: "",
+                      earliestPickupTime: '',
                       latestPickupDate: new Date(),
-                      latestPickupTime: "",
-                      phoneNumber: "",
-                      status: "",
+                      latestPickupTime: '',
+                      phoneNumber: '',
+                      status: '',
                       wasCalled: false,
-                      callOutcome: "",
+                      callOutcome: '',
                     });
                   }}
                 >
@@ -592,12 +556,7 @@ export default function DrosStatusPage() {
         </CardHeader>
         <CardContent>
           <div className="overflow-hidden">
-            <ScrollArea
-              className={classNames(
-                styles.noScroll,
-                "overflow-hidden relative"
-              )}
-            >
+            <ScrollArea className={classNames(styles.noScroll, 'overflow-hidden relative')}>
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -622,43 +581,31 @@ export default function DrosStatusPage() {
                       <TableCell>
                         {entry.first_name} {entry.last_name}
                       </TableCell>
+                      <TableCell>{format(new Date(entry.transaction_date), 'PPP')}</TableCell>
                       <TableCell>
-                        {format(new Date(entry.transaction_date), "PPP")}
-                      </TableCell>
-                      <TableCell>
-                        {format(new Date(entry.earliest_pickup_date), "PPP")}{" "}
-                        {format(
-                          new Date(`2000-01-01T${entry.earliest_pickup_time}`),
-                          "hh:mm a"
-                        )}{" "}
-                        - {format(new Date(entry.latest_pickup_date), "PPP")}{" "}
-                        {format(
-                          new Date(`2000-01-01T${entry.latest_pickup_time}`),
-                          "hh:mm a"
-                        )}
+                        {format(new Date(entry.earliest_pickup_date), 'PPP')}{' '}
+                        {format(new Date(`2000-01-01T${entry.earliest_pickup_time}`), 'hh:mm a')} -{' '}
+                        {format(new Date(entry.latest_pickup_date), 'PPP')}{' '}
+                        {format(new Date(`2000-01-01T${entry.latest_pickup_time}`), 'hh:mm a')}
                       </TableCell>
                       <TableCell>
                         {(() => {
-                          const earliestDate = new Date(
-                            entry.earliest_pickup_date
-                          );
+                          const earliestDate = new Date(entry.earliest_pickup_date);
                           const estimatedDate = new Date(earliestDate);
                           estimatedDate.setDate(estimatedDate.getDate() + 30);
-                          return `${format(estimatedDate, "PPP")} ${format(new Date(`2000-01-01T${entry.earliest_pickup_time}`), "hh:mm a")}`;
+                          return `${format(estimatedDate, 'PPP')} ${format(new Date(`2000-01-01T${entry.earliest_pickup_time}`), 'hh:mm a')}`;
                         })()}
                       </TableCell>
                       <TableCell>{entry.phone_number}</TableCell>
                       <TableCell>{entry.status}</TableCell>
-                      <TableCell>{entry.was_called ? "Yes" : "No"}</TableCell>
-                      <TableCell>{entry.call_outcome || "-"}</TableCell>
+                      <TableCell>{entry.was_called ? 'Yes' : 'No'}</TableCell>
+                      <TableCell>{entry.call_outcome || '-'}</TableCell>
                       <TableCell>
                         {entry.updated_at
-                          ? format(new Date(entry.updated_at), "PPp")
-                          : format(new Date(entry.created_at), "PPp")}
+                          ? format(new Date(entry.updated_at), 'PPp')
+                          : format(new Date(entry.created_at), 'PPp')}
                       </TableCell>
-                      <TableCell>
-                        {entry.updated_by || entry.created_by || "Unknown"}
-                      </TableCell>
+                      <TableCell>{entry.updated_by || entry.created_by || 'Unknown'}</TableCell>
                       <TableCell>
                         <div className="flex space-x-2">
                           <DropdownMenu>
@@ -677,23 +624,15 @@ export default function DrosStatusPage() {
                                         drosNumber: entry.dros_number,
                                         firstName: entry.first_name,
                                         lastName: entry.last_name,
-                                        transactionDate: new Date(
-                                          entry.transaction_date
-                                        ),
-                                        earliestPickupDate: new Date(
-                                          entry.earliest_pickup_date
-                                        ),
-                                        earliestPickupTime:
-                                          entry.earliest_pickup_time,
-                                        latestPickupDate: new Date(
-                                          entry.latest_pickup_date
-                                        ),
-                                        latestPickupTime:
-                                          entry.latest_pickup_time,
+                                        transactionDate: new Date(entry.transaction_date),
+                                        earliestPickupDate: new Date(entry.earliest_pickup_date),
+                                        earliestPickupTime: entry.earliest_pickup_time,
+                                        latestPickupDate: new Date(entry.latest_pickup_date),
+                                        latestPickupTime: entry.latest_pickup_time,
                                         phoneNumber: entry.phone_number,
                                         status: entry.status,
                                         wasCalled: entry.was_called,
-                                        callOutcome: entry.call_outcome || "",
+                                        callOutcome: entry.call_outcome || '',
                                       });
                                     }}
                                   >
@@ -763,25 +702,19 @@ export default function DrosStatusPage() {
                                           name="transactionDate"
                                           render={({ field }) => (
                                             <FormItem className="flex flex-col">
-                                              <FormLabel>
-                                                Transaction Date
-                                              </FormLabel>
+                                              <FormLabel>Transaction Date</FormLabel>
                                               <Popover>
                                                 <PopoverTrigger asChild>
                                                   <FormControl>
                                                     <Button
-                                                      variant={"outline"}
+                                                      variant={'outline'}
                                                       className={cn(
-                                                        "w-full pl-3 text-left font-normal",
-                                                        !field.value &&
-                                                          "text-muted-foreground"
+                                                        'w-full pl-3 text-left font-normal',
+                                                        !field.value && 'text-muted-foreground'
                                                       )}
                                                     >
                                                       {field.value ? (
-                                                        format(
-                                                          field.value,
-                                                          "PPP"
-                                                        )
+                                                        format(field.value, 'PPP')
                                                       ) : (
                                                         <span>Pick a date</span>
                                                       )}
@@ -799,8 +732,7 @@ export default function DrosStatusPage() {
                                                     onSelect={field.onChange}
                                                     disabled={(date) =>
                                                       date > new Date() ||
-                                                      date <
-                                                        new Date("1900-01-01")
+                                                      date < new Date('1900-01-01')
                                                     }
                                                     initialFocus
                                                   />
@@ -816,25 +748,19 @@ export default function DrosStatusPage() {
                                           name="earliestPickupDate"
                                           render={({ field }) => (
                                             <FormItem className="flex flex-col">
-                                              <FormLabel>
-                                                Earliest Pickup Date
-                                              </FormLabel>
+                                              <FormLabel>Earliest Pickup Date</FormLabel>
                                               <Popover>
                                                 <PopoverTrigger asChild>
                                                   <FormControl>
                                                     <Button
-                                                      variant={"outline"}
+                                                      variant={'outline'}
                                                       className={cn(
-                                                        "w-full pl-3 text-left font-normal",
-                                                        !field.value &&
-                                                          "text-muted-foreground"
+                                                        'w-full pl-3 text-left font-normal',
+                                                        !field.value && 'text-muted-foreground'
                                                       )}
                                                     >
                                                       {field.value ? (
-                                                        format(
-                                                          field.value,
-                                                          "PPP"
-                                                        )
+                                                        format(field.value, 'PPP')
                                                       ) : (
                                                         <span>Pick a date</span>
                                                       )}
@@ -851,8 +777,7 @@ export default function DrosStatusPage() {
                                                     selected={field.value}
                                                     onSelect={field.onChange}
                                                     disabled={(date) =>
-                                                      date <
-                                                      new Date("1900-01-01")
+                                                      date < new Date('1900-01-01')
                                                     }
                                                     initialFocus
                                                   />
@@ -868,9 +793,7 @@ export default function DrosStatusPage() {
                                           name="earliestPickupTime"
                                           render={({ field }) => (
                                             <FormItem>
-                                              <FormLabel>
-                                                Earliest Pickup Time
-                                              </FormLabel>
+                                              <FormLabel>Earliest Pickup Time</FormLabel>
                                               <FormControl>
                                                 <Input type="time" {...field} />
                                               </FormControl>
@@ -884,25 +807,19 @@ export default function DrosStatusPage() {
                                           name="latestPickupDate"
                                           render={({ field }) => (
                                             <FormItem className="flex flex-col">
-                                              <FormLabel>
-                                                Latest Pickup Date
-                                              </FormLabel>
+                                              <FormLabel>Latest Pickup Date</FormLabel>
                                               <Popover>
                                                 <PopoverTrigger asChild>
                                                   <FormControl>
                                                     <Button
-                                                      variant={"outline"}
+                                                      variant={'outline'}
                                                       className={cn(
-                                                        "w-full pl-3 text-left font-normal",
-                                                        !field.value &&
-                                                          "text-muted-foreground"
+                                                        'w-full pl-3 text-left font-normal',
+                                                        !field.value && 'text-muted-foreground'
                                                       )}
                                                     >
                                                       {field.value ? (
-                                                        format(
-                                                          field.value,
-                                                          "PPP"
-                                                        )
+                                                        format(field.value, 'PPP')
                                                       ) : (
                                                         <span>Pick a date</span>
                                                       )}
@@ -919,8 +836,7 @@ export default function DrosStatusPage() {
                                                     selected={field.value}
                                                     onSelect={field.onChange}
                                                     disabled={(date) =>
-                                                      date <
-                                                      new Date("1900-01-01")
+                                                      date < new Date('1900-01-01')
                                                     }
                                                     initialFocus
                                                   />
@@ -936,9 +852,7 @@ export default function DrosStatusPage() {
                                           name="latestPickupTime"
                                           render={({ field }) => (
                                             <FormItem>
-                                              <FormLabel>
-                                                Latest Pickup Time
-                                              </FormLabel>
+                                              <FormLabel>Latest Pickup Time</FormLabel>
                                               <FormControl>
                                                 <Input type="time" {...field} />
                                               </FormControl>
@@ -952,9 +866,7 @@ export default function DrosStatusPage() {
                                           name="phoneNumber"
                                           render={({ field }) => (
                                             <FormItem>
-                                              <FormLabel>
-                                                Phone Number
-                                              </FormLabel>
+                                              <FormLabel>Phone Number</FormLabel>
                                               <FormControl>
                                                 <Input {...field} />
                                               </FormControl>
@@ -979,16 +891,11 @@ export default function DrosStatusPage() {
                                                   </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
-                                                  {statusOptions.map(
-                                                    (status) => (
-                                                      <SelectItem
-                                                        key={status}
-                                                        value={status}
-                                                      >
-                                                        {status}
-                                                      </SelectItem>
-                                                    )
-                                                  )}
+                                                  {statusOptions.map((status) => (
+                                                    <SelectItem key={status} value={status}>
+                                                      {status}
+                                                    </SelectItem>
+                                                  ))}
                                                 </SelectContent>
                                               </Select>
                                               <FormMessage />
@@ -1004,29 +911,23 @@ export default function DrosStatusPage() {
                                               <FormControl>
                                                 <Checkbox
                                                   checked={field.value}
-                                                  onCheckedChange={
-                                                    field.onChange
-                                                  }
+                                                  onCheckedChange={field.onChange}
                                                 />
                                               </FormControl>
                                               <div className="space-y-1 leading-none">
-                                                <FormLabel>
-                                                  Customer Called
-                                                </FormLabel>
+                                                <FormLabel>Customer Called</FormLabel>
                                               </div>
                                             </FormItem>
                                           )}
                                         />
 
-                                        {form.watch("wasCalled") && (
+                                        {form.watch('wasCalled') && (
                                           <FormField
                                             control={form.control}
                                             name="callOutcome"
                                             render={({ field }) => (
                                               <FormItem>
-                                                <FormLabel>
-                                                  Call Outcome
-                                                </FormLabel>
+                                                <FormLabel>Call Outcome</FormLabel>
                                                 <Select
                                                   onValueChange={field.onChange}
                                                   defaultValue={field.value}
@@ -1037,16 +938,11 @@ export default function DrosStatusPage() {
                                                     </SelectTrigger>
                                                   </FormControl>
                                                   <SelectContent>
-                                                    {callOutcomeOptions.map(
-                                                      (outcome) => (
-                                                        <SelectItem
-                                                          key={outcome}
-                                                          value={outcome}
-                                                        >
-                                                          {outcome}
-                                                        </SelectItem>
-                                                      )
-                                                    )}
+                                                    {callOutcomeOptions.map((outcome) => (
+                                                      <SelectItem key={outcome} value={outcome}>
+                                                        {outcome}
+                                                      </SelectItem>
+                                                    ))}
                                                   </SelectContent>
                                                 </Select>
                                                 <FormMessage />
@@ -1061,9 +957,7 @@ export default function DrosStatusPage() {
                                   </Form>
                                 </DialogContent>
                               </Dialog>
-                              <DropdownMenuItem
-                                onClick={() => deleteMutation.mutate(entry.id)}
-                              >
+                              <DropdownMenuItem onClick={() => deleteMutation.mutate(entry.id)}>
                                 <Trash2 className="mr-2 h-4 w-4" />
                                 Delete
                               </DropdownMenuItem>

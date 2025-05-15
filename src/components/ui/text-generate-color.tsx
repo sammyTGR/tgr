@@ -1,20 +1,14 @@
-"use client";
-import { useEffect } from "react";
-import { motion, stagger, useAnimate } from "framer-motion";
-import { cn } from "@/lib/cn";
+'use client';
+import { useEffect } from 'react';
+import { motion, stagger, useAnimate } from 'framer-motion';
+import { cn } from '@/lib/cn';
 
-export const TextGenerateColor = ({
-  words,
-  className,
-}: {
-  words: string;
-  className?: string;
-}) => {
+export const TextGenerateColor = ({ words, className }: { words: string; className?: string }) => {
   const [scope, animate] = useAnimate();
-  let wordsArray = words.split(" ");
+  let wordsArray = words.split(' ');
   useEffect(() => {
     animate(
-      "span",
+      'span',
       {
         opacity: 1,
       },
@@ -31,11 +25,8 @@ export const TextGenerateColor = ({
         {wordsArray.map((word, idx) => {
           // Updated class names for text color based on theme. Now, for dark theme it applies 'dark:text-white text-black' and for light theme 'dark:text-black text-white'
           return (
-            <motion.span
-              key={word + idx}
-              className="dark:text-red-500 text-red opacity-0"
-            >
-              {word}{" "}
+            <motion.span key={word + idx} className="dark:text-red-500 text-red opacity-0">
+              {word}{' '}
             </motion.span>
           );
         })}
@@ -44,7 +35,7 @@ export const TextGenerateColor = ({
   };
 
   return (
-    <div className={cn("font-bold", className)}>
+    <div className={cn('font-bold', className)}>
       <div className="mt-4">
         <div className="dark:text-red-500 text-red leading-snug tracking-tight">
           {renderWords()}

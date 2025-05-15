@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from "react";
-import { Button } from "@/components/ui/button";
+import React, { useState, useCallback } from 'react';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -7,21 +7,16 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import {
-  Pencil1Icon,
-  TrashIcon,
-  DotsVerticalIcon,
-  EraserIcon,
-} from "@radix-ui/react-icons";
+} from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
+import { Pencil1Icon, TrashIcon, DotsVerticalIcon, EraserIcon } from '@radix-ui/react-icons';
 
 interface List {
   id: string;
@@ -49,14 +44,14 @@ export function EditListTitle({
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
-      if (title.trim() === "") {
+      if (title.trim() === '') {
         return;
       }
       try {
         await updateListTitle(list.id, title);
         // console.log("List title updated successfully");
       } catch (error) {
-        console.error("Error updating list title:", error);
+        console.error('Error updating list title:', error);
       } finally {
         setIsDialogOpen(false);
       }
@@ -69,7 +64,7 @@ export function EditListTitle({
       await deleteList(list.id);
       // console.log("List deleted successfully");
     } catch (error) {
-      console.error("Error deleting list:", error);
+      console.error('Error deleting list:', error);
     } finally {
       setIsDropdownOpen(false);
     }
@@ -80,7 +75,7 @@ export function EditListTitle({
       await clearList(list.id);
       // console.log("List cleared successfully");
     } catch (error) {
-      console.error("Error clearing list:", error);
+      console.error('Error clearing list:', error);
     } finally {
       setIsDropdownOpen(false);
     }
@@ -121,18 +116,14 @@ export function EditListTitle({
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Edit List Title</DialogTitle>
-            <DialogDescription>
-              Enter the new title for your list
-            </DialogDescription>
+            <DialogDescription>Enter the new title for your list</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit}>
             <div className="grid gap-4 pt-2">
               <Input
                 id="title"
                 value={title}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setTitle(e.target.value)
-                }
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)}
                 onKeyDown={(e) => e.stopPropagation()}
               />
             </div>

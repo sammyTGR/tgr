@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { supabase } from "@/utils/supabase/client";
-import { FirearmsMaintenanceData } from "./columns";
+import { useState } from 'react';
+import { supabase } from '@/utils/supabase/client';
+import { FirearmsMaintenanceData } from './columns';
 
 interface MaintenanceFrequencyFormProps {
   firearm: FirearmsMaintenanceData;
@@ -17,12 +17,12 @@ const MaintenanceFrequencyForm: React.FC<MaintenanceFrequencyFormProps> = ({
     e.preventDefault();
 
     const { data, error } = await supabase
-      .from("firearms_maintenance")
+      .from('firearms_maintenance')
       .update({ maintenance_frequency: frequency })
-      .eq("id", firearm.id);
+      .eq('id', firearm.id);
 
     if (error) {
-      console.error("Error updating maintenance frequency:", error.message);
+      console.error('Error updating maintenance frequency:', error.message);
     } else {
       onUpdate(firearm.id, frequency);
     }
@@ -32,10 +32,7 @@ const MaintenanceFrequencyForm: React.FC<MaintenanceFrequencyFormProps> = ({
     <form onSubmit={handleSubmit}>
       <label>
         Maintenance Frequency:
-        <select
-          value={frequency}
-          onChange={(e) => setFrequency(Number(e.target.value))}
-        >
+        <select value={frequency} onChange={(e) => setFrequency(Number(e.target.value))}>
           <option value={7}>Weekly</option>
           <option value={14}>Bi-weekly</option>
           <option value={30}>Monthly</option>

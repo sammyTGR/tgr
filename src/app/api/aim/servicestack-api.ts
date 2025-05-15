@@ -1,5 +1,5 @@
-import { JsonServiceClient } from "@servicestack/client";
-import { SearchInventoryRequest, SearchInventoryResponse } from "./dtos";
+import { JsonServiceClient } from '@servicestack/client';
+import { SearchInventoryRequest, SearchInventoryResponse } from './dtos';
 
 interface EndpointResponse {
   NewEndpointDomain: string;
@@ -12,16 +12,13 @@ interface SecurityResponse {
 }
 
 async function getEndpoint(): Promise<EndpointResponse> {
-  const response = await fetch(
-    "https://active-ewebservice.biz/aeServices30/api/GetEndPoint",
-    {
-      method: "GET",
-      headers: {
-        APIKey: process.env.API_KEY || "",
-        AppId: process.env.APP_ID || "",
-      },
-    }
-  );
+  const response = await fetch('https://active-ewebservice.biz/aeServices30/api/GetEndPoint', {
+    method: 'GET',
+    headers: {
+      APIKey: process.env.API_KEY || '',
+      AppId: process.env.APP_ID || '',
+    },
+  });
 
   if (!response.ok) {
     throw new Error(`GetEndPoint failed: ${response.statusText}`);
@@ -30,19 +27,16 @@ async function getEndpoint(): Promise<EndpointResponse> {
   return await response.json();
 }
 
-async function getSecurityToken(
-  endpointDomain: string,
-  oAuthToken: string
-): Promise<string> {
+async function getSecurityToken(endpointDomain: string, oAuthToken: string): Promise<string> {
   const url = new URL(`${endpointDomain}/api/Security`);
-  url.searchParams.append("AppId", process.env.APP_ID || "");
-  url.searchParams.append("UserName", process.env.USERNAME || "");
-  url.searchParams.append("Password", process.env.PASSWORD || "");
+  url.searchParams.append('AppId', process.env.APP_ID || '');
+  url.searchParams.append('UserName', process.env.USERNAME || '');
+  url.searchParams.append('Password', process.env.PASSWORD || '');
 
   const response = await fetch(url.toString(), {
-    method: "POST",
+    method: 'POST',
     headers: {
-      APIKey: process.env.API_KEY || "",
+      APIKey: process.env.API_KEY || '',
       OAuthToken: oAuthToken,
     },
   });
@@ -55,15 +49,13 @@ async function getSecurityToken(
   return securityResponse.Token;
 }
 
-export const searchInventory = async (
-  searchParams: Partial<SearchInventoryRequest>
-) => {
+export const searchInventory = async (searchParams: Partial<SearchInventoryRequest>) => {
   try {
-    console.log("Starting authentication flow...");
+    console.log('Starting authentication flow...');
 
     // Step 1: Get endpoint and OAuth token
     const endpointResponse = await getEndpoint();
-    console.log("Endpoint response received:", {
+    console.log('Endpoint response received:', {
       domain: endpointResponse.NewEndpointDomain,
       hasOAuthToken: !!endpointResponse.OAuthToken,
     });
@@ -73,7 +65,7 @@ export const searchInventory = async (
       endpointResponse.NewEndpointDomain,
       endpointResponse.OAuthToken
     );
-    console.log("Security token received");
+    console.log('Security token received');
 
     // Step 3: Make the actual inventory search request
     const client = new JsonServiceClient(endpointResponse.NewEndpointDomain);
@@ -92,17 +84,17 @@ export const searchInventory = async (
       ...searchParams,
     });
 
-    console.log("Making search request with:", {
+    console.log('Making search request with:', {
       endpoint: client.baseUrl,
       requestType: request.getTypeName(),
       searchStr: searchParams.SearchStr,
     });
 
     const api = await client.api(request);
-    console.log("Raw API response received");
+    console.log('Raw API response received');
 
     if (!api || !api.response) {
-      throw new Error("No response received from API");
+      throw new Error('No response received from API');
     }
 
     const response = api.response as SearchInventoryResponse;
@@ -142,7 +134,7 @@ export const searchInventory = async (
       RemainingRecords: response?.RemainingRecords,
     };
 
-    if (sanitizedResponse?.Status?.StatusCode === "Error") {
+    if (sanitizedResponse?.Status?.StatusCode === 'Error') {
       throw new Error(
         `API Error: ${sanitizedResponse.Status.ErrorMessage} (Code: ${sanitizedResponse.Status.ErrorCode})`
       );
@@ -150,8 +142,8 @@ export const searchInventory = async (
 
     return sanitizedResponse;
   } catch (error) {
-    console.error("API error details:", {
-      message: error instanceof Error ? error.message : "Unknown error",
+    console.error('API error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
       name: error instanceof Error ? error.name : undefined,
       fullError: error,
@@ -162,9 +154,9 @@ export const searchInventory = async (
 
 // These can be implemented later when needed
 export const getInventoryDetail = async (inventoryId: string) => {
-  throw new Error("Not implemented");
+  throw new Error('Not implemented');
 };
 
 export const lookupInventory = async (query: string) => {
-  throw new Error("Not implemented");
+  throw new Error('Not implemented');
 };

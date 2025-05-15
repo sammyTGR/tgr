@@ -1,23 +1,23 @@
 // src/app/sales/waiver/checkin/page.tsx
-"use client";
-import { useCallback, useEffect, useState } from "react";
-import { supabase } from "@/utils/supabase/client";
-import { waiverColumns, Waiver } from "./columns";
-import { DataTable } from "./data-table";
-import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
-import { WaiverTableToolbar } from "./waiver-table-toolbar";
+'use client';
+import { useCallback, useEffect, useState } from 'react';
+import { supabase } from '@/utils/supabase/client';
+import { waiverColumns, Waiver } from './columns';
+import { DataTable } from './data-table';
+import { TextGenerateEffect } from '@/components/ui/text-generate-effect';
+import { WaiverTableToolbar } from './waiver-table-toolbar';
 import {
   useReactTable,
   getCoreRowModel,
   getPaginationRowModel,
   getFilteredRowModel,
   getSortedRowModel,
-} from "@tanstack/react-table";
-import { useRole } from "@/context/RoleContext"; // Import the useRole hook
-import { useRouter } from "next/navigation"; // Import the router
-import RoleBasedWrapper from "@/components/RoleBasedWrapper";
+} from '@tanstack/react-table';
+import { useRole } from '@/context/RoleContext'; // Import the useRole hook
+import { useRouter } from 'next/navigation'; // Import the router
+import RoleBasedWrapper from '@/components/RoleBasedWrapper';
 
-const title = "Review Waiver Submissions";
+const title = 'Review Waiver Submissions';
 
 export default function WaiversCheckinPage() {
   const [data, setData] = useState<Waiver[]>([]);
@@ -25,12 +25,12 @@ export default function WaiversCheckinPage() {
 
   const fetchWaiverData = useCallback(async () => {
     const { data, error } = await supabase
-      .from("waiver")
-      .select("*")
-      .order("created_at", { ascending: false });
+      .from('waiver')
+      .select('*')
+      .order('created_at', { ascending: false });
 
     if (error) {
-      console.error("Error fetching initial data:", error.message);
+      console.error('Error fetching initial data:', error.message);
       throw new Error(error.message);
     }
     return data as Waiver[];
@@ -43,7 +43,7 @@ export default function WaiversCheckinPage() {
       setData(fetchedData);
       setLoading(false);
     } catch (error) {
-      console.error("Failed to fetch data:", error);
+      console.error('Failed to fetch data:', error);
       setLoading(false);
     }
   }, [fetchWaiverData]);
@@ -52,11 +52,9 @@ export default function WaiversCheckinPage() {
     fetchData();
   }, [fetchData]);
 
-  const onStatusChange = (id: string, status: "checked_in" | "checked_out") => {
+  const onStatusChange = (id: string, status: 'checked_in' | 'checked_out') => {
     setData((currentWaivers) =>
-      currentWaivers.map((waiver) =>
-        waiver.id === id ? { ...waiver, status } : waiver
-      )
+      currentWaivers.map((waiver) => (waiver.id === id ? { ...waiver, status } : waiver))
     );
   };
 
@@ -71,26 +69,20 @@ export default function WaiversCheckinPage() {
 
   useEffect(() => {
     const WaiversTableSubscription = supabase
-      .channel("custom-all-waivers-channel")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "waiver" },
-        (payload) => {
-          if (payload.eventType === "INSERT") {
-            setData((currentData) => [payload.new as Waiver, ...currentData]);
-          } else if (payload.eventType === "UPDATE") {
-            setData((currentData) =>
-              currentData.map((waiver) =>
-                waiver.id === payload.new.id ? (payload.new as Waiver) : waiver
-              )
-            );
-          } else if (payload.eventType === "DELETE") {
-            setData((currentData) =>
-              currentData.filter((waiver) => waiver.id !== payload.old.id)
-            );
-          }
+      .channel('custom-all-waivers-channel')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'waiver' }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          setData((currentData) => [payload.new as Waiver, ...currentData]);
+        } else if (payload.eventType === 'UPDATE') {
+          setData((currentData) =>
+            currentData.map((waiver) =>
+              waiver.id === payload.new.id ? (payload.new as Waiver) : waiver
+            )
+          );
+        } else if (payload.eventType === 'DELETE') {
+          setData((currentData) => currentData.filter((waiver) => waiver.id !== payload.old.id));
         }
-      )
+      })
       .subscribe();
 
     return () => {
@@ -99,9 +91,7 @@ export default function WaiversCheckinPage() {
   }, [fetchData]);
 
   return (
-    <RoleBasedWrapper
-      allowedRoles={["user", "auditor", "admin", "super admin", "dev"]}
-    >
+    <RoleBasedWrapper allowedRoles={['user', 'auditor', 'admin', 'super admin', 'dev']}>
       <div className="h-screen flex flex-col">
         <section className="flex-1 flex flex-col space-y-4 p-4">
           <div className="flex items-center justify-between space-y-2">

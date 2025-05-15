@@ -1,7 +1,7 @@
-"use server";
+'use server';
 
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
 
 export type NoteItem = {
   id: string;
@@ -47,29 +47,29 @@ export type DiscussedNotes = {
 };
 
 export type NoteType =
-  | "range_notes"
-  | "inventory_notes"
-  | "store_notes"
-  | "employees_notes"
-  | "safety_notes"
-  | "general_notes";
+  | 'range_notes'
+  | 'inventory_notes'
+  | 'store_notes'
+  | 'employees_notes'
+  | 'safety_notes'
+  | 'general_notes';
 
 const topics: NoteType[] = [
-  "range_notes",
-  "inventory_notes",
-  "store_notes",
-  "employees_notes",
-  "safety_notes",
-  "general_notes",
+  'range_notes',
+  'inventory_notes',
+  'store_notes',
+  'employees_notes',
+  'safety_notes',
+  'general_notes',
 ];
 
 const topicDisplayNames: Record<NoteType, string> = {
-  range_notes: "Range",
-  inventory_notes: "Inventory",
-  store_notes: "Store",
-  employees_notes: "Employees",
-  safety_notes: "Safety",
-  general_notes: "General",
+  range_notes: 'Range',
+  inventory_notes: 'Inventory',
+  store_notes: 'Store',
+  employees_notes: 'Employees',
+  safety_notes: 'Safety',
+  general_notes: 'General',
 };
 
 // Get current employee
@@ -77,13 +77,13 @@ export async function getCurrentEmployee(userId: string): Promise<Employee> {
   const supabase = createRouteHandlerClient({ cookies });
 
   const { data, error } = await supabase
-    .from("employees")
-    .select("employee_id, name, role")
-    .eq("user_uuid", userId)
+    .from('employees')
+    .select('employee_id, name, role')
+    .eq('user_uuid', userId)
     .single();
 
   if (error) throw new Error(error.message);
-  if (!data) throw new Error("Employee not found");
+  if (!data) throw new Error('Employee not found');
 
   return data as Employee;
 }
@@ -93,9 +93,9 @@ export async function getTeamMembers(): Promise<TeamMember[]> {
   const supabase = createRouteHandlerClient({ cookies });
 
   const { data, error } = await supabase
-    .from("team_weekly_notes")
-    .select("*")
-    .order("created_at", { ascending: false });
+    .from('team_weekly_notes')
+    .select('*')
+    .order('created_at', { ascending: false });
 
   if (error) throw new Error(error.message);
   return data as TeamMember[];
@@ -105,9 +105,7 @@ export async function getTeamMembers(): Promise<TeamMember[]> {
 export async function getEmployees(): Promise<Employee[]> {
   const supabase = createRouteHandlerClient({ cookies });
 
-  const { data, error } = await supabase
-    .from("employees")
-    .select("employee_id, name, role");
+  const { data, error } = await supabase.from('employees').select('employee_id, name, role');
 
   if (error) throw new Error(error.message);
   return data as Employee[];
@@ -115,34 +113,29 @@ export async function getEmployees(): Promise<Employee[]> {
 
 // Add new team member
 export async function addTeamMember(
-  newNotes: Omit<TeamMember, "note_id" | "created_at" | "updated_at">
+  newNotes: Omit<TeamMember, 'note_id' | 'created_at' | 'updated_at'>
 ): Promise<TeamMember> {
   const supabase = createRouteHandlerClient({ cookies });
 
-  const { data, error } = await supabase
-    .from("team_weekly_notes")
-    .insert([newNotes])
-    .single();
+  const { data, error } = await supabase.from('team_weekly_notes').insert([newNotes]).single();
 
   if (error) throw new Error(error.message);
   return data;
 }
 
 // Update team member notes
-export async function updateTeamMemberNotes(
-  member: TeamMember
-): Promise<TeamMember> {
+export async function updateTeamMemberNotes(member: TeamMember): Promise<TeamMember> {
   const supabase = createRouteHandlerClient({ cookies });
 
   const { data, error } = await supabase
-    .from("team_weekly_notes")
+    .from('team_weekly_notes')
     .update(member)
-    .eq("note_id", member.note_id)
+    .eq('note_id', member.note_id)
     .select() // Add select() to return the updated record
     .single(); // Ensure we get a single record back
 
   if (error) throw new Error(error.message);
-  if (!data) throw new Error("Team member not found");
+  if (!data) throw new Error('Team member not found');
 
   return data as TeamMember;
 }
@@ -151,10 +144,7 @@ export async function updateTeamMemberNotes(
 export async function removeEmployee(employeeId: number): Promise<boolean> {
   const supabase = createRouteHandlerClient({ cookies });
 
-  const { error } = await supabase
-    .from("team_weekly_notes")
-    .delete()
-    .eq("employee_id", employeeId);
+  const { error } = await supabase.from('team_weekly_notes').delete().eq('employee_id', employeeId);
 
   if (error) throw new Error(error.message);
   return true;
@@ -164,12 +154,12 @@ export async function markNoteAsDiscussed(
   noteContent: string,
   topic: keyof Pick<
     TeamMember,
-    | "range_notes"
-    | "inventory_notes"
-    | "store_notes"
-    | "employees_notes"
-    | "safety_notes"
-    | "general_notes"
+    | 'range_notes'
+    | 'inventory_notes'
+    | 'store_notes'
+    | 'employees_notes'
+    | 'safety_notes'
+    | 'general_notes'
   >,
   employeeId: number,
   employeeName: string,
@@ -180,18 +170,17 @@ export async function markNoteAsDiscussed(
   try {
     // First, get the existing team member's notes using employee_id
     const { data: existingMember, error: fetchError } = await supabase
-      .from("team_weekly_notes")
-      .select("*")
-      .eq("employee_id", employeeId)
+      .from('team_weekly_notes')
+      .select('*')
+      .eq('employee_id', employeeId)
       .single();
 
-    if (fetchError)
-      throw new Error(`Failed to fetch team member: ${fetchError.message}`);
-    if (!existingMember) throw new Error("Team member not found");
+    if (fetchError) throw new Error(`Failed to fetch team member: ${fetchError.message}`);
+    if (!existingMember) throw new Error('Team member not found');
 
     // Insert into discussed_notes with the employee's name
     const { data: discussedNote, error: insertError } = await supabase
-      .from("discussed_notes")
+      .from('discussed_notes')
       .insert({
         note_content: noteContent,
         topic,
@@ -201,28 +190,22 @@ export async function markNoteAsDiscussed(
       .select()
       .single();
 
-    if (insertError)
-      throw new Error(
-        `Failed to insert discussed note: ${insertError.message}`
-      );
+    if (insertError) throw new Error(`Failed to insert discussed note: ${insertError.message}`);
 
     // Update team_weekly_notes by removing the discussed note
     const currentNotes = (existingMember[topic] as NoteItem[]) || [];
-    const updatedNotes = currentNotes.filter(
-      (note) => note.content !== noteContent
-    );
+    const updatedNotes = currentNotes.filter((note) => note.content !== noteContent);
 
     const { error: updateError } = await supabase
-      .from("team_weekly_notes")
+      .from('team_weekly_notes')
       .update({ [topic]: updatedNotes })
-      .eq("employee_id", employeeId);
+      .eq('employee_id', employeeId);
 
-    if (updateError)
-      throw new Error(`Failed to update team notes: ${updateError.message}`);
+    if (updateError) throw new Error(`Failed to update team notes: ${updateError.message}`);
 
     return discussedNote;
   } catch (error) {
-    console.error("Error in markNoteAsDiscussed:", error);
+    console.error('Error in markNoteAsDiscussed:', error);
     throw error;
   }
 }
@@ -231,9 +214,9 @@ export async function getDiscussedNotes(): Promise<DiscussedNote[]> {
   const supabase = createRouteHandlerClient({ cookies });
 
   const { data, error } = await supabase
-    .from("discussed_notes")
-    .select("*")
-    .order("created_at", { ascending: false });
+    .from('discussed_notes')
+    .select('*')
+    .order('created_at', { ascending: false });
 
   if (error) throw new Error(error.message);
   return data;
@@ -243,32 +226,32 @@ export async function dismissNote(
   memberId: number,
   topic: keyof Pick<
     TeamMember,
-    | "range_notes"
-    | "inventory_notes"
-    | "store_notes"
-    | "employees_notes"
-    | "safety_notes"
-    | "general_notes"
+    | 'range_notes'
+    | 'inventory_notes'
+    | 'store_notes'
+    | 'employees_notes'
+    | 'safety_notes'
+    | 'general_notes'
   >,
   noteId: string
 ): Promise<void> {
   const supabase = createRouteHandlerClient({ cookies });
 
   const { data: member } = await supabase
-    .from("team_weekly_notes")
+    .from('team_weekly_notes')
     .select(topic)
-    .eq("note_id", memberId)
+    .eq('note_id', memberId)
     .single();
 
-  if (!member) throw new Error("Note not found");
+  if (!member) throw new Error('Note not found');
 
   const notes = (member as Record<string, NoteItem[]>)[topic] ?? [];
   const updatedNotes = notes.filter((note: NoteItem) => note.id !== noteId);
 
   const { error } = await supabase
-    .from("team_weekly_notes")
+    .from('team_weekly_notes')
     .update({ [topic]: updatedNotes })
-    .eq("note_id", memberId);
+    .eq('note_id', memberId);
 
   if (error) throw new Error(error.message);
 }
@@ -276,10 +259,7 @@ export async function dismissNote(
 export async function removeDiscussedNote(noteId: number): Promise<void> {
   const supabase = createRouteHandlerClient({ cookies });
 
-  const { error } = await supabase
-    .from("discussed_notes")
-    .delete()
-    .eq("id", noteId);
+  const { error } = await supabase.from('discussed_notes').delete().eq('id', noteId);
 
   if (error) throw new Error(error.message);
 }

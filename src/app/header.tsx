@@ -58,11 +58,11 @@
 //   }
 // }
 
-"use client";
+'use client';
 
-import React, { Suspense } from "react";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
+import React, { Suspense } from 'react';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 import {
   ChatBubbleIcon,
   HomeIcon,
@@ -75,7 +75,7 @@ import {
   Pencil2Icon,
   DashboardIcon,
   QuestionMarkIcon,
-} from "@radix-ui/react-icons";
+} from '@radix-ui/react-icons';
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -83,10 +83,10 @@ import {
   NavigationMenuLink,
   NavigationMenuList,
   NavigationMenuTrigger,
-} from "@/components/ui/navigation-menu";
-import { cn } from "@/lib/utils";
-import { supabase } from "@/utils/supabase/client";
-import { useRouter } from "next/navigation";
+} from '@/components/ui/navigation-menu';
+import { cn } from '@/lib/utils';
+import { supabase } from '@/utils/supabase/client';
+import { useRouter } from 'next/navigation';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -98,23 +98,15 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuPortal,
   DropdownMenuSubContent,
-} from "@/components/ui/dropdown-menu";
-import { useTheme } from "next-themes";
-import LoadingIndicator from "@/components/LoadingIndicator";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { usePathname, useSearchParams } from "next/navigation";
-import { User } from "@supabase/supabase-js";
+} from '@/components/ui/dropdown-menu';
+import { useTheme } from 'next-themes';
+import LoadingIndicator from '@/components/LoadingIndicator';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { usePathname, useSearchParams } from 'next/navigation';
+import { User } from '@supabase/supabase-js';
 
 // Define role types
-type Role =
-  | "super admin"
-  | "ceo"
-  | "dev"
-  | "admin"
-  | "gunsmith"
-  | "user"
-  | "customer"
-  | "auditor";
+type Role = 'super admin' | 'ceo' | 'dev' | 'admin' | 'gunsmith' | 'user' | 'customer' | 'auditor';
 
 // Define navigation item with role permissions
 interface NavigationItem {
@@ -127,52 +119,36 @@ interface NavigationItem {
 // Define navigation sections
 const navigationSections = {
   auditing: {
-    title: "Auditing",
+    title: 'Auditing',
     items: [
       {
-        title: "Submit & Review Audits",
-        href: "/admin/audits",
-        description: "Enter Audits & Review Existing Ones",
-        allowedRoles: ["super admin", "ceo", "dev", "admin", "auditor"],
+        title: 'Submit & Review Audits',
+        href: '/admin/audits',
+        description: 'Enter Audits & Review Existing Ones',
+        allowedRoles: ['super admin', 'ceo', 'dev', 'admin', 'auditor'],
       },
       {
-        title: "DROS Guidance",
-        href: "/TGR/dros/guide",
+        title: 'DROS Guidance',
+        href: '/TGR/dros/guide',
         description: "Sometimes We All Need A Lil' Help",
-        allowedRoles: [
-          "super admin",
-          "ceo",
-          "dev",
-          "admin",
-          "user",
-          "gunsmith",
-          "auditor",
-        ],
+        allowedRoles: ['super admin', 'ceo', 'dev', 'admin', 'user', 'gunsmith', 'auditor'],
       },
     ],
   },
   staffManagement: {
-    title: "Scheduling",
+    title: 'Scheduling',
     items: [
       {
-        title: "Team Calendar",
-        href: "/TGR/crew/calendar",
-        description: "Schedules & Time Off Requests",
-        allowedRoles: [
-          "super admin",
-          "ceo",
-          "dev",
-          "admin",
-          "user",
-          "gunsmith",
-          "auditor",
-        ],
+        title: 'Team Calendar',
+        href: '/TGR/crew/calendar',
+        description: 'Schedules & Time Off Requests',
+        allowedRoles: ['super admin', 'ceo', 'dev', 'admin', 'user', 'gunsmith', 'auditor'],
       },
       {
-        title: "Review Time Off Requests",
-        href: "/admin/timeoffreview",
-        description: "View All Requests For Time Off",
-        allowedRoles: ["super admin", "ceo", "dev", "admin"],
+        title: 'Review Time Off Requests',
+        href: '/admin/timeoffreview',
+        description: 'View All Requests For Time Off',
+        allowedRoles: ['super admin', 'ceo', 'dev', 'admin'],
       },
       // {
       //   title: "Staff Profiles",
@@ -181,15 +157,15 @@ const navigationSections = {
       //   allowedRoles: ["super admin", "ceo", "dev", "admin"],
       // },
       {
-        title: "Create | Manage Schedules",
-        href: "/admin/schedules",
-        description: "Manage Schedules & Timesheets",
-        allowedRoles: ["super admin", "ceo", "dev", "admin"],
+        title: 'Create | Manage Schedules',
+        href: '/admin/schedules',
+        description: 'Manage Schedules & Timesheets',
+        allowedRoles: ['super admin', 'ceo', 'dev', 'admin'],
       },
     ],
   },
   formsAndReports: {
-    title: "Forms & Reports",
+    title: 'Forms & Reports',
     items: [
       // {
       //   title: "Safety Waiver",
@@ -211,116 +187,76 @@ const navigationSections = {
       //   allowedRoles: ["super admin", "ceo", "dev", "admin", "user"],
       // },
       {
-        title: "View Certifications",
-        href: "/TGR/certifications",
-        description: "View All Certifications",
-        allowedRoles: [
-          "super admin",
-          "ceo",
-          "dev",
-          "admin",
-          "user",
-          "gunsmith",
-          "auditor",
-        ],
+        title: 'View Certifications',
+        href: '/TGR/certifications',
+        description: 'View All Certifications',
+        allowedRoles: ['super admin', 'ceo', 'dev', 'admin', 'user', 'gunsmith', 'auditor'],
       },
       {
-        title: "Range Walks & Repairs",
-        href: "/TGR/crew/range",
-        description: "Daily Range Walks & Repairs",
-        allowedRoles: [
-          "super admin",
-          "ceo",
-          "dev",
-          "admin",
-          "user",
-          "gunsmith",
-          "auditor",
-        ],
+        title: 'Range Walks & Repairs',
+        href: '/TGR/crew/range',
+        description: 'Daily Range Walks & Repairs',
+        allowedRoles: ['super admin', 'ceo', 'dev', 'admin', 'user', 'gunsmith', 'auditor'],
       },
       {
-        title: "Submit Special Orders",
-        href: "/sales/orders",
-        description: "Submit Requests For Customers",
-        allowedRoles: [
-          "super admin",
-          "ceo",
-          "dev",
-          "admin",
-          "user",
-          "auditor",
-          "gunsmith",
-        ],
+        title: 'Submit Special Orders',
+        href: '/sales/orders',
+        description: 'Submit Requests For Customers',
+        allowedRoles: ['super admin', 'ceo', 'dev', 'admin', 'user', 'auditor', 'gunsmith'],
       },
       {
-        title: "View Special Orders",
-        href: "/sales/orderreview/crew",
-        description: "View All Submitted Orders",
-        allowedRoles: ["super admin", "dev", "user"],
+        title: 'View Special Orders',
+        href: '/sales/orderreview/crew',
+        description: 'View All Submitted Orders',
+        allowedRoles: ['super admin', 'dev', 'user'],
       },
       {
-        title: "Special Orders Report",
-        href: "/sales/orderreview",
-        description: "View Submitted Orders",
-        allowedRoles: ["super admin", "ceo", "dev", "admin"],
+        title: 'Special Orders Report',
+        href: '/sales/orderreview',
+        description: 'View Submitted Orders',
+        allowedRoles: ['super admin', 'ceo', 'dev', 'admin'],
       },
       {
-        title: "Gunsmithing",
-        href: "/TGR/gunsmithing",
-        description: "Weekly Gunsmithing Maintenance",
-        allowedRoles: ["super admin", "ceo", "dev", "admin", "gunsmith"],
+        title: 'Gunsmithing',
+        href: '/TGR/gunsmithing',
+        description: 'Weekly Gunsmithing Maintenance',
+        allowedRoles: ['super admin', 'ceo', 'dev', 'admin', 'gunsmith'],
       },
       {
-        title: "Rental Firearms Checklist",
-        href: "/TGR/rentals/checklist",
-        description: "Rental Inventory Check",
-        allowedRoles: [
-          "super admin",
-          "ceo",
-          "dev",
-          "admin",
-          "user",
-          "gunsmith",
-          "auditor",
-        ],
+        title: 'Rental Firearms Checklist',
+        href: '/TGR/rentals/checklist',
+        description: 'Rental Inventory Check',
+        allowedRoles: ['super admin', 'ceo', 'dev', 'admin', 'user', 'gunsmith', 'auditor'],
       },
       {
-        title: "Submit Daily Deposits",
-        href: "/TGR/deposits",
-        description: "Daily Deposits",
-        allowedRoles: ["super admin", "ceo", "dev", "admin", "user", "auditor"],
+        title: 'Submit Daily Deposits',
+        href: '/TGR/deposits',
+        description: 'Daily Deposits',
+        allowedRoles: ['super admin', 'ceo', 'dev', 'admin', 'user', 'auditor'],
       },
       {
-        title: "DROS Training",
-        href: "/TGR/dros/training",
-        description: "DROS Simulation",
-        allowedRoles: ["super admin", "ceo", "dev", "admin", "user", "auditor"],
+        title: 'DROS Training',
+        href: '/TGR/dros/training',
+        description: 'DROS Simulation',
+        allowedRoles: ['super admin', 'ceo', 'dev', 'admin', 'user', 'auditor'],
       },
       {
-        title: "Bulletin Board",
-        href: "/TGR/crew/bulletin",
-        description: "Bulletin Board",
-        allowedRoles: [
-          "super admin",
-          "ceo",
-          "dev",
-          "admin",
-          "user",
-          "gunsmith",
-          "auditor",
-        ],
+        title: 'Bulletin Board',
+        href: '/TGR/crew/bulletin',
+        description: 'Bulletin Board',
+        allowedRoles: ['super admin', 'ceo', 'dev', 'admin', 'user', 'gunsmith', 'auditor'],
       },
       {
-        title: "Points Submissions",
-        href: "/TGR/crew/points",
-        description: "Report All Submitted Points",
-        allowedRoles: ["super admin", "ceo", "dev", "admin", "user", "auditor"],
+        title: 'Points Submissions',
+        href: '/TGR/crew/points',
+        description: 'Report All Submitted Points',
+        allowedRoles: ['super admin', 'ceo', 'dev', 'admin', 'user', 'auditor'],
       },
       {
-        title: "Email Blasts",
-        href: "/public/subscribe",
-        description: "Sign Customers Up For Email Blasts",
-        allowedRoles: ["super admin", "ceo", "dev", "admin", "user", "auditor"],
+        title: 'Email Blasts',
+        href: '/public/subscribe',
+        description: 'Sign Customers Up For Email Blasts',
+        allowedRoles: ['super admin', 'ceo', 'dev', 'admin', 'user', 'auditor'],
       },
     ],
   },
@@ -342,13 +278,13 @@ const navigationSections = {
   //   ],
   // },
   management: {
-    title: "Staff Management",
+    title: 'Staff Management',
     items: [
       {
-        title: "Staff Profiles",
-        href: "/admin/dashboard",
-        description: "All Profiles",
-        allowedRoles: ["super admin", "ceo", "dev", "admin"],
+        title: 'Staff Profiles',
+        href: '/admin/dashboard',
+        description: 'All Profiles',
+        allowedRoles: ['super admin', 'ceo', 'dev', 'admin'],
       },
       // {
       //   title: "Monthly Contest",
@@ -357,10 +293,10 @@ const navigationSections = {
       //   allowedRoles: ["super admin", "ceo", "dev", "admin"],
       // },
       {
-        title: "Weekly Meetings",
-        href: "/admin/meetings",
-        description: "Update & Meet Weekly",
-        allowedRoles: ["super admin", "ceo", "dev", "admin"],
+        title: 'Weekly Meetings',
+        href: '/admin/meetings',
+        description: 'Update & Meet Weekly',
+        allowedRoles: ['super admin', 'ceo', 'dev', 'admin'],
       },
       // {
       //   title: "Sales Report",
@@ -375,10 +311,10 @@ const navigationSections = {
       //   allowedRoles: ["super admin", "ceo", "dev", "admin"],
       // },
       {
-        title: "Manage Staff Data",
-        href: "/TGR/employees",
-        description: "Set All Staff Details",
-        allowedRoles: ["super admin", "dev"],
+        title: 'Manage Staff Data',
+        href: '/TGR/employees',
+        description: 'Set All Staff Details',
+        allowedRoles: ['super admin', 'dev'],
       },
       // {
       //   title: "Audit Management",
@@ -387,28 +323,28 @@ const navigationSections = {
       //   allowedRoles: ["super admin", "ceo", "dev", "admin"],
       // },
       {
-        title: "Upload Files",
-        href: "/admin/upload",
-        description: "Uploadthing",
-        allowedRoles: ["super admin", "dev"],
+        title: 'Upload Files',
+        href: '/admin/upload',
+        description: 'Uploadthing',
+        allowedRoles: ['super admin', 'dev'],
       },
       {
-        title: "Onboarding",
-        href: "/admin/onboarding",
-        description: "New Member Onboarding",
-        allowedRoles: ["super admin", "dev"],
+        title: 'Onboarding',
+        href: '/admin/onboarding',
+        description: 'New Member Onboarding',
+        allowedRoles: ['super admin', 'dev'],
       },
       {
-        title: "Products & Pricing",
-        href: "/pricing",
-        description: "All Products & Subscriptions",
-        allowedRoles: ["super admin", "ceo", "dev", "admin"],
+        title: 'Products & Pricing',
+        href: '/pricing',
+        description: 'All Products & Subscriptions',
+        allowedRoles: ['super admin', 'ceo', 'dev', 'admin'],
       },
       {
-        title: "Classes Schedule",
-        href: "/public/classes",
-        description: "Class Scheduling Page",
-        allowedRoles: ["super admin", "ceo", "dev", "admin", "user"],
+        title: 'Classes Schedule',
+        href: '/public/classes',
+        description: 'Class Scheduling Page',
+        allowedRoles: ['super admin', 'ceo', 'dev', 'admin', 'user'],
       },
 
       // {
@@ -426,43 +362,27 @@ const navigationSections = {
       //   ],
       // },
       {
-        title: "Patch Notes",
-        href: "/patch-notes",
-        description: "Patch Notes",
-        allowedRoles: [
-          "super admin",
-          "ceo",
-          "dev",
-          "admin",
-          "user",
-          "gunsmith",
-          "auditor",
-        ],
+        title: 'Patch Notes',
+        href: '/patch-notes',
+        description: 'Patch Notes',
+        allowedRoles: ['super admin', 'ceo', 'dev', 'admin', 'user', 'gunsmith', 'auditor'],
       },
     ],
   },
   sops: {
-    title: "SOPs",
+    title: 'SOPs',
     items: [
       {
-        title: "TGR SOPs",
-        href: "/TGR/sop",
-        description: "SOPs For Front Of The House",
-        allowedRoles: [
-          "super admin",
-          "ceo",
-          "dev",
-          "admin",
-          "user",
-          "gunsmith",
-          "auditor",
-        ],
+        title: 'TGR SOPs',
+        href: '/TGR/sop',
+        description: 'SOPs For Front Of The House',
+        allowedRoles: ['super admin', 'ceo', 'dev', 'admin', 'user', 'gunsmith', 'auditor'],
       },
       {
-        title: "Admin SOPs",
-        href: "/admin/sop",
-        description: "SOPs For Back Of The House",
-        allowedRoles: ["super admin", "ceo", "dev", "admin", "auditor"],
+        title: 'Admin SOPs',
+        href: '/admin/sop',
+        description: 'SOPs For Back Of The House',
+        allowedRoles: ['super admin', 'ceo', 'dev', 'admin', 'auditor'],
       },
     ],
   },
@@ -488,15 +408,15 @@ const header = () => {
 
   // Auth state subscription query
   useQuery({
-    queryKey: ["authStateSubscription"],
+    queryKey: ['authStateSubscription'],
     queryFn: async () => {
       const subscription = supabase.auth.onAuthStateChange((event, session) => {
-        if (event === "SIGNED_IN") {
-          queryClient.invalidateQueries({ queryKey: ["userRole"] });
-          queryClient.invalidateQueries({ queryKey: ["currentUser"] });
-        } else if (event === "SIGNED_OUT") {
+        if (event === 'SIGNED_IN') {
+          queryClient.invalidateQueries({ queryKey: ['userRole'] });
+          queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+        } else if (event === 'SIGNED_OUT') {
           queryClient.clear();
-          window.location.href = "/";
+          window.location.href = '/';
         }
       });
 
@@ -508,7 +428,7 @@ const header = () => {
 
   // User data query
   const { data: currentUser } = useQuery({
-    queryKey: ["currentUser"],
+    queryKey: ['currentUser'],
     queryFn: async () => {
       const {
         data: { user },
@@ -520,11 +440,11 @@ const header = () => {
 
   // Role data query
   const { data: userData } = useQuery({
-    queryKey: ["userRole"],
+    queryKey: ['userRole'],
     queryFn: async () => {
-      const response = await fetch("/api/getUserRole");
+      const response = await fetch('/api/getUserRole');
       if (!response.ok) {
-        throw new Error("Failed to fetch user role");
+        throw new Error('Failed to fetch user role');
       }
       const data = await response.json();
       return data;
@@ -535,13 +455,13 @@ const header = () => {
 
   // Employee data query
   const { data: employeeData } = useQuery({
-    queryKey: ["employee", currentUser?.id],
+    queryKey: ['employee', currentUser?.id],
     queryFn: async () => {
       if (!currentUser?.id) return null;
       const { data, error } = await supabase
-        .from("employees")
-        .select("*")
-        .eq("user_uuid", currentUser.id)
+        .from('employees')
+        .select('*')
+        .eq('user_uuid', currentUser.id)
         .single();
 
       if (error) throw error;
@@ -552,10 +472,10 @@ const header = () => {
 
   // Unread counts queries
   const { data: unreadOrdersData = { unreadOrderCount: 0 } } = useQuery({
-    queryKey: ["unreadOrders"],
+    queryKey: ['unreadOrders'],
     queryFn: async () => {
-      const response = await fetch("/api/useUnreadOrders");
-      if (!response.ok) throw new Error("Failed to fetch unread orders");
+      const response = await fetch('/api/useUnreadOrders');
+      if (!response.ok) throw new Error('Failed to fetch unread orders');
       return response.json();
     },
     enabled: !!currentUser,
@@ -563,11 +483,10 @@ const header = () => {
   });
 
   const { data: unreadTimeOffData = { unreadTimeOffCount: 0 } } = useQuery({
-    queryKey: ["unreadTimeOff"],
+    queryKey: ['unreadTimeOff'],
     queryFn: async () => {
-      const response = await fetch("/api/useUnreadTimeOffRequests");
-      if (!response.ok)
-        throw new Error("Failed to fetch unread time-off requests");
+      const response = await fetch('/api/useUnreadTimeOffRequests');
+      if (!response.ok) throw new Error('Failed to fetch unread time-off requests');
       return response.json();
     },
     enabled: !!currentUser,
@@ -576,17 +495,13 @@ const header = () => {
 
   // Add subscription queries
   useQuery({
-    queryKey: ["ordersSubscription"],
+    queryKey: ['ordersSubscription'],
     queryFn: async () => {
       const channel = supabase
-        .channel("orders")
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "orders" },
-          () => {
-            queryClient.invalidateQueries({ queryKey: ["unreadOrders"] });
-          }
-        )
+        .channel('orders')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+          queryClient.invalidateQueries({ queryKey: ['unreadOrders'] });
+        })
         .subscribe();
 
       return () => {
@@ -599,15 +514,15 @@ const header = () => {
   });
 
   useQuery({
-    queryKey: ["timeOffSubscription"],
+    queryKey: ['timeOffSubscription'],
     queryFn: async () => {
       const channel = supabase
-        .channel("time_off_requests")
+        .channel('time_off_requests')
         .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "time_off_requests" },
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'time_off_requests' },
           () => {
-            queryClient.invalidateQueries({ queryKey: ["unreadTimeOff"] });
+            queryClient.invalidateQueries({ queryKey: ['unreadTimeOff'] });
           }
         )
         .subscribe();
@@ -623,8 +538,8 @@ const header = () => {
 
   // Extract user role and add console.log for debugging
   const userRole = userData?.role as Role;
-  console.log("Current user role:", userRole);
-  console.log("User data:", userData);
+  console.log('Current user role:', userRole);
+  console.log('User data:', userData);
 
   // Function to check if a navigation item should be visible
   const isItemVisible = (allowedRoles: Role[]) => {
@@ -642,36 +557,36 @@ const header = () => {
 
     let redirectUrl;
     switch (userRole) {
-      case "super admin":
-      case "ceo":
-        redirectUrl = "/admin/reports/dashboard/ceo";
+      case 'super admin':
+      case 'ceo':
+        redirectUrl = '/admin/reports/dashboard/ceo';
         break;
-      case "dev":
-        redirectUrl = "/admin/reports/dashboard/dev";
+      case 'dev':
+        redirectUrl = '/admin/reports/dashboard/dev';
         break;
-      case "admin":
-        redirectUrl = "/admin/reports/dashboard/admin";
+      case 'admin':
+        redirectUrl = '/admin/reports/dashboard/admin';
         break;
       default:
         redirectUrl = employeeData?.employee_id
           ? `/TGR/crew/profile/${employeeData.employee_id}`
-          : "/";
+          : '/';
     }
 
     router.push(redirectUrl);
   };
 
   const handleSupportClick = () => {
-    router.push("/support");
+    router.push('/support');
   };
 
   const handleSignOut = async () => {
     try {
       await supabase.auth.signOut();
       queryClient.clear();
-      router.push("/sign-in");
+      router.push('/sign-in');
     } catch (error) {
-      console.error("Error signing out:", error);
+      console.error('Error signing out:', error);
     }
   };
 
@@ -683,20 +598,18 @@ const header = () => {
           {Object.entries(navigationSections).map(([key, section]) => {
             // Skip Staff Management section for non-admin roles
             if (
-              key === "management" &&
-              !["super admin", "ceo", "dev", "admin"].includes(userRole)
+              key === 'management' &&
+              !['super admin', 'ceo', 'dev', 'admin'].includes(userRole)
             ) {
               return null;
             }
 
             // Skip Auditing section for gunsmiths
-            if (key === "auditing" && userRole === "gunsmith") {
+            if (key === 'auditing' && userRole === 'gunsmith') {
               return null;
             }
 
-            const visibleItems = getVisibleItems(
-              section.items as NavigationItem[]
-            );
+            const visibleItems = getVisibleItems(section.items as NavigationItem[]);
             if (visibleItems.length === 0) return null;
 
             return (
@@ -705,11 +618,7 @@ const header = () => {
                 <NavigationMenuContent>
                   <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
                     {visibleItems.map((item) => (
-                      <ListItem
-                        key={item.title}
-                        title={item.title}
-                        href={item.href}
-                      >
+                      <ListItem key={item.title} title={item.title} href={item.href}>
                         {item.description}
                       </ListItem>
                     ))}
@@ -726,7 +635,7 @@ const header = () => {
         {currentUser ? (
           <>
             {/* Admin-only menu items */}
-            {["super admin", "ceo", "dev", "admin"].includes(userRole) && (
+            {['super admin', 'ceo', 'dev', 'admin'].includes(userRole) && (
               <>
                 <Link href="/sales/orderreview" className="mr-1">
                   <Button variant="ghost" size="icon" className="relative">
@@ -753,7 +662,7 @@ const header = () => {
             )}
 
             {/* Only show these buttons for employee roles */}
-            {userRole !== "customer" && (
+            {userRole !== 'customer' && (
               <>
                 <Button variant="ghost" size="icon" onClick={handleHomeClick}>
                   <HomeIcon />
@@ -773,9 +682,7 @@ const header = () => {
                       <>
                         <DropdownMenuItem
                           onClick={() =>
-                            router.push(
-                              `/TGR/crew/profile/${employeeData.employee_id}`
-                            )
+                            router.push(`/TGR/crew/profile/${employeeData.employee_id}`)
                           }
                         >
                           <PersonIcon className="mr-2 h-4 w-4" />
@@ -790,22 +697,14 @@ const header = () => {
                     )}
 
                     {/* Admin-only menu items */}
-                    {["super admin", "ceo", "dev", "admin"].includes(
-                      userRole
-                    ) && (
+                    {['super admin', 'ceo', 'dev', 'admin'].includes(userRole) && (
                       <>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={() => router.push("/admin/domains")}
-                        >
+                        <DropdownMenuItem onClick={() => router.push('/admin/domains')}>
                           <Pencil2Icon className="mr-2 h-4 w-4" />
                           Manage Domains
                         </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() =>
-                            router.push("/admin/reports/dashboard")
-                          }
-                        >
+                        <DropdownMenuItem onClick={() => router.push('/admin/reports/dashboard')}>
                           <DashboardIcon className="mr-2 h-4 w-4" />
                           Admin Dashboard
                         </DropdownMenuItem>
@@ -822,11 +721,11 @@ const header = () => {
                       </DropdownMenuSubTrigger>
                       <DropdownMenuPortal>
                         <DropdownMenuSubContent>
-                          <DropdownMenuItem onClick={() => setTheme("light")}>
+                          <DropdownMenuItem onClick={() => setTheme('light')}>
                             <SunIcon className="mr-2 h-4 w-4" />
                             Light
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setTheme("dark")}>
+                          <DropdownMenuItem onClick={() => setTheme('dark')}>
                             <MoonIcon className="mr-2 h-4 w-4" />
                             Dark
                           </DropdownMenuItem>
@@ -835,9 +734,7 @@ const header = () => {
                     </DropdownMenuSub>
 
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleSignOut}>
-                      Sign Out
-                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleSignOut}>Sign Out</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </>
@@ -854,40 +751,37 @@ const header = () => {
 };
 
 // ListItem component
-const ListItem = React.forwardRef<
-  React.ElementRef<"a">,
-  React.ComponentPropsWithoutRef<"a">
->(({ className, title, children, href, ...props }, ref) => {
-  const router = useRouter();
+const ListItem = React.forwardRef<React.ElementRef<'a'>, React.ComponentPropsWithoutRef<'a'>>(
+  ({ className, title, children, href, ...props }, ref) => {
+    const router = useRouter();
 
-  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault();
-    router.push(href || "");
-  };
+    const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+      e.preventDefault();
+      router.push(href || '');
+    };
 
-  return (
-    <li>
-      <NavigationMenuLink asChild>
-        <a
-          ref={ref}
-          href={href}
-          onClick={handleClick}
-          className={cn(
-            "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
-            className
-          )}
-          {...props}
-        >
-          <div className="text-sm font-medium leading-none">{title}</div>
-          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-            {children}
-          </p>
-        </a>
-      </NavigationMenuLink>
-    </li>
-  );
-});
+    return (
+      <li>
+        <NavigationMenuLink asChild>
+          <a
+            ref={ref}
+            href={href}
+            onClick={handleClick}
+            className={cn(
+              'block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground',
+              className
+            )}
+            {...props}
+          >
+            <div className="text-sm font-medium leading-none">{title}</div>
+            <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">{children}</p>
+          </a>
+        </NavigationMenuLink>
+      </li>
+    );
+  }
+);
 
-ListItem.displayName = "ListItem";
+ListItem.displayName = 'ListItem';
 
 export default header;

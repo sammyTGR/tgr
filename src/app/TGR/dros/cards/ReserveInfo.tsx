@@ -1,7 +1,7 @@
 //reserve officer card used in navmenu
 
-import * as React from "react";
-import { useRouter } from "next/navigation";
+import * as React from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Card,
   CardContent,
@@ -9,13 +9,8 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import {
-  HoveredLink,
-  Menu,
-  MenuItem,
-  ProductItem,
-} from "@/components/ui/navbar-menu";
+} from '@/components/ui/card';
+import { HoveredLink, Menu, MenuItem, ProductItem } from '@/components/ui/navbar-menu';
 
 function ReserveInfo({ className }: { className?: string }) {
   const router = useRouter();
@@ -34,9 +29,8 @@ function ReserveInfo({ className }: { className?: string }) {
               <p>AND They Are FSC Exempt</p>
               <hr className="my-4" />
               <p>
-                If The Transaction Is For A{" "}
-                <span className="text-blue-500">Blue Label</span> Firearm, Fill
-                Out The <span className="text-blue-500">Blue Label</span> Form
+                If The Transaction Is For A <span className="text-blue-500">Blue Label</span>{' '}
+                Firearm, Fill Out The <span className="text-blue-500">Blue Label</span> Form
               </p>
               <p>& Include It In The Pending Packet</p>
               <hr className="my-4" />

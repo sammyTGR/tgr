@@ -1,33 +1,23 @@
 // TGR\crew\profile\[employeeId]\page.tsx
-"use client";
-import { Suspense, useCallback, useMemo } from "react";
-import { useParams, useRouter } from "next/navigation";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-  CardDescription,
-} from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { supabase } from "@/utils/supabase/client";
-import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
-import SchedulesComponent from "@/components/SchedulesComponent";
-import { CalendarIcon } from "lucide-react";
-import { CustomCalendar } from "@/components/ui/calendar";
+'use client';
+import { Suspense, useCallback, useMemo } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { supabase } from '@/utils/supabase/client';
+import { TextGenerateEffect } from '@/components/ui/text-generate-effect';
+import SchedulesComponent from '@/components/SchedulesComponent';
+import { CalendarIcon } from 'lucide-react';
+import { CustomCalendar } from '@/components/ui/calendar';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-} from "@/components/ui/popover";
+} from '@/components/ui/select';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import {
   Dialog,
   DialogTrigger,
@@ -36,7 +26,7 @@ import {
   DialogDescription,
   DialogOverlay,
   DialogClose,
-} from "@radix-ui/react-dialog";
+} from '@radix-ui/react-dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,9 +37,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
-import SuggestionForm from "@/components/SuggestionForm";
+} from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+import SuggestionForm from '@/components/SuggestionForm';
 import {
   format,
   startOfWeek,
@@ -63,35 +53,35 @@ import {
   nextSaturday,
   startOfMonth,
   endOfMonth,
-} from "date-fns";
-import { toZonedTime, format as formatTZ } from "date-fns-tz";
-import { toast } from "sonner";
-import TimeOffRequestComponent from "@/components/TimeOffRequestComponent";
-import { Textarea } from "@/components/ui/textarea";
-import { ClockIcon } from "@radix-ui/react-icons";
-import { DataTable } from "../../../../admin/audits/contest/data-table";
-import { Input } from "@/components/ui/input";
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import PointsForm from "@/components/PointsForm";
-import PointsComponent from "../../points/page";
-import { Label } from "@/components/ui/label";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import styles from "./profiles.module.css";
-import classNames from "classnames";
-import RoleBasedWrapper from "@/components/RoleBasedWrapper";
-import { CustomCalendarMulti } from "@/components/ui/calendar";
-import { Progress } from "@/components/ui/progress";
-import { ProgressBar } from "@/components/ProgressBar";
-import { Separator } from "@radix-ui/react-dropdown-menu";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import DOMPurify from "dompurify";
-import { useSidebar } from "@/components/ui/sidebar";
+} from 'date-fns';
+import { toZonedTime, format as formatTZ } from 'date-fns-tz';
+import { toast } from 'sonner';
+import TimeOffRequestComponent from '@/components/TimeOffRequestComponent';
+import { Textarea } from '@/components/ui/textarea';
+import { ClockIcon } from '@radix-ui/react-icons';
+import { DataTable } from '../../../../admin/audits/contest/data-table';
+import { Input } from '@/components/ui/input';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import PointsForm from '@/components/PointsForm';
+import PointsComponent from '../../points/page';
+import { Label } from '@/components/ui/label';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import styles from './profiles.module.css';
+import classNames from 'classnames';
+import RoleBasedWrapper from '@/components/RoleBasedWrapper';
+import { CustomCalendarMulti } from '@/components/ui/calendar';
+import { Progress } from '@/components/ui/progress';
+import { ProgressBar } from '@/components/ProgressBar';
+import { Separator } from '@radix-ui/react-dropdown-menu';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import DOMPurify from 'dompurify';
+import { useSidebar } from '@/components/ui/sidebar';
 
-const schedulestitle = "Scheduling";
-const performancetitle = "Individual Performance";
-const formtitle = "Your Forms";
+const schedulestitle = 'Scheduling';
+const performancetitle = 'Individual Performance';
+const formtitle = 'Your Forms';
 
 // Types and interfaces
 interface TimeOffReason {
@@ -167,14 +157,12 @@ type ReviewDialogState = {
 const phoneRegex = /^\d{3}-\d{3}-\d{4}$/;
 
 const schema = z.object({
-  employee: z.string().nonempty({ message: "Employee name is required" }),
-  dros_status: z.string().nonempty({ message: "DROS status is required" }),
-  dros_number: z.string().min(2, { message: "DROS Number is required" }),
-  invoice_number: z.string().min(2, { message: "Invoice Number is required" }),
-  serial_number: z.string().min(2, { message: "Serial Number is required" }),
-  start_trans: z
-    .string()
-    .nonempty({ message: "Start Transaction status is required" }),
+  employee: z.string().nonempty({ message: 'Employee name is required' }),
+  dros_status: z.string().nonempty({ message: 'DROS status is required' }),
+  dros_number: z.string().min(2, { message: 'DROS Number is required' }),
+  invoice_number: z.string().min(2, { message: 'Invoice Number is required' }),
+  serial_number: z.string().min(2, { message: 'Serial Number is required' }),
+  start_trans: z.string().nonempty({ message: 'Start Transaction status is required' }),
   details: z.string().optional(),
   selectedDates: z.array(z.date()).optional(),
 });
@@ -184,23 +172,23 @@ type FormData = z.infer<typeof schema>;
 const EmployeeProfilePage = () => {
   const { state } = useSidebar();
   const params = useParams();
-  const employeeIdParam = params?.employeeId ?? "";
+  const employeeIdParam = params?.employeeId ?? '';
   const employeeId = Array.isArray(employeeIdParam)
     ? parseInt(employeeIdParam[0], 10)
     : parseInt(employeeIdParam, 10);
-  const userUuid = params?.userUuid ?? "";
+  const userUuid = params?.userUuid ?? '';
   const queryClient = useQueryClient();
   const router = useRouter();
 
   // Queries
 
   const { data: employee } = useQuery({
-    queryKey: ["employee", employeeId],
+    queryKey: ['employee', employeeId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("employees")
-        .select("*, contact_info")
-        .eq("employee_id", employeeId)
+        .from('employees')
+        .select('*, contact_info')
+        .eq('employee_id', employeeId)
         .single();
 
       if (error) throw error;
@@ -209,20 +197,19 @@ const EmployeeProfilePage = () => {
   });
 
   const { data: availableTimeOff } = useQuery({
-    queryKey: ["availableTimeOff", employeeId],
+    queryKey: ['availableTimeOff', employeeId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("time_off_requests")
-        .select("sick_time_year, use_sick_time")
-        .eq("employee_id", employeeId);
+        .from('time_off_requests')
+        .select('sick_time_year, use_sick_time')
+        .eq('employee_id', employeeId);
 
       if (error) throw error;
 
       const usedSickTime = data.reduce((acc: number, request: any) => {
         if (request.use_sick_time) {
           acc +=
-            (new Date(request.end_date).getTime() -
-              new Date(request.start_date).getTime()) /
+            (new Date(request.end_date).getTime() - new Date(request.start_date).getTime()) /
               (1000 * 60 * 60 * 24) +
             1;
         }
@@ -234,14 +221,11 @@ const EmployeeProfilePage = () => {
   });
 
   const { data: availableSickTime } = useQuery({
-    queryKey: ["availableSickTime", employeeId],
+    queryKey: ['availableSickTime', employeeId],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc(
-        "calculate_available_sick_time",
-        {
-          p_emp_id: employeeId,
-        }
-      );
+      const { data, error } = await supabase.rpc('calculate_available_sick_time', {
+        p_emp_id: employeeId,
+      });
 
       if (error) throw error;
       return data;
@@ -249,17 +233,17 @@ const EmployeeProfilePage = () => {
   });
 
   const { data: reviews } = useQuery({
-    queryKey: ["reviews", employeeId],
+    queryKey: ['reviews', employeeId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("employee_quarterly_reviews")
-        .select("*")
-        .eq("employee_id", employeeId)
-        .eq("published", true)
-        .order("created_at", { ascending: false }); // Add ordering to show newest first
+        .from('employee_quarterly_reviews')
+        .select('*')
+        .eq('employee_id', employeeId)
+        .eq('published', true)
+        .order('created_at', { ascending: false }); // Add ordering to show newest first
 
       if (error) {
-        console.error("Error fetching reviews:", error);
+        console.error('Error fetching reviews:', error);
         throw error;
       }
 
@@ -270,25 +254,23 @@ const EmployeeProfilePage = () => {
   });
 
   const { data: weeklySummary } = useQuery({
-    queryKey: ["weeklySummary", employeeId],
+    queryKey: ['weeklySummary', employeeId],
     queryFn: async () => {
       const startOfWeekDate = startOfWeek(new Date(), { weekStartsOn: 0 });
       const endOfWeekDate = endOfWeek(new Date(), { weekStartsOn: 0 });
 
       const { data, error } = await supabase
-        .from("employee_clock_events")
-        .select("*")
-        .eq("employee_id", employeeId)
-        .gte("event_date", format(startOfWeekDate, "yyyy-MM-dd"))
-        .lte("event_date", format(endOfWeekDate, "yyyy-MM-dd"));
+        .from('employee_clock_events')
+        .select('*')
+        .eq('employee_id', employeeId)
+        .gte('event_date', format(startOfWeekDate, 'yyyy-MM-dd'))
+        .lte('event_date', format(endOfWeekDate, 'yyyy-MM-dd'));
 
       if (error) throw error;
 
       const totalHours = data.reduce((acc, shift) => {
         if (shift.total_hours) {
-          const [hours, minutes, seconds] = shift.total_hours
-            .split(":")
-            .map(Number);
+          const [hours, minutes, seconds] = shift.total_hours.split(':').map(Number);
           const duration = hours + minutes / 60 + seconds / 3600;
           return acc + duration;
         }
@@ -301,9 +283,9 @@ const EmployeeProfilePage = () => {
   });
 
   const { data: payPeriodSummary } = useQuery({
-    queryKey: ["payPeriodSummary", employeeId],
+    queryKey: ['payPeriodSummary', employeeId],
     queryFn: async () => {
-      const timeZone = "America/Los_Angeles";
+      const timeZone = 'America/Los_Angeles';
       const now = toZonedTime(new Date(), timeZone);
       const lastKnownPayPeriodStart = new Date(2023, 9, 22);
 
@@ -315,25 +297,23 @@ const EmployeeProfilePage = () => {
 
       const currentPeriodEnd = endOfDay(addDays(currentPeriodStart, 13));
 
-      const startDate = formatTZ(currentPeriodStart, "yyyy-MM-dd", {
+      const startDate = formatTZ(currentPeriodStart, 'yyyy-MM-dd', {
         timeZone,
       });
-      const endDate = formatTZ(currentPeriodEnd, "yyyy-MM-dd", { timeZone });
+      const endDate = formatTZ(currentPeriodEnd, 'yyyy-MM-dd', { timeZone });
 
       const { data, error } = await supabase
-        .from("employee_clock_events")
-        .select("*")
-        .eq("employee_id", employeeId)
-        .gte("event_date", startDate)
-        .lte("event_date", endDate);
+        .from('employee_clock_events')
+        .select('*')
+        .eq('employee_id', employeeId)
+        .gte('event_date', startDate)
+        .lte('event_date', endDate);
 
       if (error) throw error;
 
       let totalHours = data.reduce((acc, shift) => {
         if (shift.total_hours) {
-          const [hours, minutes, seconds] = shift.total_hours
-            .split(":")
-            .map(Number);
+          const [hours, minutes, seconds] = shift.total_hours.split(':').map(Number);
           const duration = hours + minutes / 60 + seconds / 3600;
           return acc + duration;
         }
@@ -345,8 +325,8 @@ const EmployeeProfilePage = () => {
       return {
         hours: totalHours.toFixed(2),
         payPeriodDates: {
-          start: formatTZ(currentPeriodStart, "MMM d", { timeZone }),
-          end: formatTZ(currentPeriodEnd, "MMM d", { timeZone }),
+          start: formatTZ(currentPeriodStart, 'MMM d', { timeZone }),
+          end: formatTZ(currentPeriodEnd, 'MMM d', { timeZone }),
         },
       };
     },
@@ -354,18 +334,18 @@ const EmployeeProfilePage = () => {
   });
 
   const { data: currentShift } = useQuery({
-    queryKey: ["currentShift", employeeId],
+    queryKey: ['currentShift', employeeId],
     queryFn: async () => {
-      const eventDate = format(new Date(), "yyyy-MM-dd");
+      const eventDate = format(new Date(), 'yyyy-MM-dd');
 
       const { data, error } = await supabase
-        .from("employee_clock_events")
-        .select("*")
-        .eq("employee_id", employeeId)
-        .eq("event_date", eventDate)
+        .from('employee_clock_events')
+        .select('*')
+        .eq('employee_id', employeeId)
+        .eq('event_date', eventDate)
         .maybeSingle();
 
-      if (error && error.code !== "PGRST116") throw error;
+      if (error && error.code !== 'PGRST116') throw error;
       return data;
     },
     staleTime: 1000, // Add a small stale time to prevent excessive refetching
@@ -376,24 +356,24 @@ const EmployeeProfilePage = () => {
       return Promise.resolve({ ...timeOffFormQuery.data, ...newData });
     },
     onSuccess: (data) => {
-      queryClient.setQueryData(["timeOffForm"], data);
+      queryClient.setQueryData(['timeOffForm'], data);
     },
   });
 
   const timeOffFormQuery = useQuery({
-    queryKey: ["timeOffForm"],
+    queryKey: ['timeOffForm'],
     queryFn: () => ({
       selectedDates: [],
-      reason: "",
-      otherReason: "",
+      reason: '',
+      otherReason: '',
     }),
   });
 
   const { control, handleSubmit } = useForm<TimeOffFormData>({
     defaultValues: {
       selectedDates: [],
-      reason: "",
-      otherReason: "",
+      reason: '',
+      otherReason: '',
     },
   });
 
@@ -404,8 +384,8 @@ const EmployeeProfilePage = () => {
   } = useForm<TimeOffFormData>({
     defaultValues: {
       selectedDates: [],
-      reason: "",
-      otherReason: "",
+      reason: '',
+      otherReason: '',
     },
   });
 
@@ -414,11 +394,9 @@ const EmployeeProfilePage = () => {
     useForm<EmployeeProfileData>();
 
   const { data: timeOffReasons } = useQuery({
-    queryKey: ["timeOffReasons"],
+    queryKey: ['timeOffReasons'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("time_off_reasons")
-        .select("*");
+      const { data, error } = await supabase.from('time_off_reasons').select('*');
 
       if (error) throw error;
       return data as TimeOffReason[];
@@ -426,14 +404,14 @@ const EmployeeProfilePage = () => {
   });
 
   const { data: audits } = useQuery({
-    queryKey: ["audits", employee?.lanid],
+    queryKey: ['audits', employee?.lanid],
     queryFn: async () => {
       if (!employee?.lanid) return [];
       const { data, error } = await supabase
-        .from("Auditsinput")
-        .select("*")
-        .eq("salesreps", employee.lanid)
-        .order("audit_date", { ascending: false });
+        .from('Auditsinput')
+        .select('*')
+        .eq('salesreps', employee.lanid)
+        .order('audit_date', { ascending: false });
 
       if (error) throw error;
       return data as Audit[];
@@ -443,28 +421,28 @@ const EmployeeProfilePage = () => {
 
   // Update the unacknowledged bulletins query
   const { data: unacknowledgedBulletins } = useQuery({
-    queryKey: ["unacknowledgedBulletins", employeeId],
+    queryKey: ['unacknowledgedBulletins', employeeId],
     queryFn: async () => {
       // First get all bulletins that require acknowledgment
       const { data: bulletins, error: bulletinsError } = await supabase
-        .from("bulletin_posts")
-        .select("*")
-        .eq("requires_acknowledgment", true);
+        .from('bulletin_posts')
+        .select('*')
+        .eq('requires_acknowledgment', true);
 
       if (bulletinsError) {
-        console.error("Error fetching bulletins:", bulletinsError);
+        console.error('Error fetching bulletins:', bulletinsError);
         throw bulletinsError;
       }
 
       // Get employee's department
       const { data: employeeData, error: employeeError } = await supabase
-        .from("employees")
-        .select("department")
-        .eq("employee_id", employeeId)
+        .from('employees')
+        .select('department')
+        .eq('employee_id', employeeId)
         .single();
 
       if (employeeError) {
-        console.error("Error fetching employee department:", employeeError);
+        console.error('Error fetching employee department:', employeeError);
         throw employeeError;
       }
 
@@ -477,19 +455,17 @@ const EmployeeProfilePage = () => {
 
       // Then get all acknowledgments for this employee
       const { data: acknowledgments, error: acksError } = await supabase
-        .from("bulletin_acknowledgments")
-        .select("post_id")
-        .eq("employee_id", employeeId);
+        .from('bulletin_acknowledgments')
+        .select('post_id')
+        .eq('employee_id', employeeId);
 
       if (acksError) {
-        console.error("Error fetching acknowledgments:", acksError);
+        console.error('Error fetching acknowledgments:', acksError);
         throw acksError;
       }
 
       // Create a set of acknowledged bulletin IDs
-      const acknowledgedIds = new Set(
-        acknowledgments?.map((ack) => ack.post_id)
-      );
+      const acknowledgedIds = new Set(acknowledgments?.map((ack) => ack.post_id));
 
       // Filter out bulletins that have been acknowledged
       const unacknowledged = relevantBulletins.filter(
@@ -504,26 +480,26 @@ const EmployeeProfilePage = () => {
   // Mutations
   const clockInMutation = useMutation({
     mutationFn: async () => {
-      const timeZone = "America/Los_Angeles";
+      const timeZone = 'America/Los_Angeles';
       const now = toZonedTime(new Date(), timeZone);
-      const eventDate = formatTZ(now, "yyyy-MM-dd", { timeZone });
-      const startTime = formatTZ(now, "HH:mm:ss", { timeZone });
+      const eventDate = formatTZ(now, 'yyyy-MM-dd', { timeZone });
+      const startTime = formatTZ(now, 'HH:mm:ss', { timeZone });
 
       // Check for existing clock-in
       const { data: existingClockIn } = await supabase
-        .from("employee_clock_events")
-        .select("*")
-        .eq("employee_id", employeeId)
-        .eq("event_date", eventDate)
+        .from('employee_clock_events')
+        .select('*')
+        .eq('employee_id', employeeId)
+        .eq('event_date', eventDate)
         .maybeSingle();
 
       if (existingClockIn?.start_time) {
-        throw new Error("Already clocked in for today");
+        throw new Error('Already clocked in for today');
       }
 
       // Create new clock-in record
       const { data: clockInData, error: clockInError } = await supabase
-        .from("employee_clock_events")
+        .from('employee_clock_events')
         .upsert({
           employee_id: employeeId,
           employee_name: employee?.name,
@@ -537,36 +513,36 @@ const EmployeeProfilePage = () => {
       return clockInData;
     },
     onSuccess: (data) => {
-      queryClient.setQueryData(["currentShift", employeeId], data);
+      queryClient.setQueryData(['currentShift', employeeId], data);
       toast.success(`Welcome Back ${employee?.name}!`);
       if (data.start_time) {
         scheduleOvertimeAlert(
           new Date(data.start_time),
           employeeId,
-          employee?.name || "",
-          employee?.contact_info || ""
+          employee?.name || '',
+          employee?.contact_info || ''
         );
       }
     },
     onError: (error: Error) => {
-      if (error.message === "Already clocked in for today") {
-        toast.error("You have already clocked in for today.");
+      if (error.message === 'Already clocked in for today') {
+        toast.error('You have already clocked in for today.');
       } else {
-        console.error("Clock in error:", error);
-        toast.error("Failed to clock in. Please try again.");
+        console.error('Clock in error:', error);
+        toast.error('Failed to clock in. Please try again.');
       }
     },
   });
 
   const clockOutMutation = useMutation({
     mutationFn: async () => {
-      const timeZone = "America/Los_Angeles";
+      const timeZone = 'America/Los_Angeles';
       const now = toZonedTime(new Date(), timeZone);
-      const endTime = formatTZ(now, "HH:mm:ss", { timeZone });
-      const eventDate = formatTZ(now, "yyyy-MM-dd", { timeZone });
+      const endTime = formatTZ(now, 'HH:mm:ss', { timeZone });
+      const eventDate = formatTZ(now, 'yyyy-MM-dd', { timeZone });
 
       if (!currentShift) {
-        throw new Error("No active shift found");
+        throw new Error('No active shift found');
       }
 
       let duration = calculateDurationWithLunch(
@@ -576,88 +552,85 @@ const EmployeeProfilePage = () => {
         currentShift.lunch_end
       );
 
-      if (duration === "00:00:00") {
-        throw new Error("Invalid duration calculated");
+      if (duration === '00:00:00') {
+        throw new Error('Invalid duration calculated');
       }
 
       const { error } = await supabase
-        .from("employee_clock_events")
+        .from('employee_clock_events')
         .update({
           end_time: endTime,
           total_hours: duration,
         })
-        .eq("employee_id", employeeId)
-        .eq("event_date", eventDate);
+        .eq('employee_id', employeeId)
+        .eq('event_date', eventDate);
 
       if (error) throw error;
 
       return { ...currentShift, end_time: endTime, total_hours: duration };
     },
     onSuccess: (data) => {
-      queryClient.setQueryData(["currentShift", employeeId], data);
+      queryClient.setQueryData(['currentShift', employeeId], data);
       toast.success(`Thank You For Your Hard Work Today ${employee?.name}!`);
     },
     onError: (error) => {
-      toast.error("Failed to clock out. Please try again.");
+      toast.error('Failed to clock out. Please try again.');
     },
   });
 
   const startLunchBreakMutation = useMutation({
     mutationFn: async () => {
-      const timeZone = "America/Los_Angeles";
+      const timeZone = 'America/Los_Angeles';
       const now = toZonedTime(new Date(), timeZone);
-      const lunchStart = formatTZ(now, "HH:mm:ss", { timeZone });
+      const lunchStart = formatTZ(now, 'HH:mm:ss', { timeZone });
 
       if (!currentShift) {
-        throw new Error("No active shift found");
+        throw new Error('No active shift found');
       }
 
       const { error } = await supabase
-        .from("employee_clock_events")
+        .from('employee_clock_events')
         .update({
           lunch_start: lunchStart,
         })
-        .eq("id", currentShift.id);
+        .eq('id', currentShift.id);
 
       if (error) throw error;
 
       return { ...currentShift, lunch_start: lunchStart };
     },
     onSuccess: (data) => {
-      queryClient.setQueryData(["currentShift", employeeId], data);
+      queryClient.setQueryData(['currentShift', employeeId], data);
       toast.success(`Enjoy Your Lunch ${employee?.name}!`);
     },
     onError: (error) => {
-      toast.error("Failed to start lunch break. Please try again.");
+      toast.error('Failed to start lunch break. Please try again.');
     },
   });
 
   const endLunchBreakMutation = useMutation({
     mutationFn: async () => {
-      const timeZone = "America/Los_Angeles";
+      const timeZone = 'America/Los_Angeles';
       const now = toZonedTime(new Date(), timeZone);
-      const lunchEnd = formatTZ(now, "HH:mm:ss", { timeZone });
-      const eventDate = formatTZ(now, "yyyy-MM-dd", { timeZone });
+      const lunchEnd = formatTZ(now, 'HH:mm:ss', { timeZone });
+      const eventDate = formatTZ(now, 'yyyy-MM-dd', { timeZone });
 
       // First fetch the current shift
       const { data: currentShift, error: fetchError } = await supabase
-        .from("employee_clock_events")
-        .select("*")
-        .eq("employee_id", employeeId)
-        .eq("event_date", eventDate)
+        .from('employee_clock_events')
+        .select('*')
+        .eq('employee_id', employeeId)
+        .eq('event_date', eventDate)
         .single();
 
       if (fetchError) throw fetchError;
-      if (!currentShift) throw new Error("No active shift found");
+      if (!currentShift) throw new Error('No active shift found');
 
       // Check if 30 minutes have passed since lunch start
       if (currentShift.lunch_start) {
-        const lunchStartTime = new Date(
-          `1970-01-01T${currentShift.lunch_start}`
-        );
+        const lunchStartTime = new Date(`1970-01-01T${currentShift.lunch_start}`);
         const currentTime = new Date(`1970-01-01T${lunchEnd}`);
-        const timeDiffMinutes =
-          (currentTime.getTime() - lunchStartTime.getTime()) / (1000 * 60);
+        const timeDiffMinutes = (currentTime.getTime() - lunchStartTime.getTime()) / (1000 * 60);
 
         // Allow clocking in at exactly 30 minutes
         if (Math.floor(timeDiffMinutes) < 30) {
@@ -665,13 +638,11 @@ const EmployeeProfilePage = () => {
 
           // Store the lock timestamp
           await supabase
-            .from("employee_clock_events")
+            .from('employee_clock_events')
             .update({
-              lunch_lock: new Date(
-                Date.now() + remainingMinutes * 60 * 1000
-              ).toISOString(),
+              lunch_lock: new Date(Date.now() + remainingMinutes * 60 * 1000).toISOString(),
             })
-            .eq("id", currentShift.id);
+            .eq('id', currentShift.id);
 
           throw new Error(
             `Please wait ${remainingMinutes} more minutes before clocking back in from lunch.`
@@ -682,9 +653,7 @@ const EmployeeProfilePage = () => {
         if (currentShift.lunch_lock) {
           const lockTime = new Date(currentShift.lunch_lock);
           if (lockTime > new Date()) {
-            const remainingMinutes = Math.ceil(
-              (lockTime.getTime() - Date.now()) / (60 * 1000)
-            );
+            const remainingMinutes = Math.ceil((lockTime.getTime() - Date.now()) / (60 * 1000));
             throw new Error(
               `Please wait ${remainingMinutes} more minutes before clocking back in from lunch.`
             );
@@ -694,12 +663,12 @@ const EmployeeProfilePage = () => {
 
       // If all validations pass, update with lunch end time
       const { data, error } = await supabase
-        .from("employee_clock_events")
+        .from('employee_clock_events')
         .update({
           lunch_end: lunchEnd,
           lunch_lock: null, // Clear the lock when successfully clocking back in
         })
-        .eq("id", currentShift.id)
+        .eq('id', currentShift.id)
         .select()
         .single();
 
@@ -707,7 +676,7 @@ const EmployeeProfilePage = () => {
       return data;
     },
     onSuccess: (data) => {
-      queryClient.setQueryData(["currentShift", employeeId], data);
+      queryClient.setQueryData(['currentShift', employeeId], data);
       toast.success("Let's Get Dis Bread!");
     },
     onError: (error: Error) => {
@@ -726,10 +695,10 @@ const EmployeeProfilePage = () => {
       otherReason: string;
     }) => {
       if (selectedDates.length < 1) {
-        throw new Error("Please select at least one date.");
+        throw new Error('Please select at least one date.');
       }
 
-      const timeZone = "America/Los_Angeles";
+      const timeZone = 'America/Los_Angeles';
       const startDate = toZonedTime(
         new Date(Math.min(...selectedDates.map((date) => date.getTime()))),
         timeZone
@@ -739,8 +708,8 @@ const EmployeeProfilePage = () => {
         timeZone
       );
 
-      const start_date = formatTZ(startDate, "yyyy-MM-dd", { timeZone });
-      const end_date = formatTZ(endDate, "yyyy-MM-dd", { timeZone });
+      const start_date = formatTZ(startDate, 'yyyy-MM-dd', { timeZone });
+      const end_date = formatTZ(endDate, 'yyyy-MM-dd', { timeZone });
 
       const payload = {
         start_date,
@@ -753,46 +722,44 @@ const EmployeeProfilePage = () => {
         sick_time_year: new Date().getFullYear(),
       };
 
-      const { data, error } = await supabase
-        .from("time_off_requests")
-        .insert([payload]);
+      const { data, error } = await supabase.from('time_off_requests').insert([payload]);
 
       if (error) throw error;
 
       return payload;
     },
     onSuccess: async (data, variables) => {
-      toast.success("Time off request submitted successfully!");
+      toast.success('Time off request submitted successfully!');
       await sendNotificationToAdmins(data, variables.selectedDates);
       queryClient.invalidateQueries({
-        queryKey: ["availableTimeOff", employeeId],
+        queryKey: ['availableTimeOff', employeeId],
       });
     },
     onError: (error) => {
-      toast.error("Failed to submit time off request.");
+      toast.error('Failed to submit time off request.');
     },
   });
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: EmployeeProfileData) => {
       const { error } = await supabase
-        .from("employees")
+        .from('employees')
         .update(data)
-        .eq("user_uuid", employee?.user_uuid);
+        .eq('user_uuid', employee?.user_uuid);
 
       if (error) throw error;
 
       return data;
     },
     onSuccess: (data) => {
-      queryClient.setQueryData(["employee", employeeId], (oldData: any) => ({
+      queryClient.setQueryData(['employee', employeeId], (oldData: any) => ({
         ...oldData,
         ...data,
       }));
-      toast.success("Profile updated successfully!");
+      toast.success('Profile updated successfully!');
     },
     onError: (error) => {
-      toast.error("Failed to update profile. Please try again.");
+      toast.error('Failed to update profile. Please try again.');
     },
   });
 
@@ -820,8 +787,8 @@ const EmployeeProfilePage = () => {
     }
 
     if (totalDuration < 0 || totalDuration > 24 * 60 * 60 * 1000) {
-      console.error("Invalid duration calculated:", totalDuration);
-      return "00:00:00";
+      console.error('Invalid duration calculated:', totalDuration);
+      return '00:00:00';
     }
 
     const totalSeconds = Math.floor(totalDuration / 1000);
@@ -829,9 +796,9 @@ const EmployeeProfilePage = () => {
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
 
-    return `${hours.toString().padStart(2, "0")}:${minutes
+    return `${hours.toString().padStart(2, '0')}:${minutes
       .toString()
-      .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+      .padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
   const scheduleOvertimeAlert = (
@@ -852,26 +819,26 @@ const EmployeeProfilePage = () => {
             sendOvertimeAlert(
               employeeName,
               employeeEmail,
-              formatTZ(clockInTime, "h:mm a", {
-                timeZone: "America/Los_Angeles",
+              formatTZ(clockInTime, 'h:mm a', {
+                timeZone: 'America/Los_Angeles',
               }),
-              formatTZ(new Date(), "h:mm a", {
-                timeZone: "America/Los_Angeles",
+              formatTZ(new Date(), 'h:mm a', {
+                timeZone: 'America/Los_Angeles',
               }),
-              "EmployeeOvertimeAlert"
+              'EmployeeOvertimeAlert'
             ),
             sendOvertimeAlertToAdmins(
               employeeId.toString(),
               employeeName,
-              formatTZ(clockInTime, "h:mm a", {
-                timeZone: "America/Los_Angeles",
+              formatTZ(clockInTime, 'h:mm a', {
+                timeZone: 'America/Los_Angeles',
               }),
-              formatTZ(new Date(), "h:mm a", {
-                timeZone: "America/Los_Angeles",
+              formatTZ(new Date(), 'h:mm a', {
+                timeZone: 'America/Los_Angeles',
               })
             ),
           ]).catch((error) => {
-            console.error("Failed to send overtime alerts:", error);
+            console.error('Failed to send overtime alerts:', error);
           });
         } else {
           // console.log("Employee has already clocked out. No alert needed.");
@@ -881,16 +848,16 @@ const EmployeeProfilePage = () => {
   };
 
   const checkIfClockedOut = async (employeeId: string): Promise<boolean> => {
-    const today = new Date().toISOString().split("T")[0];
+    const today = new Date().toISOString().split('T')[0];
     const { data, error } = await supabase
-      .from("employee_clock_events")
-      .select("end_time")
-      .eq("employee_id", employeeId)
-      .eq("event_date", today)
+      .from('employee_clock_events')
+      .select('end_time')
+      .eq('employee_id', employeeId)
+      .eq('event_date', today)
       .single();
 
     if (error) {
-      console.error("Error checking clock-out status:", error);
+      console.error('Error checking clock-out status:', error);
       return false;
     }
 
@@ -905,14 +872,14 @@ const EmployeeProfilePage = () => {
     templateName: string
   ) => {
     try {
-      const response = await fetch("/api/send_email", {
-        method: "POST",
+      const response = await fetch('/api/send_email', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           email: recipientEmail,
-          subject: "Overtime Alert",
+          subject: 'Overtime Alert',
           templateName: templateName,
           templateData: {
             employeeName,
@@ -923,7 +890,7 @@ const EmployeeProfilePage = () => {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to send overtime alert email");
+        throw new Error('Failed to send overtime alert email');
       }
 
       // console.log(
@@ -934,7 +901,7 @@ const EmployeeProfilePage = () => {
       //   }`
       // );
     } catch (error) {
-      console.error("Error sending overtime alert:", error);
+      console.error('Error sending overtime alert:', error);
     }
   };
 
@@ -953,9 +920,9 @@ const EmployeeProfilePage = () => {
       }
 
       const { data: admins, error } = await supabase
-        .from("employees")
-        .select("contact_info, name")
-        .in("name", ["Sammy", "Russ", "Slim Jim"]);
+        .from('employees')
+        .select('contact_info, name')
+        .in('name', ['Sammy', 'Russ', 'Slim Jim']);
 
       if (error) throw error;
 
@@ -967,75 +934,70 @@ const EmployeeProfilePage = () => {
           adminEmails,
           clockInTime,
           currentTime,
-          "AdminOvertimeAlert"
+          'AdminOvertimeAlert'
         );
       }
     } catch (error) {
-      console.error("Failed to send overtime alert to admins:", error);
+      console.error('Failed to send overtime alert to admins:', error);
     }
   };
 
-  const sendNotificationToAdmins = async (
-    timeOffData: any,
-    selectedDates: Date[]
-  ) => {
+  const sendNotificationToAdmins = async (timeOffData: any, selectedDates: Date[]) => {
     try {
       // Get admin emails from Supabase
       const { data: admins, error: employeesError } = await supabase
-        .from("employees")
-        .select("contact_info, name")
-        .in("name", ["Sammy", "Russ", "Slim Jim"]);
+        .from('employees')
+        .select('contact_info, name')
+        .in('name', ['Sammy', 'Russ', 'Slim Jim']);
 
       if (employeesError) throw employeesError;
 
       if (!admins || admins.length === 0) {
-        console.warn("No admin emails found");
+        console.warn('No admin emails found');
         return;
       }
 
       const adminEmails = admins.map((admin) => admin.contact_info);
 
       // Format dates consistently
-      const timeZone = "America/Los_Angeles";
-      const startDate = formatTZ(
-        toZonedTime(selectedDates[0], timeZone),
-        "EEEE, MMMM d, yyyy",
-        { timeZone }
-      );
+      const timeZone = 'America/Los_Angeles';
+      const startDate = formatTZ(toZonedTime(selectedDates[0], timeZone), 'EEEE, MMMM d, yyyy', {
+        timeZone,
+      });
       const endDate = formatTZ(
         toZonedTime(selectedDates[selectedDates.length - 1], timeZone),
-        "EEEE, MMMM d, yyyy",
+        'EEEE, MMMM d, yyyy',
         { timeZone }
       );
 
       // Send email using the API route
-      const response = await fetch("/api/send_email", {
-        method: "POST",
+      const response = await fetch('/api/send_email', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           email: adminEmails,
-          subject: "New Time Off Request Submitted",
-          templateName: "TimeOffRequest",
+          subject: 'New Time Off Request Submitted',
+          templateName: 'TimeOffRequest',
           templateData: {
             employeeName: timeOffData.name,
             startDate,
             endDate,
             reason: timeOffData.reason,
-            other_reason: timeOffData.other_reason || "",
+            other_reason: timeOffData.other_reason || '',
           },
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to send notification email");
+        throw new Error(errorData.error || 'Failed to send notification email');
       }
 
       return await response.json();
     } catch (error) {
-      console.error("Failed to send notification email:", error);
+      console.error('Failed to send notification email:', error);
       throw error;
     }
   };
@@ -1044,21 +1006,18 @@ const EmployeeProfilePage = () => {
   const onSubmitTimeOff = async (data: TimeOffFormData) => {
     try {
       if (!data.selectedDates || data.selectedDates.length === 0) {
-        toast.error("Please select at least one date");
+        toast.error('Please select at least one date');
         return;
       }
 
       if (!data.reason) {
-        toast.error("Please select a reason for your time off request");
+        toast.error('Please select a reason for your time off request');
         return;
       }
 
       // If reason requires additional explanation but none provided
-      if (
-        (data.reason === "Swapping Schedules" || data.reason === "Other") &&
-        !data.otherReason
-      ) {
-        toast.error("Please provide additional details for your request");
+      if ((data.reason === 'Swapping Schedules' || data.reason === 'Other') && !data.otherReason) {
+        toast.error('Please provide additional details for your request');
         return;
       }
 
@@ -1066,20 +1025,20 @@ const EmployeeProfilePage = () => {
       await timeOffRequestMutation.mutateAsync({
         selectedDates: data.selectedDates,
         reason: data.reason,
-        otherReason: data.otherReason || "",
+        otherReason: data.otherReason || '',
       });
 
       // Reset form after successful submission using the correct reset method
       timeOffReset({
         selectedDates: [],
-        reason: "",
-        otherReason: "",
+        reason: '',
+        otherReason: '',
       });
 
-      toast.success("Time off request submitted successfully!");
+      toast.success('Time off request submitted successfully!');
     } catch (error) {
-      console.error("Error submitting time off request:", error);
-      toast.error("Failed to submit time off request. Please try again.");
+      console.error('Error submitting time off request:', error);
+      toast.error('Failed to submit time off request. Please try again.');
     }
   };
 
@@ -1089,33 +1048,31 @@ const EmployeeProfilePage = () => {
 
   // Query for dialog state
   const { data: dialogState } = useQuery<ReviewDialogState>({
-    queryKey: ["reviewDialog"],
+    queryKey: ['reviewDialog'],
     queryFn: () => ({ isOpen: false, reviewId: null }),
     initialData: { isOpen: false, reviewId: null },
   });
 
   // Query for selected review
   const { data: selectedReview } = useQuery({
-    queryKey: ["selectedReview", dialogState?.reviewId],
+    queryKey: ['selectedReview', dialogState?.reviewId],
     queryFn: async () => {
       if (!dialogState?.reviewId) return null;
-      return (
-        reviews?.find((r) => r.id === Number(dialogState.reviewId)) || null
-      );
+      return reviews?.find((r) => r.id === Number(dialogState.reviewId)) || null;
     },
     enabled: !!dialogState?.reviewId,
   });
 
   const handleClockInAndBulletin = async () => {
     try {
-      const timeZone = "America/Los_Angeles";
+      const timeZone = 'America/Los_Angeles';
       const now = toZonedTime(new Date(), timeZone);
-      const eventDate = formatTZ(now, "yyyy-MM-dd", { timeZone });
-      const startTime = formatTZ(now, "HH:mm:ss", { timeZone });
+      const eventDate = formatTZ(now, 'yyyy-MM-dd', { timeZone });
+      const startTime = formatTZ(now, 'HH:mm:ss', { timeZone });
 
       // Create the clock-in record first
       const { data: clockInData, error: clockInError } = await supabase
-        .from("employee_clock_events")
+        .from('employee_clock_events')
         .insert({
           employee_id: employeeId,
           employee_name: employee?.name,
@@ -1128,10 +1085,8 @@ const EmployeeProfilePage = () => {
       if (clockInError) throw clockInError;
 
       // Update the UI with the new clock-in data
-      queryClient.setQueryData(["currentShift", employeeId], clockInData);
-      toast.success(
-        `You're clocked in ${employee?.name}, getting you to the bulletins...`
-      );
+      queryClient.setQueryData(['currentShift', employeeId], clockInData);
+      toast.success(`You're clocked in ${employee?.name}, getting you to the bulletins...`);
       // Schedule overtime alert if needed
       scheduleOvertimeAlert(
         new Date(clockInData.start_time),
@@ -1141,26 +1096,17 @@ const EmployeeProfilePage = () => {
       );
 
       // Redirect to bulletin page
-      router.push("/TGR/crew/bulletin");
+      router.push('/TGR/crew/bulletin');
     } catch (error) {
-      toast.error("Failed to clock in. Please try again.");
+      toast.error('Failed to clock in. Please try again.');
     }
   };
 
-  if (employee === undefined)
-    return <ProgressBar value={100} showAnimation={true} />;
+  if (employee === undefined) return <ProgressBar value={100} showAnimation={true} />;
 
   return (
     <RoleBasedWrapper
-      allowedRoles={[
-        "gunsmith",
-        "user",
-        "auditor",
-        "admin",
-        "super admin",
-        "dev",
-        "ceo",
-      ]}
+      allowedRoles={['gunsmith', 'user', 'auditor', 'admin', 'super admin', 'dev', 'ceo']}
     >
       <div
         className={`relative max-w-6xl ml-6 md:ml-6 lg:ml-6 md:w-[calc(100vw-10rem)] lg:w-[calc(100vw-30rem)] h-full overflow-hidden flex-1 transition-all duration-300`}
@@ -1172,19 +1118,19 @@ const EmployeeProfilePage = () => {
                 <img
                   src={
                     employee?.avatar_url ||
-                    "https://utfs.io/f/9jzftpblGSv7nvddLr3ZYIXtyiAHqxfuS6V9231FedsGbMWh"
+                    'https://utfs.io/f/9jzftpblGSv7nvddLr3ZYIXtyiAHqxfuS6V9231FedsGbMWh'
                   }
                   alt="Employee Avatar"
                 />
-                <AvatarFallback>{employee?.name?.[0] || "?"}</AvatarFallback>
+                <AvatarFallback>{employee?.name?.[0] || '?'}</AvatarFallback>
               </Avatar>
 
               <div>
                 <h1 className="text-xl font-bold">
-                  Welcome {DOMPurify.sanitize(employee?.name || "")}
+                  Welcome {DOMPurify.sanitize(employee?.name || '')}
                 </h1>
                 <p className="text-sm text-gray-500 dark:text-gray-400 rounded-md">
-                  {DOMPurify.sanitize(employee?.position || "")}
+                  {DOMPurify.sanitize(employee?.position || '')}
                 </p>
               </div>
             </div>
@@ -1197,23 +1143,20 @@ const EmployeeProfilePage = () => {
               <TabsTrigger value="performance">Sales & Audits</TabsTrigger>
               <TabsTrigger value="forms">Forms</TabsTrigger>
               <TabsTrigger value="reviews">Reviews</TabsTrigger>
-              {(employee?.role === "super admin" ||
-                employee?.role === "dev") && (
+              {(employee?.role === 'super admin' || employee?.role === 'dev') && (
                 <TabsTrigger value="profile">Manage Profile</TabsTrigger>
               )}
             </TabsList>
             <ScrollArea
               className={classNames(
                 styles.noScroll,
-                "h-[calc(100vh-5rem)] max-w-6xl md:w-[calc(100vw-10rem)] lg:w-[calc(100vw-30rem)] overflow-hidden relative"
+                'h-[calc(100vh-5rem)] max-w-6xl md:w-[calc(100vw-10rem)] lg:w-[calc(100vw-30rem)] overflow-hidden relative'
               )}
             >
               <main
                 className={`relative max-w-6xl mx-auto md:w-[calc(100vw-10rem)] lg:w-[calc(100vw-30rem)] h-full overflow-hidden flex-1 transition-all duration-300`}
               >
-                <Suspense
-                  fallback={<ProgressBar value={100} showAnimation={true} />}
-                >
+                <Suspense fallback={<ProgressBar value={100} showAnimation={true} />}>
                   {/* Clock tab content */}
 
                   <TabsContent value="clock">
@@ -1227,17 +1170,13 @@ const EmployeeProfilePage = () => {
                         {/* Time Card */}
                         <Card className="mt-4">
                           <CardHeader className="flex justify-between items-center">
-                            <CardTitle className="text-2xl font-bold">
-                              Time Card
-                            </CardTitle>
+                            <CardTitle className="text-2xl font-bold">Time Card</CardTitle>
                           </CardHeader>
                           <CardContent className="mx-auto">
                             {!currentShift?.start_time && (
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                  <Button className="w-full mx-auto">
-                                    Clock In
-                                  </Button>
+                                  <Button className="w-full mx-auto">Clock In</Button>
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
                                   <AlertDialogHeader>
@@ -1248,25 +1187,16 @@ const EmployeeProfilePage = () => {
                                           Unacknowledged Bulletins
                                         </AlertDialogTitle>
                                         <AlertDialogDescription>
-                                          You have{" "}
-                                          {unacknowledgedBulletins.length}{" "}
-                                          bulletin
-                                          {unacknowledgedBulletins.length === 1
-                                            ? ""
-                                            : "s"}{" "}
-                                          that require
-                                          {unacknowledgedBulletins.length === 1
-                                            ? "s"
-                                            : ""}{" "}
-                                          your acknowledgment. Please review and
-                                          acknowledge them.
+                                          You have {unacknowledgedBulletins.length} bulletin
+                                          {unacknowledgedBulletins.length === 1 ? '' : 's'} that
+                                          require
+                                          {unacknowledgedBulletins.length === 1 ? 's' : ''} your
+                                          acknowledgment. Please review and acknowledge them.
                                         </AlertDialogDescription>
                                       </>
                                     ) : (
                                       <>
-                                        <AlertDialogTitle>
-                                          Clock In Confirmation
-                                        </AlertDialogTitle>
+                                        <AlertDialogTitle>Clock In Confirmation</AlertDialogTitle>
                                         <AlertDialogDescription>
                                           Are you ready to start your shift?
                                         </AlertDialogDescription>
@@ -1274,20 +1204,14 @@ const EmployeeProfilePage = () => {
                                     )}
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
-                                    <AlertDialogCancel>
-                                      Cancel
-                                    </AlertDialogCancel>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
                                     {unacknowledgedBulletins &&
                                     unacknowledgedBulletins.length > 0 ? (
-                                      <AlertDialogAction
-                                        onClick={handleClockInAndBulletin}
-                                      >
+                                      <AlertDialogAction onClick={handleClockInAndBulletin}>
                                         Clock In & View Bulletin
                                       </AlertDialogAction>
                                     ) : (
-                                      <AlertDialogAction
-                                        onClick={() => clockInMutation.mutate()}
-                                      >
+                                      <AlertDialogAction onClick={() => clockInMutation.mutate()}>
                                         Clock In
                                       </AlertDialogAction>
                                     )}
@@ -1295,135 +1219,103 @@ const EmployeeProfilePage = () => {
                                 </AlertDialogContent>
                               </AlertDialog>
                             )}
-                            {currentShift?.start_time &&
-                              !currentShift?.end_time && (
-                                <>
-                                  {!currentShift.lunch_start && (
-                                    <Popover>
-                                      <PopoverTrigger asChild>
+                            {currentShift?.start_time && !currentShift?.end_time && (
+                              <>
+                                {!currentShift.lunch_start && (
+                                  <Popover>
+                                    <PopoverTrigger asChild>
+                                      <Button variant="outline" className="w-full mx-auto">
+                                        Clock Out
+                                      </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent>
+                                      <div className="flex w-full justify-center space-x-2">
                                         <Button
                                           variant="outline"
-                                          className="w-full mx-auto"
+                                          onClick={() => startLunchBreakMutation.mutate()}
                                         >
-                                          Clock Out
+                                          Lunch Break
                                         </Button>
-                                      </PopoverTrigger>
-                                      <PopoverContent>
-                                        <div className="flex w-full justify-center space-x-2">
-                                          <Button
-                                            variant="outline"
-                                            onClick={() =>
-                                              startLunchBreakMutation.mutate()
-                                            }
-                                          >
-                                            Lunch Break
-                                          </Button>
-                                          <AlertDialog>
-                                            <AlertDialogTrigger asChild>
-                                              <Button variant="ghost">
-                                                End Shift
-                                              </Button>
-                                            </AlertDialogTrigger>
-                                            <AlertDialogContent>
-                                              <AlertDialogHeader>
-                                                <AlertDialogTitle>
-                                                  End Shift Confirmation
-                                                </AlertDialogTitle>
-                                                <AlertDialogDescription>
-                                                  Are you sure you want to end
-                                                  your shift for the day? Only a
-                                                  manager can correct your
-                                                  timesheet to fix this.
-                                                </AlertDialogDescription>
-                                              </AlertDialogHeader>
-                                              <AlertDialogFooter>
-                                                <AlertDialogCancel>
-                                                  Cancel
-                                                </AlertDialogCancel>
-                                                <AlertDialogAction
-                                                  onClick={() =>
-                                                    clockOutMutation.mutate()
-                                                  }
-                                                >
-                                                  Confirm End Shift
-                                                </AlertDialogAction>
-                                              </AlertDialogFooter>
-                                            </AlertDialogContent>
-                                          </AlertDialog>
-                                        </div>
-                                      </PopoverContent>
-                                    </Popover>
-                                  )}
-                                  {currentShift.lunch_start &&
-                                    !currentShift.lunch_end && (
-                                      <Dialog>
-                                        <DialogTrigger asChild>
-                                          <Button
-                                            variant="outline"
-                                            className="w-full mx-auto"
-                                          >
-                                            Clock Back In From Lunch
-                                          </Button>
-                                        </DialogTrigger>
-                                        <DialogContent>
-                                          <DialogDescription>
-                                            <p className="mb-4">
-                                              You must take at least a 30-minute
-                                              lunch break.
-                                            </p>
-                                            <Button
-                                              variant="gooeyLeft"
-                                              className="w-full mx-auto mt-4"
-                                              onClick={() =>
-                                                endLunchBreakMutation.mutate()
-                                              }
-                                            >
-                                              Confirm Clocking Back In
-                                            </Button>
-                                          </DialogDescription>
-                                        </DialogContent>
-                                      </Dialog>
-                                    )}
-                                  {currentShift.lunch_start &&
-                                    currentShift.lunch_end && (
-                                      <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                          <Button
-                                            variant="outline"
-                                            className="w-full mx-auto"
-                                          >
-                                            End Shift
-                                          </Button>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                          <AlertDialogHeader>
-                                            <AlertDialogTitle>
-                                              End Shift Confirmation
-                                            </AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                              Are you sure you want to end your
-                                              shift for the day? Only a manager
-                                              can correct your timesheet to fix
-                                              this.
-                                            </AlertDialogDescription>
-                                          </AlertDialogHeader>
-                                          <AlertDialogFooter>
-                                            <AlertDialogCancel>
-                                              Cancel
-                                            </AlertDialogCancel>
-                                            <AlertDialogAction
-                                              onClick={() =>
-                                                clockOutMutation.mutate()
-                                              }
-                                            >
-                                              Confirm End Shift
-                                            </AlertDialogAction>
-                                          </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                      </AlertDialog>
-                                    )}
-                                </>
-                              )}
+                                        <AlertDialog>
+                                          <AlertDialogTrigger asChild>
+                                            <Button variant="ghost">End Shift</Button>
+                                          </AlertDialogTrigger>
+                                          <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                              <AlertDialogTitle>
+                                                End Shift Confirmation
+                                              </AlertDialogTitle>
+                                              <AlertDialogDescription>
+                                                Are you sure you want to end your shift for the day?
+                                                Only a manager can correct your timesheet to fix
+                                                this.
+                                              </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                              <AlertDialogAction
+                                                onClick={() => clockOutMutation.mutate()}
+                                              >
+                                                Confirm End Shift
+                                              </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                          </AlertDialogContent>
+                                        </AlertDialog>
+                                      </div>
+                                    </PopoverContent>
+                                  </Popover>
+                                )}
+                                {currentShift.lunch_start && !currentShift.lunch_end && (
+                                  <Dialog>
+                                    <DialogTrigger asChild>
+                                      <Button variant="outline" className="w-full mx-auto">
+                                        Clock Back In From Lunch
+                                      </Button>
+                                    </DialogTrigger>
+                                    <DialogContent>
+                                      <DialogDescription>
+                                        <p className="mb-4">
+                                          You must take at least a 30-minute lunch break.
+                                        </p>
+                                        <Button
+                                          variant="gooeyLeft"
+                                          className="w-full mx-auto mt-4"
+                                          onClick={() => endLunchBreakMutation.mutate()}
+                                        >
+                                          Confirm Clocking Back In
+                                        </Button>
+                                      </DialogDescription>
+                                    </DialogContent>
+                                  </Dialog>
+                                )}
+                                {currentShift.lunch_start && currentShift.lunch_end && (
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button variant="outline" className="w-full mx-auto">
+                                        End Shift
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>End Shift Confirmation</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          Are you sure you want to end your shift for the day? Only
+                                          a manager can correct your timesheet to fix this.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction
+                                          onClick={() => clockOutMutation.mutate()}
+                                        >
+                                          Confirm End Shift
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                )}
+                              </>
+                            )}
                           </CardContent>
                         </Card>
                       </div>
@@ -1436,9 +1328,7 @@ const EmployeeProfilePage = () => {
                         {/* Start of Shift */}
                         <Card className="mt-4">
                           <CardHeader className="flex justify-between items-center">
-                            <CardTitle className="text-2xl font-bold">
-                              Start Of Shift
-                            </CardTitle>
+                            <CardTitle className="text-2xl font-bold">Start Of Shift</CardTitle>
                           </CardHeader>
                           <CardContent className="mx-auto">
                             {currentShift?.start_time ? (
@@ -1449,10 +1339,10 @@ const EmployeeProfilePage = () => {
                                       new Date(
                                         `${currentShift.event_date}T${currentShift.start_time}`
                                       ),
-                                      "America/Los_Angeles"
+                                      'America/Los_Angeles'
                                     ),
-                                    "EEEE",
-                                    { timeZone: "America/Los_Angeles" }
+                                    'EEEE',
+                                    { timeZone: 'America/Los_Angeles' }
                                   )}
                                 </div>
                                 <div>
@@ -1461,10 +1351,10 @@ const EmployeeProfilePage = () => {
                                       new Date(
                                         `${currentShift.event_date}T${currentShift.start_time}`
                                       ),
-                                      "America/Los_Angeles"
+                                      'America/Los_Angeles'
                                     ),
-                                    "MMM d - h:mm a",
-                                    { timeZone: "America/Los_Angeles" }
+                                    'MMM d - h:mm a',
+                                    { timeZone: 'America/Los_Angeles' }
                                   )}
                                 </div>
                               </div>
@@ -1477,43 +1367,34 @@ const EmployeeProfilePage = () => {
                         {/* Lunch Break Calculation Card*/}
                         <Card className="mt-4">
                           <CardHeader className="flex justify-between items-center">
-                            <CardTitle className="text-2xl font-bold">
-                              Lunch Break
-                            </CardTitle>
+                            <CardTitle className="text-2xl font-bold">Lunch Break</CardTitle>
                           </CardHeader>
                           <CardContent className="mx-auto">
                             {currentShift ? (
-                              currentShift.lunch_start &&
-                              currentShift.lunch_end ? (
+                              currentShift.lunch_start && currentShift.lunch_end ? (
                                 <div>{`Your Lunch Break Was From ${formatTZ(
                                   toZonedTime(
-                                    new Date(
-                                      `1970-01-01T${currentShift.lunch_start}`
-                                    ),
-                                    "America/Los_Angeles"
+                                    new Date(`1970-01-01T${currentShift.lunch_start}`),
+                                    'America/Los_Angeles'
                                   ),
-                                  "h:mm a",
-                                  { timeZone: "America/Los_Angeles" }
+                                  'h:mm a',
+                                  { timeZone: 'America/Los_Angeles' }
                                 )} to ${formatTZ(
                                   toZonedTime(
-                                    new Date(
-                                      `1970-01-01T${currentShift.lunch_end}`
-                                    ),
-                                    "America/Los_Angeles"
+                                    new Date(`1970-01-01T${currentShift.lunch_end}`),
+                                    'America/Los_Angeles'
                                   ),
-                                  "h:mm a",
-                                  { timeZone: "America/Los_Angeles" }
+                                  'h:mm a',
+                                  { timeZone: 'America/Los_Angeles' }
                                 )}`}</div>
                               ) : currentShift.lunch_start ? (
                                 <div>{`You Clocked Out For Lunch At ${formatTZ(
                                   toZonedTime(
-                                    new Date(
-                                      `1970-01-01T${currentShift.lunch_start}`
-                                    ),
-                                    "America/Los_Angeles"
+                                    new Date(`1970-01-01T${currentShift.lunch_start}`),
+                                    'America/Los_Angeles'
                                   ),
-                                  "h:mm a",
-                                  { timeZone: "America/Los_Angeles" }
+                                  'h:mm a',
+                                  { timeZone: 'America/Los_Angeles' }
                                 )}`}</div>
                               ) : (
                                 <div>{`Please Start Your Lunch Break By ${formatTZ(
@@ -1524,10 +1405,10 @@ const EmployeeProfilePage = () => {
                                       ).getTime() +
                                         5 * 60 * 60 * 1000
                                     ),
-                                    "America/Los_Angeles"
+                                    'America/Los_Angeles'
                                   ),
-                                  "h:mm a",
-                                  { timeZone: "America/Los_Angeles" }
+                                  'h:mm a',
+                                  { timeZone: 'America/Los_Angeles' }
                                 )}`}</div>
                               )
                             ) : (
@@ -1539,13 +1420,10 @@ const EmployeeProfilePage = () => {
                         {/* End of Shift */}
                         <Card className="mt-4">
                           <CardHeader className="flex justify-between items-center">
-                            <CardTitle className="text-2xl font-bold">
-                              End Of Shift
-                            </CardTitle>
+                            <CardTitle className="text-2xl font-bold">End Of Shift</CardTitle>
                           </CardHeader>
                           <CardContent className="mx-auto">
-                            {currentShift?.start_time &&
-                            !currentShift?.end_time ? (
+                            {currentShift?.start_time && !currentShift?.end_time ? (
                               <div>
                                 {(() => {
                                   const startTime = new Date(
@@ -1554,10 +1432,7 @@ const EmployeeProfilePage = () => {
                                   const endTime = new Date(
                                     startTime.getTime() + 8.5 * 60 * 60 * 1000
                                   ); // 8.5 hours in milliseconds
-                                  const formattedEndTime = format(
-                                    endTime,
-                                    "h:mm a"
-                                  );
+                                  const formattedEndTime = format(endTime, 'h:mm a');
                                   return `Still on shift until no later than ${formattedEndTime}`;
                                 })()}
                               </div>
@@ -1578,17 +1453,14 @@ const EmployeeProfilePage = () => {
                         {/* Daily Summary Card*/}
                         <Card className="mt-4">
                           <CardHeader className="flex justify-between items-center">
-                            <CardTitle className="text-2xl font-bold">
-                              Daily Summary
-                            </CardTitle>
+                            <CardTitle className="text-2xl font-bold">Daily Summary</CardTitle>
                           </CardHeader>
                           <CardContent className="mx-auto">
                             {currentShift ? (
                               <div>
                                 {`You've logged ${calculateDurationWithLunch(
                                   currentShift.start_time,
-                                  currentShift.end_time ||
-                                    format(new Date(), "HH:mm:ss"),
+                                  currentShift.end_time || format(new Date(), 'HH:mm:ss'),
                                   currentShift.lunch_start,
                                   currentShift.lunch_end
                                 )} hours today!`}
@@ -1602,9 +1474,7 @@ const EmployeeProfilePage = () => {
                         {/* Weekly Summary Card*/}
                         <Card className="mt-4">
                           <CardHeader className="flex justify-between items-center">
-                            <CardTitle className="text-2xl font-bold">
-                              Weekly Summary
-                            </CardTitle>
+                            <CardTitle className="text-2xl font-bold">Weekly Summary</CardTitle>
                           </CardHeader>
                           <CardContent className="mx-auto">
                             {weeklySummary !== null ? (
@@ -1621,7 +1491,7 @@ const EmployeeProfilePage = () => {
                             <CardTitle className="text-2xl font-bold">
                               Pay Period
                               <div className="text-sm text-gray-500">
-                                {payPeriodSummary?.payPeriodDates.start} -{" "}
+                                {payPeriodSummary?.payPeriodDates.start} -{' '}
                                 {payPeriodSummary?.payPeriodDates.end}
                               </div>
                             </CardTitle>
@@ -1648,9 +1518,7 @@ const EmployeeProfilePage = () => {
                     <div className="grid p-2 gap-4 md:grid-cols-2 lg:grid-cols-2">
                       <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                          <CardTitle className="text-2xl font-bold">
-                            Request Time Off
-                          </CardTitle>
+                          <CardTitle className="text-2xl font-bold">Request Time Off</CardTitle>
                         </CardHeader>
                         <CardContent>
                           <Controller
@@ -1668,23 +1536,19 @@ const EmployeeProfilePage = () => {
                                         {format(
                                           new Date(
                                             Math.min(
-                                              ...field.value.map((date: Date) =>
-                                                date.getTime()
-                                              )
+                                              ...field.value.map((date: Date) => date.getTime())
                                             )
                                           ),
-                                          "M/dd"
-                                        )}{" "}
-                                        -{" "}
+                                          'M/dd'
+                                        )}{' '}
+                                        -{' '}
                                         {format(
                                           new Date(
                                             Math.max(
-                                              ...field.value.map((date: Date) =>
-                                                date.getTime()
-                                              )
+                                              ...field.value.map((date: Date) => date.getTime())
                                             )
                                           ),
-                                          "M/dd"
+                                          'M/dd'
                                         )}
                                       </>
                                     ) : (
@@ -1693,10 +1557,7 @@ const EmployeeProfilePage = () => {
                                     <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                   </Button>
                                 </PopoverTrigger>
-                                <PopoverContent
-                                  className="w-auto p-0"
-                                  align="start"
-                                >
+                                <PopoverContent className="w-auto p-0" align="start">
                                   <CustomCalendarMulti
                                     selectedDates={field.value}
                                     onDatesChange={(dates) => {
@@ -1713,24 +1574,16 @@ const EmployeeProfilePage = () => {
                               name="reason"
                               control={control}
                               render={({ field }) => (
-                                <Select
-                                  onValueChange={field.onChange}
-                                  value={field.value}
-                                >
+                                <Select onValueChange={field.onChange} value={field.value}>
                                   <SelectTrigger>
                                     <SelectValue placeholder="Select Reason" />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    {timeOffReasons?.map(
-                                      (reason: TimeOffReason) => (
-                                        <SelectItem
-                                          key={reason.id}
-                                          value={reason.reason}
-                                        >
-                                          {reason.reason}
-                                        </SelectItem>
-                                      )
-                                    )}
+                                    {timeOffReasons?.map((reason: TimeOffReason) => (
+                                      <SelectItem key={reason.id} value={reason.reason}>
+                                        {reason.reason}
+                                      </SelectItem>
+                                    ))}
                                   </SelectContent>
                                 </Select>
                               )}
@@ -1744,9 +1597,9 @@ const EmployeeProfilePage = () => {
                                 className="mt-4"
                                 {...field}
                                 placeholder={
-                                  field.value === "Swapping Schedules"
-                                    ? "Please specify who you are swapping with and the dates you are swapping (dates must be during the same week)"
-                                    : "Please specify who is covering for the dates you are requesting off (swapped dates must be during the same week)"
+                                  field.value === 'Swapping Schedules'
+                                    ? 'Please specify who you are swapping with and the dates you are swapping (dates must be during the same week)'
+                                    : 'Please specify who is covering for the dates you are requesting off (swapped dates must be during the same week)'
                                 }
                               />
                             )}
@@ -1762,16 +1615,14 @@ const EmployeeProfilePage = () => {
                       </Card>
                       <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                          <CardTitle className="text-2xl font-bold">
-                            Available Sick Time
-                          </CardTitle>
+                          <CardTitle className="text-2xl font-bold">Available Sick Time</CardTitle>
                           <ClockIcon className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
                           <div className="text-2xl font-medium mt-6">
                             {availableSickTime !== null
                               ? `${availableSickTime} hours`
-                              : "Loading..."}
+                              : 'Loading...'}
                           </div>
                         </CardContent>
                       </Card>
@@ -1799,15 +1650,11 @@ const EmployeeProfilePage = () => {
                           <thead>
                             <tr>
                               <th className="py-2 w-36 text-left">DROS #</th>
-                              <th className="py-2 w-32 text-left">
-                                Trans Date
-                              </th>
+                              <th className="py-2 w-32 text-left">Trans Date</th>
                               <th className="py-2 w-32 text-left">Location</th>
                               <th className="py-2 w-48 text-left">Details</th>
                               <th className="py-2 w-64 text-left">Notes</th>
-                              <th className="py-2 w-12 text-left">
-                                Cancelled?
-                              </th>
+                              <th className="py-2 w-12 text-left">Cancelled?</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -1847,24 +1694,16 @@ const EmployeeProfilePage = () => {
                     <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
                       <Card className="mt-4">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                          <CardTitle className="text-2xl font-bold">
-                            Submit Points
-                          </CardTitle>
+                          <CardTitle className="text-2xl font-bold">Submit Points</CardTitle>
                         </CardHeader>
                         <CardContent className="p-4">
                           <Popover>
                             <PopoverTrigger asChild>
-                              <Button
-                                variant="outline"
-                                className="w-full text-left font-normal"
-                              >
+                              <Button variant="outline" className="w-full text-left font-normal">
                                 Submit Points Form
                               </Button>
                             </PopoverTrigger>
-                            <PopoverContent
-                              className="w-auto p-2"
-                              align="start"
-                            >
+                            <PopoverContent className="w-auto p-2" align="start">
                               <PointsForm />
                             </PopoverContent>
                           </Popover>
@@ -1873,30 +1712,20 @@ const EmployeeProfilePage = () => {
 
                       <Card className="mt-4">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                          <CardTitle className="text-2xl font-bold">
-                            Submit A Suggestion
-                          </CardTitle>
+                          <CardTitle className="text-2xl font-bold">Submit A Suggestion</CardTitle>
                         </CardHeader>
                         <CardContent className="p-4">
                           <Popover>
                             <PopoverTrigger asChild>
-                              <Button
-                                variant="outline"
-                                className="w-full text-left font-normal"
-                              >
+                              <Button variant="outline" className="w-full text-left font-normal">
                                 Submit Suggestion Form
                               </Button>
                             </PopoverTrigger>
-                            <PopoverContent
-                              className="w-auto p-2"
-                              align="start"
-                            >
+                            <PopoverContent className="w-auto p-2" align="start">
                               <SuggestionForm
-                                employeeName={DOMPurify.sanitize(
-                                  employee?.name || ""
-                                )}
+                                employeeName={DOMPurify.sanitize(employee?.name || '')}
                                 employeeContactInfo={DOMPurify.sanitize(
-                                  employee?.contact_info || ""
+                                  employee?.contact_info || ''
                                 )}
                               />
                             </PopoverContent>
@@ -1923,14 +1752,11 @@ const EmployeeProfilePage = () => {
                           <Card key={review.id} className="mt-4">
                             <CardHeader className="flex flex-col items-start justify-between space-y-2 pb-2">
                               <CardTitle className="text-2xl font-bold">
-                                {DOMPurify.sanitize(review.review_quarter)}{" "}
-                                {review.review_year}
+                                {DOMPurify.sanitize(review.review_quarter)} {review.review_year}
                               </CardTitle>
                               <CardDescription className="text-xs text-gray-500 dark:text-gray-400">
-                                - {DOMPurify.sanitize(review.created_by)} on{" "}
-                                {new Date(
-                                  review.created_at
-                                ).toLocaleDateString()}
+                                - {DOMPurify.sanitize(review.created_by)} on{' '}
+                                {new Date(review.created_at).toLocaleDateString()}
                               </CardDescription>
                             </CardHeader>
                             <CardContent className="p-4">
@@ -1938,7 +1764,7 @@ const EmployeeProfilePage = () => {
                                 variant="outline"
                                 className="w-full text-left font-normal"
                                 onClick={() => {
-                                  queryClient.setQueryData(["reviewDialog"], {
+                                  queryClient.setQueryData(['reviewDialog'], {
                                     isOpen: true,
                                     reviewId: review.id,
                                   });
@@ -1956,7 +1782,7 @@ const EmployeeProfilePage = () => {
                     <Dialog
                       open={dialogState?.isOpen}
                       onOpenChange={(open) => {
-                        queryClient.setQueryData(["reviewDialog"], {
+                        queryClient.setQueryData(['reviewDialog'], {
                           isOpen: open,
                           reviewId: open ? dialogState?.reviewId : null,
                         });
@@ -1972,16 +1798,12 @@ const EmployeeProfilePage = () => {
                               </DialogTitle>
                               <DialogDescription>
                                 <div className="grid gap-1.5 mb-2">
-                                  <Label className="text-md font-bold">
-                                    Review
-                                  </Label>
+                                  <Label className="text-md font-bold">Review</Label>
                                   <p>{selectedReview.review_quarter}</p>
                                 </div>
 
                                 <div className="grid gap-1.5 mb-2">
-                                  <Label className="text-md font-bold">
-                                    Year
-                                  </Label>
+                                  <Label className="text-md font-bold">Year</Label>
                                   <p>{selectedReview.review_year}</p>
                                 </div>
 
@@ -2019,15 +1841,11 @@ const EmployeeProfilePage = () => {
                                 </div>
 
                                 <div className="grid gap-1.5 mb-2">
-                                  <Label className="text-md font-bold">
-                                    Quality of Work
-                                  </Label>
+                                  <Label className="text-md font-bold">Quality of Work</Label>
                                   <ul className="list-disc pl-5">
-                                    {selectedReview.quality_work.map(
-                                      (quality, index) => (
-                                        <li key={index}>{quality}</li>
-                                      )
-                                    )}
+                                    {selectedReview.quality_work.map((quality, index) => (
+                                      <li key={index}>{quality}</li>
+                                    ))}
                                   </ul>
                                 </div>
 
@@ -2062,24 +1880,18 @@ const EmployeeProfilePage = () => {
                                     Areas for Growth and Development
                                   </Label>
                                   <ul className="list-disc pl-5">
-                                    {selectedReview.areas_growth.map(
-                                      (area, index) => (
-                                        <li key={index}>{area}</li>
-                                      )
-                                    )}
+                                    {selectedReview.areas_growth.map((area, index) => (
+                                      <li key={index}>{area}</li>
+                                    ))}
                                   </ul>
                                 </div>
 
                                 <div className="grid gap-1.5 mb-2">
-                                  <Label className="text-md font-bold">
-                                    Recognition
-                                  </Label>
+                                  <Label className="text-md font-bold">Recognition</Label>
                                   <ul className="list-disc pl-5">
-                                    {selectedReview.recognition.map(
-                                      (rec, index) => (
-                                        <li key={index}>{rec}</li>
-                                      )
-                                    )}
+                                    {selectedReview.recognition.map((rec, index) => (
+                                      <li key={index}>{rec}</li>
+                                    ))}
                                   </ul>
                                 </div>
 
@@ -2087,13 +1899,10 @@ const EmployeeProfilePage = () => {
                                   <Button
                                     variant="outline"
                                     onClick={() => {
-                                      queryClient.setQueryData(
-                                        ["reviewDialog"],
-                                        {
-                                          isOpen: false,
-                                          reviewId: null,
-                                        }
-                                      );
+                                      queryClient.setQueryData(['reviewDialog'], {
+                                        isOpen: false,
+                                        reviewId: null,
+                                      });
                                     }}
                                   >
                                     Close
@@ -2108,8 +1917,7 @@ const EmployeeProfilePage = () => {
                   </TabsContent>
 
                   {/* Manage Profile */}
-                  {(employee?.role === "super admin" ||
-                    employee?.role === "dev") && (
+                  {(employee?.role === 'super admin' || employee?.role === 'dev') && (
                     <TabsContent value="profile">
                       <div className="grid p-2 gap-2 md:grid-cols-1 lg:grid-cols-1">
                         <Card className="mt-4">
@@ -2119,31 +1927,27 @@ const EmployeeProfilePage = () => {
                             </CardTitle>
                           </CardHeader>
                           <CardContent className="p-4">
-                            <form
-                              onSubmit={handleSubmitProfile(onSubmitProfile)}
-                            >
+                            <form onSubmit={handleSubmitProfile(onSubmitProfile)}>
                               <div className="p-4 rounded-b-lg space-y-6">
                                 {[
-                                  { label: "First Name", id: "name" },
-                                  { label: "Last Name", id: "last_name" },
+                                  { label: 'First Name', id: 'name' },
+                                  { label: 'Last Name', id: 'last_name' },
                                   {
-                                    label: "Phone Number",
-                                    id: "phone_number",
+                                    label: 'Phone Number',
+                                    id: 'phone_number',
                                   },
                                   {
-                                    label: "Street Address",
-                                    id: "street_address",
+                                    label: 'Street Address',
+                                    id: 'street_address',
                                   },
-                                  { label: "City", id: "city" },
-                                  { label: "State", id: "state" },
-                                  { label: "ZIP Code", id: "zip" },
+                                  { label: 'City', id: 'city' },
+                                  { label: 'State', id: 'state' },
+                                  { label: 'ZIP Code', id: 'zip' },
                                 ].map((field) => (
                                   <div key={field.id} className="grid gap-2">
                                     <div className="flex items-center justify-between">
                                       <div className="w-full">
-                                        <Label htmlFor={field.id}>
-                                          {field.label}
-                                        </Label>
+                                        <Label htmlFor={field.id}>{field.label}</Label>
                                         <Input
                                           id={field.id}
                                           {...profileRegister(
@@ -2185,12 +1989,12 @@ const useEmployeeProfile = (employeeId: number, userUuid: string) => {
   const queryClient = useQueryClient();
 
   const employeeQuery = useQuery({
-    queryKey: ["employee", employeeId],
+    queryKey: ['employee', employeeId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("employees")
-        .select("*, contact_info")
-        .eq("employee_id", employeeId)
+        .from('employees')
+        .select('*, contact_info')
+        .eq('employee_id', employeeId)
         .single();
 
       if (error) throw error;
@@ -2201,22 +2005,22 @@ const useEmployeeProfile = (employeeId: number, userUuid: string) => {
   const updateProfileMutation = useMutation({
     mutationFn: async (data: EmployeeProfileData) => {
       const { error } = await supabase
-        .from("employees")
+        .from('employees')
         .update(data)
-        .eq("user_uuid", employeeQuery.data?.user_uuid);
+        .eq('user_uuid', employeeQuery.data?.user_uuid);
 
       if (error) throw error;
       return data;
     },
     onSuccess: (data) => {
-      queryClient.setQueryData(["employee", employeeId], (oldData: any) => ({
+      queryClient.setQueryData(['employee', employeeId], (oldData: any) => ({
         ...oldData,
         ...data,
       }));
-      toast.success("Profile updated successfully!");
+      toast.success('Profile updated successfully!');
     },
     onError: (error) => {
-      toast.error("Failed to update profile. Please try again.");
+      toast.error('Failed to update profile. Please try again.');
     },
   });
 
@@ -2242,10 +2046,10 @@ const useTimeOffRequests = (employeeId: number) => {
       otherReason: string;
     }) => {
       if (selectedDates.length < 1) {
-        throw new Error("Please select at least one date.");
+        throw new Error('Please select at least one date.');
       }
 
-      const timeZone = "America/Los_Angeles";
+      const timeZone = 'America/Los_Angeles';
       const startDate = toZonedTime(
         new Date(Math.min(...selectedDates.map((date) => date.getTime()))),
         timeZone
@@ -2255,8 +2059,8 @@ const useTimeOffRequests = (employeeId: number) => {
         timeZone
       );
 
-      const start_date = formatTZ(startDate, "yyyy-MM-dd", { timeZone });
-      const end_date = formatTZ(endDate, "yyyy-MM-dd", { timeZone });
+      const start_date = formatTZ(startDate, 'yyyy-MM-dd', { timeZone });
+      const end_date = formatTZ(endDate, 'yyyy-MM-dd', { timeZone });
 
       const payload = {
         start_date,
@@ -2267,23 +2071,21 @@ const useTimeOffRequests = (employeeId: number) => {
         sick_time_year: new Date().getFullYear(),
       };
 
-      const { data, error } = await supabase
-        .from("time_off_requests")
-        .insert([payload]);
+      const { data, error } = await supabase.from('time_off_requests').insert([payload]);
 
       if (error) throw error;
 
       return payload;
     },
     onSuccess: async (data, variables) => {
-      toast.success("Time off request submitted successfully!");
+      toast.success('Time off request submitted successfully!');
       await sendNotificationToAdmins(data, variables.selectedDates);
       queryClient.invalidateQueries({
-        queryKey: ["availableTimeOff", employeeId],
+        queryKey: ['availableTimeOff', employeeId],
       });
     },
     onError: (error) => {
-      toast.error("Failed to submit time off request.");
+      toast.error('Failed to submit time off request.');
     },
   });
 
@@ -2297,39 +2099,39 @@ const useClockEvents = (employeeId: number) => {
 
   const clockInMutation = useMutation({
     mutationFn: async () => {
-      const timeZone = "America/Los_Angeles";
+      const timeZone = 'America/Los_Angeles';
       const now = toZonedTime(new Date(), timeZone);
-      const eventDate = formatTZ(now, "yyyy-MM-dd", { timeZone });
-      const startTime = formatTZ(now, "HH:mm:ss", { timeZone });
+      const eventDate = formatTZ(now, 'yyyy-MM-dd', { timeZone });
+      const startTime = formatTZ(now, 'HH:mm:ss', { timeZone });
 
       const { data: existingData, error: fetchError } = await supabase
-        .from("employee_clock_events")
-        .select("*")
-        .eq("employee_id", employeeId)
-        .eq("event_date", eventDate)
+        .from('employee_clock_events')
+        .select('*')
+        .eq('employee_id', employeeId)
+        .eq('event_date', eventDate)
         .single();
 
-      if (fetchError && fetchError.code !== "PGRST116") {
+      if (fetchError && fetchError.code !== 'PGRST116') {
         throw fetchError;
       }
 
       if (existingData) {
         if (existingData.start_time) {
-          throw new Error("Already clocked in for today.");
+          throw new Error('Already clocked in for today.');
         }
 
         const { error: updateError } = await supabase
-          .from("employee_clock_events")
+          .from('employee_clock_events')
           .update({
             start_time: startTime,
           })
-          .eq("id", existingData.id);
+          .eq('id', existingData.id);
 
         if (updateError) throw updateError;
         return { ...existingData, start_time: startTime };
       } else {
         const { data: insertData, error: insertError } = await supabase
-          .from("employee_clock_events")
+          .from('employee_clock_events')
           .insert({
             employee_id: employeeId,
             event_date: eventDate,
@@ -2343,7 +2145,7 @@ const useClockEvents = (employeeId: number) => {
       }
     },
     onSuccess: (data) => {
-      queryClient.setQueryData(["currentShift", employeeId], data);
+      queryClient.setQueryData(['currentShift', employeeId], data);
       toast.success(`Clocked in successfully!`);
       scheduleOvertimeAlert(
         new Date(data.start_time),
@@ -2353,62 +2155,62 @@ const useClockEvents = (employeeId: number) => {
       );
     },
     onError: (error) => {
-      toast.error("Failed to clock in. Please try again.");
+      toast.error('Failed to clock in. Please try again.');
     },
   });
 
   const clockOutMutation = useMutation({
     mutationFn: async () => {
-      const timeZone = "America/Los_Angeles";
+      const timeZone = 'America/Los_Angeles';
       const now = toZonedTime(new Date(), timeZone);
-      const endTime = formatTZ(now, "HH:mm:ss", { timeZone });
-      const eventDate = formatTZ(now, "yyyy-MM-dd", { timeZone });
+      const endTime = formatTZ(now, 'HH:mm:ss', { timeZone });
+      const eventDate = formatTZ(now, 'yyyy-MM-dd', { timeZone });
 
       const { data: currentShift } = await supabase
-        .from("employee_clock_events")
-        .select("*")
-        .eq("employee_id", employeeId)
-        .eq("event_date", eventDate)
+        .from('employee_clock_events')
+        .select('*')
+        .eq('employee_id', employeeId)
+        .eq('event_date', eventDate)
         .single();
 
       if (!currentShift) {
-        throw new Error("No active shift found");
+        throw new Error('No active shift found');
       }
 
       // Just update the end_time - the trigger will calculate total_hours
       const { error } = await supabase
-        .from("employee_clock_events")
+        .from('employee_clock_events')
         .update({
           end_time: endTime,
         })
-        .eq("employee_id", employeeId)
-        .eq("event_date", eventDate);
+        .eq('employee_id', employeeId)
+        .eq('event_date', eventDate);
 
       if (error) throw error;
 
       // Fetch the updated record to get the calculated total_hours
       const { data: updatedShift, error: fetchError } = await supabase
-        .from("employee_clock_events")
-        .select("*")
-        .eq("employee_id", employeeId)
-        .eq("event_date", eventDate)
+        .from('employee_clock_events')
+        .select('*')
+        .eq('employee_id', employeeId)
+        .eq('event_date', eventDate)
         .single();
 
       if (fetchError) throw fetchError;
       return updatedShift;
     },
     onSuccess: (data) => {
-      queryClient.setQueryData(["currentShift", employeeId], data);
+      queryClient.setQueryData(['currentShift', employeeId], data);
       queryClient.invalidateQueries({
-        queryKey: ["weeklySummary", employeeId],
+        queryKey: ['weeklySummary', employeeId],
       });
       queryClient.invalidateQueries({
-        queryKey: ["payPeriodSummary", employeeId],
+        queryKey: ['payPeriodSummary', employeeId],
       });
       toast.success(`Clocked out successfully!`);
     },
     onError: (error) => {
-      toast.error("Failed to clock out. Please try again.");
+      toast.error('Failed to clock out. Please try again.');
     },
   });
 
@@ -2417,72 +2219,69 @@ const useClockEvents = (employeeId: number) => {
     clockOut: clockOutMutation.mutate,
     startLunchBreak: useMutation({
       mutationFn: async () => {
-        const timeZone = "America/Los_Angeles";
+        const timeZone = 'America/Los_Angeles';
         const now = toZonedTime(new Date(), timeZone);
-        const lunchStart = formatTZ(now, "HH:mm:ss", { timeZone });
-        const eventDate = formatTZ(now, "yyyy-MM-dd", { timeZone });
+        const lunchStart = formatTZ(now, 'HH:mm:ss', { timeZone });
+        const eventDate = formatTZ(now, 'yyyy-MM-dd', { timeZone });
 
         const { data: currentShift, error: fetchError } = await supabase
-          .from("employee_clock_events")
-          .select("*")
-          .eq("employee_id", employeeId)
-          .eq("event_date", eventDate)
+          .from('employee_clock_events')
+          .select('*')
+          .eq('employee_id', employeeId)
+          .eq('event_date', eventDate)
           .single();
 
         if (fetchError) throw fetchError;
 
         if (!currentShift) {
-          throw new Error("No active shift found");
+          throw new Error('No active shift found');
         }
 
         const { error } = await supabase
-          .from("employee_clock_events")
+          .from('employee_clock_events')
           .update({
             lunch_start: lunchStart,
           })
-          .eq("id", currentShift.id);
+          .eq('id', currentShift.id);
 
         if (error) throw error;
 
         return { ...currentShift, lunch_start: lunchStart };
       },
       onSuccess: (data) => {
-        queryClient.setQueryData(["currentShift", employeeId], data);
+        queryClient.setQueryData(['currentShift', employeeId], data);
         toast.success(`Lunch break started successfully!`);
       },
       onError: (error) => {
-        toast.error("Failed to start lunch break. Please try again.");
+        toast.error('Failed to start lunch break. Please try again.');
       },
     }).mutate,
     endLunchBreak: useMutation({
       mutationFn: async () => {
-        const timeZone = "America/Los_Angeles";
+        const timeZone = 'America/Los_Angeles';
         const now = toZonedTime(new Date(), timeZone);
-        const lunchEnd = formatTZ(now, "HH:mm:ss", { timeZone });
-        const eventDate = formatTZ(now, "yyyy-MM-dd", { timeZone });
+        const lunchEnd = formatTZ(now, 'HH:mm:ss', { timeZone });
+        const eventDate = formatTZ(now, 'yyyy-MM-dd', { timeZone });
 
         // First fetch the current shift
         const { data: currentShift, error: fetchError } = await supabase
-          .from("employee_clock_events")
-          .select("*")
-          .eq("employee_id", employeeId)
-          .eq("event_date", eventDate)
+          .from('employee_clock_events')
+          .select('*')
+          .eq('employee_id', employeeId)
+          .eq('event_date', eventDate)
           .single();
 
         if (fetchError) throw fetchError;
 
         if (!currentShift) {
-          throw new Error("No active shift found");
+          throw new Error('No active shift found');
         }
 
         // Check if 30 minutes have passed since lunch start
         if (currentShift.lunch_start) {
-          const lunchStartTime = new Date(
-            `1970-01-01T${currentShift.lunch_start}`
-          );
+          const lunchStartTime = new Date(`1970-01-01T${currentShift.lunch_start}`);
           const currentTime = new Date(`1970-01-01T${lunchEnd}`);
-          const timeDiffMinutes =
-            (currentTime.getTime() - lunchStartTime.getTime()) / (1000 * 60);
+          const timeDiffMinutes = (currentTime.getTime() - lunchStartTime.getTime()) / (1000 * 60);
 
           // Allow clocking in at exactly 30 minutes
           if (Math.floor(timeDiffMinutes) < 30) {
@@ -2490,13 +2289,11 @@ const useClockEvents = (employeeId: number) => {
 
             // Store the lock timestamp
             await supabase
-              .from("employee_clock_events")
+              .from('employee_clock_events')
               .update({
-                lunch_lock: new Date(
-                  Date.now() + remainingMinutes * 60 * 1000
-                ).toISOString(),
+                lunch_lock: new Date(Date.now() + remainingMinutes * 60 * 1000).toISOString(),
               })
-              .eq("id", currentShift.id);
+              .eq('id', currentShift.id);
 
             throw new Error(
               `Please wait ${remainingMinutes} more minutes before clocking back in from lunch.`
@@ -2507,9 +2304,7 @@ const useClockEvents = (employeeId: number) => {
           if (currentShift.lunch_lock) {
             const lockTime = new Date(currentShift.lunch_lock);
             if (lockTime > new Date()) {
-              const remainingMinutes = Math.ceil(
-                (lockTime.getTime() - Date.now()) / (60 * 1000)
-              );
+              const remainingMinutes = Math.ceil((lockTime.getTime() - Date.now()) / (60 * 1000));
               throw new Error(
                 `Please wait ${remainingMinutes} more minutes before clocking back in from lunch.`
               );
@@ -2519,11 +2314,11 @@ const useClockEvents = (employeeId: number) => {
 
         // Then update with lunch end time
         const { data, error } = await supabase
-          .from("employee_clock_events")
+          .from('employee_clock_events')
           .update({
             lunch_end: lunchEnd,
           })
-          .eq("id", currentShift.id)
+          .eq('id', currentShift.id)
           .select()
           .single();
 
@@ -2532,7 +2327,7 @@ const useClockEvents = (employeeId: number) => {
         return data;
       },
       onSuccess: (data) => {
-        queryClient.setQueryData(["currentShift", employeeId], data);
+        queryClient.setQueryData(['currentShift', employeeId], data);
         toast.success("Let's Get Dis Bread!");
       },
       onError: (error: Error) => {
@@ -2544,13 +2339,13 @@ const useClockEvents = (employeeId: number) => {
 
 const usePerformanceData = (employeeId: number, lanid: string) => {
   const auditsQuery = useQuery({
-    queryKey: ["audits", lanid],
+    queryKey: ['audits', lanid],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("Auditsinput")
-        .select("*")
-        .eq("salesreps", lanid)
-        .order("audit_date", { ascending: false });
+        .from('Auditsinput')
+        .select('*')
+        .eq('salesreps', lanid)
+        .order('audit_date', { ascending: false });
 
       if (error) throw error;
       return data as Audit[];
@@ -2559,19 +2354,19 @@ const usePerformanceData = (employeeId: number, lanid: string) => {
   });
 
   const salesDataQuery = useQuery({
-    queryKey: ["salesData", lanid],
+    queryKey: ['salesData', lanid],
     queryFn: async () => {
-      const startDate = format(startOfMonth(new Date()), "yyyy-MM-dd");
-      const endDate = format(endOfMonth(new Date()), "yyyy-MM-dd");
+      const startDate = format(startOfMonth(new Date()), 'yyyy-MM-dd');
+      const endDate = format(endOfMonth(new Date()), 'yyyy-MM-dd');
 
       const { data, error } = await supabase
-        .from("sales_data")
-        .select("*")
-        .eq("Lanid", lanid)
-        .gte("Date", startDate)
-        .lte("Date", endDate)
-        .not("subcategory_label", "is", null)
-        .not("subcategory_label", "eq", "");
+        .from('sales_data')
+        .select('*')
+        .eq('Lanid', lanid)
+        .gte('Date', startDate)
+        .lte('Date', endDate)
+        .not('subcategory_label', 'is', null)
+        .not('subcategory_label', 'eq', '');
 
       if (error) throw error;
       return data;
@@ -2579,15 +2374,12 @@ const usePerformanceData = (employeeId: number, lanid: string) => {
     enabled: !!lanid,
   });
 
-  const calculatePerformanceSummary = (
-    salesData: any[],
-    auditData: Audit[]
-  ) => {
+  const calculatePerformanceSummary = (salesData: any[], auditData: Audit[]) => {
     const totalDros = salesData.length;
     let pointsDeducted = 0;
 
     salesData.forEach((sale) => {
-      if (sale.dros_cancel === "Yes") {
+      if (sale.dros_cancel === 'Yes') {
         pointsDeducted += 5;
       }
     });
@@ -2597,18 +2389,15 @@ const usePerformanceData = (employeeId: number, lanid: string) => {
       if (auditDate <= new Date()) {
         // Define pointsCalculation within the component or fetch it from a data source
         const pointsCalculation = [
-          { error_location: "some_error", points_deducted: 2 },
-          { error_location: "dros_cancel_field", points_deducted: 5 },
+          { error_location: 'some_error', points_deducted: 2 },
+          { error_location: 'dros_cancel_field', points_deducted: 5 },
           // Add more error types and their corresponding point deductions
         ];
 
         pointsCalculation.forEach((point) => {
           if (audit.error_location === point.error_location) {
             pointsDeducted += point.points_deducted;
-          } else if (
-            point.error_location === "dros_cancel_field" &&
-            audit.dros_cancel === "Yes"
-          ) {
+          } else if (point.error_location === 'dros_cancel_field' && audit.dros_cancel === 'Yes') {
             pointsDeducted += point.points_deducted;
           }
         });
@@ -2629,10 +2418,7 @@ const usePerformanceData = (employeeId: number, lanid: string) => {
     salesData: salesDataQuery.data,
     performanceSummary: useMemo(() => {
       if (auditsQuery.data && salesDataQuery.data) {
-        return calculatePerformanceSummary(
-          salesDataQuery.data,
-          auditsQuery.data
-        );
+        return calculatePerformanceSummary(salesDataQuery.data, auditsQuery.data);
       }
       return null;
     }, [auditsQuery.data, salesDataQuery.data]),
@@ -2659,26 +2445,26 @@ const scheduleOvertimeAlert = (
           sendOvertimeAlert(
             employeeName,
             employeeEmail,
-            formatTZ(clockInTime, "h:mm a", {
-              timeZone: "America/Los_Angeles",
+            formatTZ(clockInTime, 'h:mm a', {
+              timeZone: 'America/Los_Angeles',
             }),
-            formatTZ(new Date(), "h:mm a", {
-              timeZone: "America/Los_Angeles",
+            formatTZ(new Date(), 'h:mm a', {
+              timeZone: 'America/Los_Angeles',
             }),
-            "EmployeeOvertimeAlert"
+            'EmployeeOvertimeAlert'
           ),
           sendOvertimeAlertToAdmins(
             employeeId.toString(),
             employeeName,
-            formatTZ(clockInTime, "h:mm a", {
-              timeZone: "America/Los_Angeles",
+            formatTZ(clockInTime, 'h:mm a', {
+              timeZone: 'America/Los_Angeles',
             }),
-            formatTZ(new Date(), "h:mm a", {
-              timeZone: "America/Los_Angeles",
+            formatTZ(new Date(), 'h:mm a', {
+              timeZone: 'America/Los_Angeles',
             })
           ),
         ]).catch((error) => {
-          console.error("Failed to send overtime alerts:", error);
+          console.error('Failed to send overtime alerts:', error);
         });
       } else {
         // console.log("Employee has already clocked out. No alert needed.");
@@ -2688,16 +2474,16 @@ const scheduleOvertimeAlert = (
 };
 
 const checkIfClockedOut = async (employeeId: string): Promise<boolean> => {
-  const today = new Date().toISOString().split("T")[0];
+  const today = new Date().toISOString().split('T')[0];
   const { data, error } = await supabase
-    .from("employee_clock_events")
-    .select("end_time")
-    .eq("employee_id", employeeId)
-    .eq("event_date", today)
+    .from('employee_clock_events')
+    .select('end_time')
+    .eq('employee_id', employeeId)
+    .eq('event_date', today)
     .single();
 
   if (error) {
-    console.error("Error checking clock-out status:", error);
+    console.error('Error checking clock-out status:', error);
     return false;
   }
 
@@ -2712,14 +2498,14 @@ const sendOvertimeAlert = async (
   templateName: string
 ) => {
   try {
-    const response = await fetch("/api/send_email", {
-      method: "POST",
+    const response = await fetch('/api/send_email', {
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         email: recipientEmail,
-        subject: "Overtime Alert",
+        subject: 'Overtime Alert',
         templateName: templateName,
         templateData: {
           employeeName,
@@ -2730,7 +2516,7 @@ const sendOvertimeAlert = async (
     });
 
     if (!response.ok) {
-      throw new Error("Failed to send overtime alert email");
+      throw new Error('Failed to send overtime alert email');
     }
 
     // console.log(
@@ -2741,7 +2527,7 @@ const sendOvertimeAlert = async (
     //   }`
     // );
   } catch (error) {
-    console.error("Error sending overtime alert:", error);
+    console.error('Error sending overtime alert:', error);
   }
 };
 
@@ -2760,9 +2546,9 @@ const sendOvertimeAlertToAdmins = async (
     }
 
     const { data: admins, error } = await supabase
-      .from("employees")
-      .select("contact_info, name")
-      .in("name", ["Sammy", "Russ", "Slim Jim"]);
+      .from('employees')
+      .select('contact_info, name')
+      .in('name', ['Sammy', 'Russ', 'Slim Jim']);
 
     if (error) throw error;
 
@@ -2774,75 +2560,70 @@ const sendOvertimeAlertToAdmins = async (
         adminEmails,
         clockInTime,
         currentTime,
-        "AdminOvertimeAlert"
+        'AdminOvertimeAlert'
       );
     }
   } catch (error) {
-    console.error("Failed to send overtime alert to admins:", error);
+    console.error('Failed to send overtime alert to admins:', error);
   }
 };
 
-const sendNotificationToAdmins = async (
-  timeOffData: any,
-  selectedDates: Date[]
-) => {
+const sendNotificationToAdmins = async (timeOffData: any, selectedDates: Date[]) => {
   try {
     // Get admin emails from Supabase
     const { data: admins, error: employeesError } = await supabase
-      .from("employees")
-      .select("contact_info, name")
-      .in("name", ["Sammy", "Russ", "Slim Jim"]);
+      .from('employees')
+      .select('contact_info, name')
+      .in('name', ['Sammy', 'Russ', 'Slim Jim']);
 
     if (employeesError) throw employeesError;
 
     if (!admins || admins.length === 0) {
-      console.warn("No admin emails found");
+      console.warn('No admin emails found');
       return;
     }
 
     const adminEmails = admins.map((admin) => admin.contact_info);
 
     // Format dates consistently
-    const timeZone = "America/Los_Angeles";
-    const startDate = formatTZ(
-      toZonedTime(selectedDates[0], timeZone),
-      "EEEE, MMMM d, yyyy",
-      { timeZone }
-    );
+    const timeZone = 'America/Los_Angeles';
+    const startDate = formatTZ(toZonedTime(selectedDates[0], timeZone), 'EEEE, MMMM d, yyyy', {
+      timeZone,
+    });
     const endDate = formatTZ(
       toZonedTime(selectedDates[selectedDates.length - 1], timeZone),
-      "EEEE, MMMM d, yyyy",
+      'EEEE, MMMM d, yyyy',
       { timeZone }
     );
 
     // Send email using the API route
-    const response = await fetch("/api/send_email", {
-      method: "POST",
+    const response = await fetch('/api/send_email', {
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         email: adminEmails,
-        subject: "New Time Off Request Submitted",
-        templateName: "TimeOffRequest",
+        subject: 'New Time Off Request Submitted',
+        templateName: 'TimeOffRequest',
         templateData: {
           employeeName: timeOffData.name,
           startDate,
           endDate,
           reason: timeOffData.reason,
-          other_reason: timeOffData.other_reason || "",
+          other_reason: timeOffData.other_reason || '',
         },
       }),
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.error || "Failed to send notification email");
+      throw new Error(errorData.error || 'Failed to send notification email');
     }
 
     return await response.json();
   } catch (error) {
-    console.error("Failed to send notification email:", error);
+    console.error('Failed to send notification email:', error);
     throw error;
   }
 };
@@ -2870,8 +2651,8 @@ const calculateDurationWithLunch = (
   }
 
   if (totalDuration < 0 || totalDuration > 24 * 60 * 60 * 1000) {
-    console.error("Invalid duration calculated:", totalDuration);
-    return "00:00:00";
+    console.error('Invalid duration calculated:', totalDuration);
+    return '00:00:00';
   }
 
   const totalSeconds = Math.floor(totalDuration / 1000);
@@ -2879,9 +2660,9 @@ const calculateDurationWithLunch = (
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
 
-  return `${hours.toString().padStart(2, "0")}:${minutes
+  return `${hours.toString().padStart(2, '0')}:${minutes
     .toString()
-    .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+    .padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 };
 
 export default EmployeeProfilePage;

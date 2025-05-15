@@ -1,23 +1,23 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Employee } from "./types";
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Employee } from './types';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { supabase } from "@/utils/supabase/client";
+} from '@/components/ui/select';
+import { supabase } from '@/utils/supabase/client';
 
 interface EditEmployeeDialogProps {
   employee: Employee;
@@ -32,12 +32,7 @@ interface ReferenceData {
   roles: string[];
 }
 
-export function EditEmployeeDialog({
-  employee,
-  onSave,
-  isOpen,
-  onClose,
-}: EditEmployeeDialogProps) {
+export function EditEmployeeDialog({ employee, onSave, isOpen, onClose }: EditEmployeeDialogProps) {
   const [editedEmployee, setEditedEmployee] = useState<Employee>(employee);
   const [isLoading, setIsLoading] = useState(false);
   const [referenceData, setReferenceData] = useState<ReferenceData>({
@@ -53,22 +48,22 @@ export function EditEmployeeDialog({
 
   const fetchReferenceData = async () => {
     const { data: departments } = await supabase
-      .from("onboarding_references")
-      .select("option_value")
-      .eq("field_name", "department")
-      .order("display_order");
+      .from('onboarding_references')
+      .select('option_value')
+      .eq('field_name', 'department')
+      .order('display_order');
 
     const { data: positions } = await supabase
-      .from("onboarding_references")
-      .select("option_value")
-      .eq("field_name", "position")
-      .order("display_order");
+      .from('onboarding_references')
+      .select('option_value')
+      .eq('field_name', 'position')
+      .order('display_order');
 
     const { data: roles } = await supabase
-      .from("onboarding_references")
-      .select("option_value")
-      .eq("field_name", "role")
-      .order("display_order");
+      .from('onboarding_references')
+      .select('option_value')
+      .eq('field_name', 'role')
+      .order('display_order');
 
     setReferenceData({
       departments: departments?.map((d) => d.option_value) || [],
@@ -81,10 +76,7 @@ export function EditEmployeeDialog({
     const { name, value } = e.target;
     setEditedEmployee((prev) => ({
       ...prev,
-      [name]:
-        name === "employee_number" || name === "pay_rate"
-          ? parseFloat(value) || null
-          : value,
+      [name]: name === 'employee_number' || name === 'pay_rate' ? parseFloat(value) || null : value,
     }));
   };
 
@@ -98,7 +90,7 @@ export function EditEmployeeDialog({
     try {
       await onSave(editedEmployee);
     } catch (error) {
-      console.error("Error saving employee:", error);
+      console.error('Error saving employee:', error);
       // Optionally, show an error message to the user
     } finally {
       setIsLoading(false);
@@ -151,7 +143,7 @@ export function EditEmployeeDialog({
               <Input
                 id="extension"
                 name="extension"
-                value={editedEmployee.extension || ""}
+                value={editedEmployee.extension || ''}
                 onChange={handleInputChange}
               />
             </div>
@@ -186,20 +178,13 @@ export function EditEmployeeDialog({
             </div>
             <div className="grid gap-2">
               <Label htmlFor="zip">Zip</Label>
-              <Input
-                id="zip"
-                name="zip"
-                value={editedEmployee.zip}
-                onChange={handleInputChange}
-              />
+              <Input id="zip" name="zip" value={editedEmployee.zip} onChange={handleInputChange} />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="department">Department</Label>
               <Select
                 value={editedEmployee.department}
-                onValueChange={(value) =>
-                  handleSelectChange("department", value)
-                }
+                onValueChange={(value) => handleSelectChange('department', value)}
               >
                 <SelectTrigger id="department">
                   <SelectValue placeholder="Select a department" />
@@ -235,7 +220,7 @@ export function EditEmployeeDialog({
               <Label htmlFor="role">Role</Label>
               <Select
                 value={editedEmployee.role}
-                onValueChange={(value) => handleSelectChange("role", value)}
+                onValueChange={(value) => handleSelectChange('role', value)}
               >
                 <SelectTrigger id="role">
                   <SelectValue placeholder="Select a role" />
@@ -254,7 +239,7 @@ export function EditEmployeeDialog({
               <Input
                 id="contact_info"
                 name="contact_info"
-                value={editedEmployee.contact_info || ""}
+                value={editedEmployee.contact_info || ''}
                 onChange={handleInputChange}
                 required
               />
@@ -264,15 +249,15 @@ export function EditEmployeeDialog({
               <Input
                 id="lanid"
                 name="lanid"
-                value={editedEmployee.lanid || ""}
+                value={editedEmployee.lanid || ''}
                 onChange={handleInputChange}
               />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="pay_type">Pay Type</Label>
               <Select
-                value={editedEmployee.pay_type || ""}
-                onValueChange={(value) => handleSelectChange("pay_type", value)}
+                value={editedEmployee.pay_type || ''}
+                onValueChange={(value) => handleSelectChange('pay_type', value)}
               >
                 <SelectTrigger id="pay_type">
                   <SelectValue placeholder="Select pay type" />
@@ -295,17 +280,14 @@ export function EditEmployeeDialog({
             </div> */}
             <div className="grid gap-2">
               <Label htmlFor="pay_rate">
-                Pay Rate{" "}
-                {editedEmployee.pay_type === "salary"
-                  ? "(per year)"
-                  : "(per hour)"}
+                Pay Rate {editedEmployee.pay_type === 'salary' ? '(per year)' : '(per hour)'}
               </Label>
               <Input
                 id="pay_rate"
                 name="pay_rate"
                 type="number"
                 step="0.01"
-                value={editedEmployee.pay_rate?.toString() || ""}
+                value={editedEmployee.pay_rate?.toString() || ''}
                 onChange={handleInputChange}
               />
             </div>
@@ -315,7 +297,7 @@ export function EditEmployeeDialog({
                 id="hire_date"
                 name="hire_date"
                 type="date"
-                value={editedEmployee.hire_date || ""}
+                value={editedEmployee.hire_date || ''}
                 onChange={handleInputChange}
                 required
               />
@@ -326,7 +308,7 @@ export function EditEmployeeDialog({
                 id="birthday"
                 name="birthday"
                 type="date"
-                value={editedEmployee.birthday || ""}
+                value={editedEmployee.birthday || ''}
                 onChange={handleInputChange}
               />
             </div>
@@ -336,22 +318,17 @@ export function EditEmployeeDialog({
                 id="promotion_date"
                 name="promotion_date"
                 type="date"
-                value={editedEmployee.promotion_date || ""}
+                value={editedEmployee.promotion_date || ''}
                 onChange={handleInputChange}
               />
             </div>
           </div>
           <div className="flex justify-end gap-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              disabled={isLoading}
-            >
+            <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
               Cancel
             </Button>
             <Button type="submit" disabled={isLoading}>
-              {isLoading ? "Saving..." : "Save changes"}
+              {isLoading ? 'Saving...' : 'Save changes'}
             </Button>
           </div>
         </form>

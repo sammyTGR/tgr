@@ -1,21 +1,21 @@
-"use client";
+'use client';
 
-import React, { Suspense, useState } from "react";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
-import { useSearchParams } from "next/navigation";
-import { supabase } from "@/utils/supabase/client";
+import React, { Suspense, useState } from 'react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { TextGenerateEffect } from '@/components/ui/text-generate-effect';
+import { useSearchParams } from 'next/navigation';
+import { supabase } from '@/utils/supabase/client';
 
-const title = "TGR Crew Login";
+const title = 'TGR Crew Login';
 
 function LoginComponent() {
   const [loading, setLoading] = useState(false);
   const params = useSearchParams();
-  const next = params ? params.get("next") || "" : "";
+  const next = params ? params.get('next') || '' : '';
 
-  const loginWithOAuth = async (provider: "google") => {
+  const loginWithOAuth = async (provider: 'google') => {
     setLoading(true);
     try {
       const { data, error } = await supabase.auth.signInWithOAuth({
@@ -32,30 +32,30 @@ function LoginComponent() {
         const user = userResponse.data.user;
 
         if (user) {
-          const response = await fetch("/api/syncUser", {
-            method: "POST",
+          const response = await fetch('/api/syncUser', {
+            method: 'POST',
             headers: {
-              "Content-Type": "application/json",
+              'Content-Type': 'application/json',
             },
             body: JSON.stringify(user),
           });
 
           if (response.ok) {
             const result = await response.json();
-            localStorage.setItem("accessToken", result.access_token);
-            localStorage.setItem("refreshToken", result.refresh_token);
+            localStorage.setItem('accessToken', result.access_token);
+            localStorage.setItem('refreshToken', result.refresh_token);
             // Redirect to the intended page or dashboard
-            window.location.href = next || "/";
+            window.location.href = next || '/';
           } else {
-            console.error("Error syncing user:", await response.text());
+            console.error('Error syncing user:', await response.text());
           }
         }
       }, 2000);
     } catch (error) {
       if (error instanceof Error) {
-        console.error("Error logging in with OAuth:", error.message);
+        console.error('Error logging in with OAuth:', error.message);
       } else {
-        console.error("Unexpected error logging in with OAuth:", error);
+        console.error('Unexpected error logging in with OAuth:', error);
       }
     } finally {
       setLoading(false);
@@ -87,12 +87,12 @@ function LoginComponent() {
                 <div className="flex flex-col gap-1">
                   <Label htmlFor="email">Login With Your Work Email</Label>
                   <Button
-                    onClick={() => loginWithOAuth("google")}
+                    onClick={() => loginWithOAuth('google')}
                     variant="ringHover"
                     className="w-full "
                     disabled={loading}
                   >
-                    {loading ? "Logging in..." : "Login with Google"}
+                    {loading ? 'Logging in...' : 'Login with Google'}
                   </Button>
                 </div>
               </div>
@@ -102,12 +102,12 @@ function LoginComponent() {
                 <div className="flex flex-col gap-1 mt-4">
                   <Label htmlFor="email">Sign Up With Your Work Email</Label>
                   <Button
-                    onClick={() => loginWithOAuth("google")}
+                    onClick={() => loginWithOAuth('google')}
                     variant="ringHover"
                     className="w-full "
                     disabled={loading}
                   >
-                    {loading ? "Signing up..." : "Sign Up with Google"}
+                    {loading ? 'Signing up...' : 'Sign Up with Google'}
                   </Button>
                 </div>
               </div>

@@ -1,4 +1,4 @@
-import { type ColumnDef as TanstackColumnDef } from "@tanstack/react-table";
+import { type ColumnDef as TanstackColumnDef } from '@tanstack/react-table';
 
 export interface Employee {
   employee_id: number;
@@ -118,17 +118,17 @@ export interface CellProps<T = any> {
 export type ColumnDef<T = any> = TanstackColumnDef<T>;
 
 export type QueryKeys =
-  | ["user"]
-  | ["employee"]
-  | ["employees"]
-  | ["audits"]
-  | ["historicalAudits", string | null]
-  | ["pointsCalculation"]
-  | ["summaryData", string | null, boolean, Date | null]
-  | ["audit-categories"]
-  | ["realtime-subscription"]
-  | ["edit-modal-state"]
-  | ["delete-dialog-state"];
+  | ['user']
+  | ['employee']
+  | ['employees']
+  | ['audits']
+  | ['historicalAudits', string | null]
+  | ['pointsCalculation']
+  | ['summaryData', string | null, boolean, Date | null]
+  | ['audit-categories']
+  | ['realtime-subscription']
+  | ['edit-modal-state']
+  | ['delete-dialog-state'];
 
 export interface WeightedScoringMetrics {
   salesData: SalesData[];

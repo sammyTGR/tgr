@@ -1,13 +1,13 @@
-import { createContext, useCallback, useContext } from "react";
-import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { AuditData } from "../app/admin/audits/submit/edit-audit-form";
+import { createContext, useCallback, useContext } from 'react';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
+import { AuditData } from '../app/admin/audits/submit/edit-audit-form';
 
 export interface ModalState {
   isOpen: boolean;
   selectedAudit: AuditData | null;
 }
 
-const MODAL_KEY = ["edit-modal-state"] as const;
+const MODAL_KEY = ['edit-modal-state'] as const;
 
 const ModalStateContext = createContext<{
   modalState: ModalState;
@@ -17,11 +17,7 @@ const ModalStateContext = createContext<{
   setModalState: () => {},
 });
 
-export const ModalStateProvider = ({
-  children,
-}: {
-  children: React.ReactNode;
-}) => {
+export const ModalStateProvider = ({ children }: { children: React.ReactNode }) => {
   const queryClient = useQueryClient();
 
   // Query for getting modal state
@@ -65,7 +61,7 @@ export const ModalStateProvider = ({
 export const useModalState = () => {
   const context = useContext(ModalStateContext);
   if (!context) {
-    throw new Error("useModalState must be used within a ModalStateProvider");
+    throw new Error('useModalState must be used within a ModalStateProvider');
   }
   return context;
 };

@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { useUser } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
-import { completeOnboarding } from "./_actions";
+import * as React from 'react';
+import { useUser } from '@clerk/nextjs';
+import { useRouter } from 'next/navigation';
+import { completeOnboarding } from './_actions';
 
 export default function OnboardingComponent() {
-  const [error, setError] = React.useState("");
+  const [error, setError] = React.useState('');
   const { user } = useUser();
   const router = useRouter();
 
@@ -14,7 +14,7 @@ export default function OnboardingComponent() {
     const res = await completeOnboarding(formData);
     if (res?.message) {
       await user?.reload();
-      router.push("/");
+      router.push('/');
     }
     if (res?.error) {
       setError(res?.error);

@@ -1,11 +1,6 @@
-import * as React from "react";
-import { useRouter } from "next/navigation";
-import {
-  HoveredLink,
-  Menu,
-  MenuItem,
-  ProductItem,
-} from "@/components/ui/navbar-menu";
+import * as React from 'react';
+import { useRouter } from 'next/navigation';
+import { HoveredLink, Menu, MenuItem, ProductItem } from '@/components/ui/navbar-menu';
 
 import {
   Card,
@@ -14,7 +9,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from '@/components/ui/card';
 
 function FedsAgentLeo({ className }: { className?: string }) {
   const router = useRouter();
@@ -26,34 +21,30 @@ function FedsAgentLeo({ className }: { className?: string }) {
           <CardTitle>Federal Agent Info</CardTitle>
           <CardDescription>
             <span className="text-amber-500">
-              DROS Exemption Support Can Be Found Under &quot;DROS Exemptions
-              Guide&quot; Menu
+              DROS Exemption Support Can Be Found Under &quot;DROS Exemptions Guide&quot; Menu
             </span>
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="max-w-full">
             <h2>
-              Federal Agents Are Listed As{" "}
-              <span className="text-amber-500">Group 1</span>
+              Federal Agents Are Listed As <span className="text-amber-500">Group 1</span>
             </h2>
             <hr className="my-4" />
             <p>
-              Because You <span className="text-red-500">CANNOT</span> Copy
-              Federal ID&apos;s,
+              Because You <span className="text-red-500">CANNOT</span> Copy Federal ID&apos;s,
               <br />
-              Make Sure You Print The{" "}
-              <span className="text-amber-500">Federal Doc Worksheet</span> In
-              The Info Section Below
+              Make Sure You Print The <span className="text-amber-500">
+                Federal Doc Worksheet
+              </span>{' '}
+              In The Info Section Below
             </p>
             <hr className="my-4" />
             <p>
-              If The Transaction Is For A{" "}
-              <span className="text-blue-500">Blue Label</span> Firearm,
+              If The Transaction Is For A <span className="text-blue-500">Blue Label</span> Firearm,
             </p>
-            Don&apos;t Forget To Fill Out The{" "}
-            <span className="text-red-500">Blue Label</span> Form & Include It
-            In The Pending Packet
+            Don&apos;t Forget To Fill Out The <span className="text-red-500">Blue Label</span> Form
+            & Include It In The Pending Packet
           </div>
         </CardContent>
         <CardFooter className="flex justify-between">

@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
+import { NextResponse } from 'next/server';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
 
-const TIMEZONE = "America/Los_Angeles";
+const TIMEZONE = 'America/Los_Angeles';
 
 interface SalesDataRow {
   Lanid: string | null;
@@ -22,18 +22,15 @@ export async function GET(request: Request) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { searchParams } = new URL(request.url);
-    const start = searchParams.get("start");
-    const end = searchParams.get("end");
+    const start = searchParams.get('start');
+    const end = searchParams.get('end');
 
     if (!start || !end) {
-      return NextResponse.json(
-        { error: "Invalid date parameters" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Invalid date parameters' }, { status: 400 });
     }
 
     // Apply date range filter with timezone handling
@@ -43,7 +40,7 @@ export async function GET(request: Request) {
     toDate.setUTCHours(23, 59, 59, 999);
 
     let query = supabase
-      .from("detailed_sales_data")
+      .from('detailed_sales_data')
       .select(
         `
         "Lanid",
@@ -53,15 +50,13 @@ export async function GET(request: Request) {
         total_gross
       `
       )
-      .not("SoldDate", "is", null)
-      .gte("SoldDate", fromDate.toISOString())
-      .lte("SoldDate", toDate.toISOString())
-      .not("CatDesc", "is", null);
+      .not('SoldDate', 'is', null)
+      .gte('SoldDate', fromDate.toISOString())
+      .lte('SoldDate', toDate.toISOString())
+      .not('CatDesc', 'is', null);
 
     // Fetch employee data separately
-    const { data: employees } = await supabase
-      .from("employees")
-      .select("lanid, last_name");
+    const { data: employees } = await supabase.from('employees').select('lanid, last_name');
 
     // Create employee lookup map
     const employeeMap = new Map(
@@ -81,7 +76,7 @@ export async function GET(request: Request) {
       } = await query.range(page * pageSize, (page + 1) * pageSize - 1);
 
       if (salesError) {
-        console.error("Sales Query Error:", salesError);
+        console.error('Sales Query Error:', salesError);
         throw salesError;
       }
 
@@ -109,7 +104,7 @@ export async function GET(request: Request) {
       } else {
         acc.push({
           Lanid: curr.Lanid,
-          LastName: employeeMap.get(curr.Lanid?.toLowerCase() || "") || null,
+          LastName: employeeMap.get(curr.Lanid?.toLowerCase() || '') || null,
           category_label: curr.CatDesc,
           subcategory_label: curr.SubDesc,
           total_gross: Number(curr.total_gross) || 0,
@@ -129,10 +124,10 @@ export async function GET(request: Request) {
     // console.log("Query successful, returned rows:", formattedData.length);
     return NextResponse.json(formattedData);
   } catch (error) {
-    console.error("Detailed error in fetchSalesDataByRange API:", error);
+    console.error('Detailed error in fetchSalesDataByRange API:', error);
     return NextResponse.json(
       {
-        error: "Failed to fetch sales data by date range",
+        error: 'Failed to fetch sales data by date range',
         details: error instanceof Error ? error.message : String(error),
       },
       { status: 500 }
@@ -144,10 +139,9 @@ export async function OPTIONS() {
   return new NextResponse(null, {
     status: 200,
     headers: {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, OPTIONS",
-      "Access-Control-Allow-Headers":
-        "authorization, x-client-info, apikey, content-type",
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
     },
   });
 }
