@@ -37,10 +37,11 @@ export const fetchEmployees = async (role: string | null) => {
         .neq('role', 'super admin')
         .neq('role', 'auditor')
         .neq('role', 'dev')
-        .neq('role', 'ceo');
+        .neq('role', 'ceo')
+        .neq('role', 'owner');
     } else if (role === 'ceo') {
       // CEO can see everything except devs and other ceos
-      query = query.neq('role', 'dev').neq('role', 'ceo');
+      query = query.neq('role', 'dev').neq('role', 'ceo').neq('role', 'owner');
     } else if (role === 'dev') {
       // Devs can see everything
     }

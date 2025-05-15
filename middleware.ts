@@ -60,98 +60,106 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/auth?next=' + pathname, request.url));
     }
 
-    // If we have a user, check their role
+    // If we have a user, check their role from JWT first
     if (user) {
       console.log('User found, checking user role');
 
-      // Get role from JWT with proper typing
       let jwtRole = 'authenticated';
       const token = request.cookies.get('sb-access-token')?.value;
+
       if (token) {
-        const jwt = jwtDecode<JWTPayload>(token);
-        jwtRole = jwt.app_metadata?.role || 'authenticated';
-        console.log('JWT Role:', jwtRole);
+        try {
+          const jwt = jwtDecode<JWTPayload>(token);
+          jwtRole = jwt.app_metadata?.role || 'authenticated';
+          console.log('JWT Role:', jwtRole);
+        } catch (error) {
+          console.error('JWT decode error:', error);
+        }
       }
 
-      // First check if user is an employee
-      const { data: employeeData, error: employeeError } = await supabase
-        .from('employees')
-        .select('role, employee_id, status')
-        .eq('user_uuid', user.id)
-        .eq('status', 'active')
-        .single();
+      // Handle root path redirects based on JWT role first
+      if (pathname === '/' || pathname === '') {
+        let redirectUrl;
 
-      // If employee data exists and is active, handle employee routing
-      if (employeeData && !employeeError) {
-        const dbRole = employeeData.role;
-        const employeeId = employeeData.employee_id;
-        console.log('DB Role:', dbRole, 'Employee ID:', employeeId);
+        switch (jwtRole) {
+          case 'super admin':
+          case 'ceo':
+            redirectUrl = '/admin/reports/dashboard/ceo';
+            break;
+          case 'dev':
+            redirectUrl = '/admin/reports/dashboard/dev';
+            break;
+          case 'admin':
+            redirectUrl = '/admin/reports/dashboard/admin';
+            break;
+          case 'user':
+          case 'gunsmith':
+          case 'auditor':
+            redirectUrl = `/TGR/crew/bulletin`;
+            break;
+          default:
+            // If no role in JWT, check database
+            const { data: employeeData } = await supabase
+              .from('employees')
+              .select('role, status')
+              .eq('user_uuid', user.id)
+              .eq('status', 'active')
+              .single();
 
-        // Verify JWT role matches database role
-        if (user.app_metadata?.role !== dbRole) {
-          console.log('Role mismatch, signing out');
-          await supabase.auth.signOut();
-          return NextResponse.redirect(new URL('/auth', request.url));
+            if (employeeData) {
+              switch (employeeData.role) {
+                case 'super admin':
+                case 'ceo':
+                  redirectUrl = '/admin/reports/dashboard/ceo';
+                  break;
+                case 'dev':
+                  redirectUrl = '/admin/reports/dashboard/dev';
+                  break;
+                case 'admin':
+                  redirectUrl = '/admin/reports/dashboard/admin';
+                  break;
+                default:
+                  redirectUrl = `/TGR/crew/bulletin`;
+              }
+            } else {
+              // Check if customer
+              const { data: customerData } = await supabase
+                .from('customers')
+                .select('status')
+                .eq('user_uuid', user.id)
+                .eq('status', 'active')
+                .single();
+
+              if (customerData) {
+                return res; // Let the page component handle customer rendering
+              }
+              redirectUrl = '/auth';
+            }
         }
 
-        // Handle redirects for authenticated employees
-        if (pathname === '/' || pathname === '') {
-          console.log('Root path detected, redirecting based on role');
-          let redirectUrl;
-
-          switch (dbRole) {
-            case 'super admin':
-            case 'ceo':
-              redirectUrl = '/admin/reports/dashboard/ceo';
-              break;
-            case 'dev':
-              redirectUrl = '/admin/reports/dashboard/dev';
-              break;
-            case 'admin':
-              redirectUrl = '/admin/reports/dashboard/admin';
-              break;
-            case 'user':
-            case 'gunsmith':
-            case 'auditor':
-              redirectUrl = `/TGR/crew/bulletin`;
-              break;
-            default:
-              redirectUrl = `/TGR/crew/bulletin`;
-          }
-
+        if (redirectUrl) {
           console.log('Redirecting to:', redirectUrl);
           return NextResponse.redirect(new URL(redirectUrl, request.url));
         }
-      } else {
-        // If not an employee or employee not active, check if customer
-        const { data: customerData, error: customerError } = await supabase
+      }
+
+      // For non-root paths, check if customer trying to access protected routes
+      if (jwtRole === 'customer' || !jwtRole) {
+        const { data: customerData } = await supabase
           .from('customers')
-          .select('role, id, status')
+          .select('status')
           .eq('user_uuid', user.id)
           .eq('status', 'active')
           .single();
 
-        if (customerData && !customerError) {
-          // For customers on the root path, let the page component handle rendering
-          if (pathname === '/' || pathname === '') {
-            return res;
-          }
-
-          // Restrict customers from accessing employee routes
-          if (
-            pathname.startsWith('/admin') ||
+        if (
+          customerData &&
+          (pathname.startsWith('/admin') ||
             pathname.startsWith('/TGR') ||
-            pathname.startsWith('/sales')
-          ) {
-            return NextResponse.redirect(new URL('/', request.url));
-          }
-
-          return res;
+            pathname.startsWith('/sales'))
+        ) {
+          return NextResponse.redirect(new URL('/', request.url));
         }
-
-        // If neither employee nor customer, redirect to auth
-        console.log('No valid role found');
-        return NextResponse.redirect(new URL('/auth', request.url));
       }
     }
 

@@ -107,9 +107,21 @@ const navigationSections: { [key: string]: NavigationSection } = {
     url: '#',
     items: [
       {
+        title: 'Daily Deposits',
+        url: '/TGR/deposits',
+        description: 'Daily Deposits',
+        allowedRoles: ['super admin', 'ceo', 'dev', 'admin', 'user', 'auditor'],
+      },
+      {
         title: 'View Certifications',
         url: '/TGR/certifications',
         description: 'View All Certifications',
+        allowedRoles: ['super admin', 'ceo', 'dev', 'admin', 'user', 'gunsmith', 'auditor'],
+      },
+      {
+        title: 'Rental Firearms',
+        url: '/TGR/rentals/checklist',
+        description: 'Rental Inventory Check',
         allowedRoles: ['super admin', 'ceo', 'dev', 'admin', 'user', 'gunsmith', 'auditor'],
       },
       {
@@ -143,18 +155,6 @@ const navigationSections: { [key: string]: NavigationSection } = {
         allowedRoles: ['super admin', 'ceo', 'dev', 'admin', 'gunsmith'],
       },
       {
-        title: 'Rental Firearms',
-        url: '/TGR/rentals/checklist',
-        description: 'Rental Inventory Check',
-        allowedRoles: ['super admin', 'ceo', 'dev', 'admin', 'user', 'gunsmith', 'auditor'],
-      },
-      {
-        title: 'Daily Deposits',
-        url: '/TGR/deposits',
-        description: 'Daily Deposits',
-        allowedRoles: ['super admin', 'ceo', 'dev', 'admin', 'user', 'auditor'],
-      },
-      {
         title: 'DROS Training',
         url: '/TGR/dros/training',
         description: 'DROS Simulation',
@@ -173,35 +173,16 @@ const navigationSections: { [key: string]: NavigationSection } = {
         allowedRoles: ['super admin', 'ceo', 'dev', 'admin', 'user', 'auditor'],
       },
       {
-        title: 'Email Blasts',
-        url: '/public/subscribe',
-        description: 'Sign Customers Up For Email Blasts',
-        allowedRoles: ['super admin', 'ceo', 'dev', 'admin', 'user', 'auditor'],
-      },
-      {
         title: 'Patch Notes',
         url: '/patch-notes',
         description: 'Patch Notes',
         allowedRoles: ['super admin', 'ceo', 'dev', 'admin', 'user', 'gunsmith', 'auditor'],
       },
-    ],
-  },
-  development: {
-    title: 'Development',
-    icon: CodeIcon,
-    url: '#',
-    items: [
       {
-        title: 'AIM',
-        url: '/aim',
-        description: 'AIM Development',
-        allowedRoles: ['dev'],
-      },
-      {
-        title: 'Fastbound',
-        url: '/api/fastBoundApi',
-        description: 'Fastbound Development',
-        allowedRoles: ['dev'],
+        title: 'Email Blasts',
+        url: '/public/subscribe',
+        description: 'Sign Customers Up For Email Blasts',
+        allowedRoles: ['super admin', 'ceo', 'dev', 'admin', 'user', 'auditor'],
       },
     ],
   },
@@ -251,6 +232,25 @@ const navigationSections: { [key: string]: NavigationSection } = {
         url: '/public/classes',
         description: 'Class Scheduling Page',
         allowedRoles: ['super admin', 'ceo', 'dev', 'admin'],
+      },
+    ],
+  },
+  development: {
+    title: 'Development',
+    icon: CodeIcon,
+    url: '#',
+    items: [
+      {
+        title: 'AIM',
+        url: '/aim',
+        description: 'AIM Development',
+        allowedRoles: ['dev'],
+      },
+      {
+        title: 'Fastbound',
+        url: '/api/fastBoundApi',
+        description: 'Fastbound Development',
+        allowedRoles: ['dev'],
       },
     ],
   },

@@ -14,14 +14,6 @@ interface UserSession {
   employee_id?: number;
 }
 
-interface AuthState {
-  isLoading: boolean;
-  isValidating: boolean;
-  hasSession: boolean;
-  progress: number;
-  role: string | null;
-}
-
 const LazyLandingPageCustomer = dynamic(
   () =>
     import('@/components/LandingPageCustomer').then((module) => ({
@@ -38,7 +30,7 @@ export default function Home() {
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
 
-  // Query for checking auth user
+  // Query for checking auth user with caching
   const sessionQuery = useQuery<UserSession | null>({
     queryKey: ['auth-user'],
     queryFn: () =>
@@ -48,57 +40,61 @@ export default function Home() {
         }
         return { user };
       }),
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
-  // Query for fetching user role
+  // Query for fetching user role with caching
   const roleQuery = useQuery<UserSession, Error>({
     queryKey: ['user-role', sessionQuery.data?.user?.id],
     enabled: !!sessionQuery.data?.user,
-    queryFn: () => {
+    queryFn: async () => {
       const user = sessionQuery.data?.user;
+      if (!user) throw new Error('No user found');
 
-      return Promise.resolve()
-        .then(() =>
-          supabase.from('employees').select('role, employee_id').eq('user_uuid', user.id).single()
-        )
-        .then(({ data: employeeData, error: employeeError }) => {
-          if (!employeeError && employeeData) {
-            return {
-              user: sessionQuery.data?.user,
-              role: employeeData.role,
-              employee_id: employeeData.employee_id,
-            };
-          }
+      // Try to get role from user metadata first
+      const userRole = user.app_metadata?.role;
+      if (userRole) {
+        return {
+          user,
+          role: userRole,
+        };
+      }
 
-          // If not an employee, check customers table
-          return Promise.resolve()
-            .then(() => supabase.from('customers').select('role').eq('email', user.email).single())
-            .then(({ data: customerData, error: customerError }) => {
-              if (customerError || !customerData) {
-                throw new Error('User role not found');
-              }
+      // If no role in metadata, check database
+      const { data: employeeData, error: employeeError } = await supabase
+        .from('employees')
+        .select('role, employee_id')
+        .eq('user_uuid', user.id)
+        .single();
 
-              return {
-                user: sessionQuery.data?.user,
-                role: customerData.role,
-              };
-            });
-        });
+      if (!employeeError && employeeData) {
+        return {
+          user,
+          role: employeeData.role,
+          employee_id: employeeData.employee_id,
+        };
+      }
+
+      // If not an employee, check customers table
+      const { data: customerData, error: customerError } = await supabase
+        .from('customers')
+        .select('role')
+        .eq('email', user.email)
+        .single();
+
+      if (customerError || !customerData) {
+        throw new Error('User role not found');
+      }
+
+      return {
+        user,
+        role: customerData.role,
+      };
     },
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
-  // Navigation state query
-  const navigationQuery = useQuery({
-    queryKey: ['navigation', pathname, searchParams],
-    queryFn: () =>
-      Promise.resolve()
-        .then(() => new Promise((resolve) => setTimeout(resolve, 100)))
-        .then(() => null),
-    staleTime: 0,
-    refetchInterval: 0,
-  });
-
-  // Handle role-based routing
+  // Handle role-based routing with caching
   useQuery({
     queryKey: ['role-routing', roleQuery.data?.role],
     enabled: !!roleQuery.data?.role,
@@ -122,13 +118,8 @@ export default function Home() {
   });
 
   // Handle loading states
-  if (sessionQuery.isLoading || navigationQuery.isLoading) {
+  if (sessionQuery.isLoading) {
     return <LoadingIndicator />;
-  }
-
-  // Handle role validation state
-  if (roleQuery.isLoading) {
-    return <div>Validating Role...</div>;
   }
 
   // Handle no user state
