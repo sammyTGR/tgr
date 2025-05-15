@@ -3,10 +3,6 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '../components/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
-import Header from '../app/header';
-import { RoleProvider } from '../context/RoleContext';
-import NotificationsProvider from '@/components/NotificationsProvider';
-import { GoogleOAuthProvider } from '@react-oauth/google';
 import { NextSSRPlugin } from '@uploadthing/react/next-ssr-plugin';
 import { extractRouterConfig } from 'uploadthing/server';
 import { ourFileRouter } from '@/app/api/uploadthing/core';
@@ -15,13 +11,12 @@ import { Analytics } from '@vercel/analytics/react';
 import { VercelToolbar } from '@vercel/toolbar/next';
 import { ReactElement } from 'react';
 import SupabaseProvider from '@/providers/supabase-provider';
-import RealTimeNotificationsWrapper from '@/components/RealTimeNotificationsWrapper';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { createClient } from '@/utils/supabase/server';
-import { FeatureFlagsProvider } from '@/context/FeatureFlagsContext';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/app-sidebar';
 import { cookies } from 'next/headers';
+import { RoleProvider } from '@/context/RoleContext';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -56,34 +51,26 @@ export default async function RootLayout({
         <SupabaseProvider initialUser={user}>
           <QueryProvider>
             <TooltipProvider>
-              <GoogleOAuthProvider clientId={clientId}>
-                <FeatureFlagsProvider>
-                  <NextSSRPlugin routerConfig={extractRouterConfig(ourFileRouter)} />
-                  <ThemeProvider
-                    attribute="class"
-                    defaultTheme="system"
-                    enableSystem
-                    disableTransitionOnChange
-                  >
-                    <NotificationsProvider>
-                      <RoleProvider>
-                        <RealTimeNotificationsWrapper />
-                        <SidebarProvider defaultOpen={defaultOpen}>
-                          <AppSidebar />
-                          {/* <Header /> */}
-                          <main>
-                            <SidebarTrigger />
-                            {children as ReactElement}
-                            {shouldInjectToolbar && <VercelToolbar />}
-                            <Analytics />
-                          </main>
-                        </SidebarProvider>
-                        <Toaster />
-                      </RoleProvider>
-                    </NotificationsProvider>
-                  </ThemeProvider>
-                </FeatureFlagsProvider>
-              </GoogleOAuthProvider>
+              <ThemeProvider
+                attribute="class"
+                defaultTheme="system"
+                enableSystem
+                disableTransitionOnChange
+              >
+                <NextSSRPlugin routerConfig={extractRouterConfig(ourFileRouter)} />
+                <RoleProvider>
+                  <SidebarProvider defaultOpen={defaultOpen}>
+                    <AppSidebar />
+                    <main>
+                      <SidebarTrigger />
+                      {children as ReactElement}
+                      {shouldInjectToolbar && <VercelToolbar />}
+                      <Analytics />
+                    </main>
+                  </SidebarProvider>
+                </RoleProvider>
+                <Toaster />
+              </ThemeProvider>
             </TooltipProvider>
           </QueryProvider>
         </SupabaseProvider>

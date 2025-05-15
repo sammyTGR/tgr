@@ -79,68 +79,47 @@ export async function middleware(request: NextRequest) {
 
       // Handle root path redirects based on JWT role first
       if (pathname === '/' || pathname === '') {
-        let redirectUrl;
+        const roleRedirects: Record<string, string> = {
+          'super admin': '/admin/reports/dashboard/ceo',
+          ceo: '/admin/reports/dashboard/ceo',
+          dev: '/admin/reports/dashboard/dev',
+          admin: '/admin/reports/dashboard/admin',
+          user: '/TGR/crew/bulletin',
+          gunsmith: '/TGR/crew/bulletin',
+          auditor: '/TGR/crew/bulletin',
+        };
 
-        switch (jwtRole) {
-          case 'super admin':
-          case 'ceo':
-            redirectUrl = '/admin/reports/dashboard/ceo';
-            break;
-          case 'dev':
-            redirectUrl = '/admin/reports/dashboard/dev';
-            break;
-          case 'admin':
-            redirectUrl = '/admin/reports/dashboard/admin';
-            break;
-          case 'user':
-          case 'gunsmith':
-          case 'auditor':
-            redirectUrl = `/TGR/crew/bulletin`;
-            break;
-          default:
-            // If no role in JWT, check database
-            const { data: employeeData } = await supabase
-              .from('employees')
-              .select('role, status')
-              .eq('user_uuid', user.id)
-              .eq('status', 'active')
-              .single();
-
-            if (employeeData) {
-              switch (employeeData.role) {
-                case 'super admin':
-                case 'ceo':
-                  redirectUrl = '/admin/reports/dashboard/ceo';
-                  break;
-                case 'dev':
-                  redirectUrl = '/admin/reports/dashboard/dev';
-                  break;
-                case 'admin':
-                  redirectUrl = '/admin/reports/dashboard/admin';
-                  break;
-                default:
-                  redirectUrl = `/TGR/crew/bulletin`;
-              }
-            } else {
-              // Check if customer
-              const { data: customerData } = await supabase
-                .from('customers')
-                .select('status')
-                .eq('user_uuid', user.id)
-                .eq('status', 'active')
-                .single();
-
-              if (customerData) {
-                return res; // Let the page component handle customer rendering
-              }
-              redirectUrl = '/auth';
-            }
-        }
-
+        const redirectUrl = roleRedirects[jwtRole];
         if (redirectUrl) {
-          console.log('Redirecting to:', redirectUrl);
           return NextResponse.redirect(new URL(redirectUrl, request.url));
         }
+
+        // If no role in JWT, check database once
+        const { data: employeeData } = await supabase
+          .from('employees')
+          .select('role')
+          .eq('user_uuid', user.id)
+          .eq('status', 'active')
+          .single();
+
+        if (employeeData?.role) {
+          const dbRedirectUrl = roleRedirects[employeeData.role] || '/TGR/crew/bulletin';
+          return NextResponse.redirect(new URL(dbRedirectUrl, request.url));
+        }
+
+        // Check if customer
+        const { data: customerData } = await supabase
+          .from('customers')
+          .select('status')
+          .eq('user_uuid', user.id)
+          .eq('status', 'active')
+          .single();
+
+        if (customerData) {
+          return res;
+        }
+
+        return NextResponse.redirect(new URL('/auth', request.url));
       }
 
       // For non-root paths, check if customer trying to access protected routes
