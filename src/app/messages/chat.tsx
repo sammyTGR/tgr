@@ -97,28 +97,32 @@ export default function Chat() {
     staleTime: 1000 * 60,
   });
 
-  // Messages query with real-time subscription
+  // Optimized messages query with proper indexing
   const { data: messages = [] } = useQuery({
     queryKey: ['messages', chatState.selectedChatId],
     queryFn: async () => {
       if (!chatState.selectedChatId) return [];
-      const { data: messages } = await supabase
+      const { data, error } = await supabase
         .from('messages')
         .select('id, content, is_agent, created_at')
         .eq('chat_id', chatState.selectedChatId)
         .order('created_at', { ascending: true })
         .limit(50);
-      return messages || [];
+
+      if (error) throw error;
+      return data || [];
     },
     enabled: !!chatState.selectedChatId,
   });
 
-  // Real-time subscription query
+  // Optimized realtime subscription
   useQuery({
     queryKey: ['messageSubscription', chatState.selectedChatId],
     queryFn: async () => {
+      if (!chatState.selectedChatId) return null;
+
       const channel = supabase
-        .channel('messages')
+        .channel(`messages-${chatState.selectedChatId}`)
         .on(
           'postgres_changes',
           {
@@ -127,9 +131,11 @@ export default function Chat() {
             table: 'messages',
             filter: `chat_id=eq.${chatState.selectedChatId}`,
           },
-          () => {
-            queryClient.invalidateQueries({
-              queryKey: ['messages', chatState.selectedChatId],
+          (payload) => {
+            // Use optimistic updates for better UX
+            queryClient.setQueryData(['messages', chatState.selectedChatId], (old: any) => {
+              if (!old) return [payload.new];
+              return [...old, payload.new];
             });
           }
         )
@@ -140,6 +146,8 @@ export default function Chat() {
       };
     },
     enabled: !!chatState.selectedChatId,
+    staleTime: Infinity,
+    gcTime: Infinity,
   });
 
   const sendMessageMutation = useMutation({

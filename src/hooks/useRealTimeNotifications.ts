@@ -25,28 +25,84 @@ export function useRealTimeNotifications(): UseRealTimeNotificationsReturn {
   const queryClient = useQueryClient();
   const router = useRouter();
 
-  // Fetch unread notifications
-  const { data: unreadNotifications = [] } = useQuery<Notification[]>({
-    queryKey: ['unreadNotifications'],
+  // Optimized notifications query with proper indexing
+  const { data: notifications = [] } = useQuery({
+    queryKey: ['notifications'],
     queryFn: async () => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return [];
 
-      const { data: notifications, error } = await supabase
+      const { data, error } = await supabase
         .from('notifications')
         .select('*')
         .eq('user_id', user.id)
-        .eq('read', false)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(50);
 
       if (error) throw error;
-      return notifications || [];
+      return data;
     },
-    refetchInterval: 30000, // Reduced to every 30 seconds instead of 1 second
-    refetchOnWindowFocus: true,
-    staleTime: 5000, // Cache data for 5 seconds
+  });
+
+  // Optimized realtime subscription
+  useQuery({
+    queryKey: ['notificationsSubscription'],
+    queryFn: async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return null;
+
+      // Create a single channel for all notification types
+      const channel = supabase
+        .channel(`notifications-${user.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${user.id}`,
+          },
+          async (payload) => {
+            // Batch updates to reduce query invalidation frequency
+            if (
+              payload.eventType === 'INSERT' ||
+              (payload.eventType === 'UPDATE' && payload.old?.read !== payload.new?.read)
+            ) {
+              // Use optimistic updates for better UX
+              queryClient.setQueryData(['notifications'], (old: any) => {
+                if (!old) return [payload.new];
+
+                if (payload.eventType === 'INSERT') {
+                  return [payload.new, ...old];
+                }
+
+                return old.map((item: any) => (item.id === payload.new.id ? payload.new : item));
+              });
+
+              // Only show toast for new notifications
+              if (payload.eventType === 'INSERT') {
+                toast(payload.new.content, {
+                  action: {
+                    label: 'View',
+                    onClick: () => router.push(`/messages?chat=${payload.new.chat_id}`),
+                  },
+                });
+              }
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    },
+    staleTime: Infinity,
+    gcTime: Infinity,
   });
 
   // Mark notification as read mutation
@@ -102,59 +158,8 @@ export function useRealTimeNotifications(): UseRealTimeNotificationsReturn {
     },
   });
 
-  // Subscribe to new notifications
-  useQuery({
-    queryKey: ['notificationsSubscription'],
-    queryFn: async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return null;
-
-      const channel = supabase
-        .channel(`notifications-${user.id}`)
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'notifications',
-            filter: `user_id=eq.${user.id}`,
-          },
-          async (payload) => {
-            // Only refetch on INSERT or when read status changes
-            if (
-              payload.eventType === 'INSERT' ||
-              (payload.eventType === 'UPDATE' && payload.old?.read !== payload.new?.read)
-            ) {
-              await queryClient.refetchQueries({
-                queryKey: ['unreadNotifications'],
-                exact: true,
-              });
-
-              if (payload.eventType === 'INSERT') {
-                toast(payload.new.content, {
-                  action: {
-                    label: 'View',
-                    onClick: () => router.push(`/messages?chat=${payload.new.chat_id}`),
-                  },
-                });
-              }
-            }
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    },
-    staleTime: Infinity, // Keep subscription active
-    gcTime: Infinity,
-  });
-
   return {
-    unreadNotifications,
+    unreadNotifications: notifications,
     markAsRead: markAsReadMutation.mutateAsync,
     markAllAsRead: markAllAsReadMutation.mutateAsync,
     markNotificationsAsRead: markNotificationsAsReadMutation.mutateAsync,

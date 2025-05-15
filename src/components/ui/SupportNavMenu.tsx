@@ -86,6 +86,9 @@ const FirstLine = dynamic(() => import('../../app/TGR/dros/cards/FirstLine'), {
 const BlueLabel = dynamic(() => import('../../app/TGR/dros/cards/BlueLabel'), {
   ssr: false,
 });
+const Under21 = dynamic(() => import('../../app/TGR/dros/cards/Under21'), {
+  ssr: false,
+});
 // Add other imports as needed
 
 // Width sets fixed width, max-width ensure does not exceed viewport width, overflow-x: hidden hides horizontal overflow
@@ -221,6 +224,7 @@ const dialogContentComponents = {
   PendingResident: <PendingResident />,
   FirstLine: <FirstLine />,
   BlueLabel: <BlueLabel />,
+  Under21: <Under21 />,
   // Add other mappings as necessary
 };
 
