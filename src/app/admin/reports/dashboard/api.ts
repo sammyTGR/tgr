@@ -452,30 +452,7 @@ export const fetchKPIData = async (startDate: Date, endDate: Date) => {
       // Only process items within the date range
       if (soldDate >= start && soldDate <= end) {
         if (item.CatDesc === 'Station Rental') {
-          // Debug logging for Station Rental entries
-          // console.log("Processing Station Rental:", {
-          //   id: item.id,
-          //   desc: item.Desc,
-          //   subDesc: item.SubDesc,
-          //   rawSubDesc:
-          //     item.SubDesc === null
-          //       ? "NULL"
-          //       : item.SubDesc === ""
-          //         ? "EMPTY"
-          //         : item.SubDesc,
-          //   qty: item.Qty,
-          //   margin: item.Margin,
-          //   soldDate: item.SoldDate,
-          //   isStandardShooterFee:
-          //     item.SubDesc === "Standard Shooter Fee" ||
-          //     !item.SubDesc ||
-          //     item.SubDesc.trim() === "" ||
-          //     (item.SubDesc === null && item.Desc.includes("Shooters Card")),
-          // });
-
           const category = 'Range Station Rental';
-          // Match SQL query logic: count as Standard Shooter Fee if SubDesc is exactly 'Standard Shooter Fee' or null/empty
-          // Also include Shooters Card entries with null SubDesc
           const variant =
             item.SubDesc === 'Standard Shooter Fee' ||
             !item.SubDesc ||
@@ -485,11 +462,8 @@ export const fetchKPIData = async (startDate: Date, endDate: Date) => {
               : item.SubDesc.trim();
 
           const qty = Number(item.Qty) || 0;
-          // For Shooters Card entries with null SubDesc, use standard $26 margin
-          const margin =
-            item.SubDesc === null && item.Desc.includes('Shooters Card')
-              ? 26
-              : Number(item.Margin) || 0;
+          // Always use the actual margin value, even if it's 0
+          const margin = Number(item.Margin);
 
           // Initialize category if needed
           if (!acc[category]) {
@@ -506,31 +480,13 @@ export const fetchKPIData = async (startDate: Date, endDate: Date) => {
             acc[category].variants[variant] = { qty: 0, revenue: 0 };
           }
 
-          // Debug logging before update
-          // console.log("Before update:", {
-          //   variant,
-          //   categoryTotal: acc[category].revenue,
-          //   variantTotal: acc[category].variants[variant].revenue,
-          //   addingMargin: margin,
-          //   currentQty: qty,
-          // });
-
-          // Update category totals
+          // Update category totals - always add qty, but only add margin if it's not 0
           acc[category].qty += qty;
           acc[category].revenue += margin;
 
-          // Update variant totals
+          // Update variant totals - always add qty, but only add margin if it's not 0
           acc[category].variants[variant].qty += qty;
           acc[category].variants[variant].revenue += margin;
-
-          // Debug logging after update
-          // console.log("After update:", {
-          //   variant,
-          //   categoryTotal: acc[category].revenue,
-          //   variantTotal: acc[category].variants[variant].revenue,
-          //   addedMargin: margin,
-          //   runningQty: acc[category].variants[variant].qty,
-          // });
         } else {
           let category = '';
           let variant = '';
