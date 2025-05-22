@@ -149,15 +149,25 @@ export default function DrosStatusPage() {
       const firstName = fullName.split(' ')[0];
       const createdBy = firstName || user?.email || 'Unknown';
 
+      // Convert dates to UTC while preserving the local date
+      const transactionDate = new Date(formData.transactionDate);
+      transactionDate.setHours(12, 0, 0, 0); // Set to noon UTC to avoid timezone issues
+
+      const earliestPickupDate = new Date(formData.earliestPickupDate);
+      earliestPickupDate.setHours(12, 0, 0, 0);
+
+      const latestPickupDate = new Date(formData.latestPickupDate);
+      latestPickupDate.setHours(12, 0, 0, 0);
+
       const { error } = await supabase.from('dros_status').insert([
         {
           dros_number: formData.drosNumber,
           first_name: formData.firstName,
           last_name: formData.lastName,
-          transaction_date: formData.transactionDate.toISOString(),
-          earliest_pickup_date: formData.earliestPickupDate.toISOString(),
+          transaction_date: transactionDate.toISOString(),
+          earliest_pickup_date: earliestPickupDate.toISOString(),
           earliest_pickup_time: formData.earliestPickupTime,
-          latest_pickup_date: formData.latestPickupDate.toISOString(),
+          latest_pickup_date: latestPickupDate.toISOString(),
           latest_pickup_time: formData.latestPickupTime,
           phone_number: formData.phoneNumber,
           status: formData.status,
@@ -191,16 +201,26 @@ export default function DrosStatusPage() {
       const firstName = fullName.split(' ')[0];
       const updatedBy = firstName || user?.email || 'Unknown';
 
+      // Convert dates to UTC while preserving the local date
+      const transactionDate = new Date(formData.transactionDate);
+      transactionDate.setHours(12, 0, 0, 0); // Set to noon UTC to avoid timezone issues
+
+      const earliestPickupDate = new Date(formData.earliestPickupDate);
+      earliestPickupDate.setHours(12, 0, 0, 0);
+
+      const latestPickupDate = new Date(formData.latestPickupDate);
+      latestPickupDate.setHours(12, 0, 0, 0);
+
       const { error } = await supabase
         .from('dros_status')
         .update({
           dros_number: formData.drosNumber,
           first_name: formData.firstName,
           last_name: formData.lastName,
-          transaction_date: formData.transactionDate.toISOString(),
-          earliest_pickup_date: formData.earliestPickupDate.toISOString(),
+          transaction_date: transactionDate.toISOString(),
+          earliest_pickup_date: earliestPickupDate.toISOString(),
           earliest_pickup_time: formData.earliestPickupTime,
-          latest_pickup_date: formData.latestPickupDate.toISOString(),
+          latest_pickup_date: latestPickupDate.toISOString(),
           latest_pickup_time: formData.latestPickupTime,
           phone_number: formData.phoneNumber,
           status: formData.status,
@@ -581,16 +601,20 @@ export default function DrosStatusPage() {
                       <TableCell>
                         {entry.first_name} {entry.last_name}
                       </TableCell>
-                      <TableCell>{format(new Date(entry.transaction_date), 'PPP')}</TableCell>
                       <TableCell>
-                        {format(new Date(entry.earliest_pickup_date), 'PPP')}{' '}
+                        {format(new Date(entry.transaction_date + 'T12:00:00.000Z'), 'PPP')}
+                      </TableCell>
+                      <TableCell>
+                        {format(new Date(entry.earliest_pickup_date + 'T12:00:00.000Z'), 'PPP')}{' '}
                         {format(new Date(`2000-01-01T${entry.earliest_pickup_time}`), 'hh:mm a')} -{' '}
-                        {format(new Date(entry.latest_pickup_date), 'PPP')}{' '}
+                        {format(new Date(entry.latest_pickup_date + 'T12:00:00.000Z'), 'PPP')}{' '}
                         {format(new Date(`2000-01-01T${entry.latest_pickup_time}`), 'hh:mm a')}
                       </TableCell>
                       <TableCell>
                         {(() => {
-                          const earliestDate = new Date(entry.earliest_pickup_date);
+                          const earliestDate = new Date(
+                            entry.earliest_pickup_date + 'T12:00:00.000Z'
+                          );
                           const estimatedDate = new Date(earliestDate);
                           estimatedDate.setDate(estimatedDate.getDate() + 30);
                           return `${format(estimatedDate, 'PPP')} ${format(new Date(`2000-01-01T${entry.earliest_pickup_time}`), 'hh:mm a')}`;
