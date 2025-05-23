@@ -77,7 +77,7 @@ type FormData = z.infer<typeof formSchema>;
 const statusOptions = [
   'Delayed',
   'Approved',
-  'Approved After Delay',
+  'Approval After Delay',
   'Undetermined',
   'Denied',
   'Rejected',
@@ -89,6 +89,7 @@ const callOutcomeOptions = [
   "Couldn't Leave VM",
   'Line Disconnected',
   'Updated About Status Change To Undetermined',
+  'Advised Approved After Delay',
 ];
 
 export default function DrosStatusPage() {
