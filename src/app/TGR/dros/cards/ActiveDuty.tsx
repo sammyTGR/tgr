@@ -65,7 +65,7 @@ function ActiveDuty({ className }: { className?: string }) {
           </div>
         </CardContent>
         <CardFooter className="flex justify-between">
-          <HoveredLink href="https://utfs.io/f/9663420d-2204-4991-b7c9-a1e6239e6a3b-n171pw.pdf">
+          <HoveredLink href="https://kxxn9fl00i.ufs.sh/f/9jzftpblGSv7ZbsYnqHRcgluo5EN6SiLv0teBVADpY137HQm">
             <span className="text-orange-500">Federal Doc Worksheet</span>
           </HoveredLink>
         </CardFooter>
