@@ -89,6 +89,9 @@ const BlueLabel = dynamic(() => import('../../app/TGR/dros/cards/BlueLabel'), {
 const Under21 = dynamic(() => import('../../app/TGR/dros/cards/Under21'), {
   ssr: false,
 });
+const Guardians = dynamic(() => import('../../app/TGR/dros/cards/Guardians'), {
+  ssr: false,
+});
 // Add other imports as needed
 
 // Width sets fixed width, max-width ensure does not exceed viewport width, overflow-x: hidden hides horizontal overflow
@@ -225,6 +228,7 @@ const dialogContentComponents = {
   FirstLine: <FirstLine />,
   BlueLabel: <BlueLabel />,
   Under21: <Under21 />,
+  Guardians: <Guardians />,
   // Add other mappings as necessary
 };
 
