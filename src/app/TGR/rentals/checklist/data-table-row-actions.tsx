@@ -101,6 +101,40 @@ export function DataTableRowActions({
     }
   };
 
+  const handleWarrantyStatus = async (status: string) => {
+    try {
+      if (status === 'Returned From Warranty') {
+        const { error } = await supabase
+          .from('firearms_maintenance')
+          .update({ rental_notes: '', verified_status: '' })
+          .eq('id', task.id);
+
+        if (error) {
+          throw error;
+        }
+
+        onNotesChange(task.id, ''); // Clear the note in the state
+      } else if (status === 'Out For Warranty Repair') {
+        const { error } = await supabase
+          .from('firearms_maintenance')
+          .update({ rental_notes: 'Out For Warranty Repair', verified_status: null })
+          .eq('id', task.id);
+
+        if (error) {
+          throw error;
+        }
+
+        onNotesChange(task.id, 'Out For Warranty Repair'); // Update the local state
+      }
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error('Error setting warranty status:', error.message);
+      } else {
+        console.error('An unknown error occurred.');
+      }
+    }
+  };
+
   const handleEditFirearm = (updatedFirearm: {
     id: number;
     firearm_type: string;
@@ -275,6 +309,17 @@ export function DataTableRowActions({
               </DropdownMenuItem>
             </DropdownMenuSubContent>
           </DropdownMenuSub>
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>Warranty Repairs</DropdownMenuSubTrigger>
+            <DropdownMenuSubContent>
+              <DropdownMenuItem onSelect={() => handleWarrantyStatus('Out For Warranty Repair')}>
+                Out For Warranty Repair
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => handleWarrantyStatus('Returned From Warranty')}>
+                Returned From Warranty Repair
+              </DropdownMenuItem>
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
           <DropdownMenuSeparator />
           {['admin', 'super admin', 'dev'].includes(userRole) && (
             <>
@@ -299,7 +344,9 @@ export function DataTableRowActions({
             verificationDate={new Date().toISOString().split('T')[0]}
             verificationTime={new Date().getHours() < 14 ? 'morning' : 'evening'}
             onVerificationComplete={completeVerification}
-            isWithGunsmith={task.notes === 'With Gunsmith'} // Pass this prop to VerificationForm
+            isWithGunsmith={
+              task.notes === 'With Gunsmith' || task.notes === 'Out For Warranty Repair'
+            }
           />
 
           <DialogFooter>

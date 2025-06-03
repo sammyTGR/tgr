@@ -130,6 +130,7 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
             options={[
               { label: 'With Gunsmith', value: 'With Gunsmith' },
               { label: 'Currently Rented Out', value: 'Currently Rented Out' },
+              { label: 'Out For Warranty Repair', value: 'Out For Warranty Repair' },
             ]}
             onSelect={(selectedValues) =>
               table.getColumn('notes')?.setFilterValue(selectedValues.join(','))

@@ -77,6 +77,7 @@ export default function FirearmsChecklist() {
   const getHighlightColor = (notes: string) => {
     switch (notes) {
       case 'With Gunsmith':
+      case 'Out For Warranty Repair':
         return 'amber';
       case 'Currently Rented Out':
         return 'red';
@@ -222,7 +223,9 @@ export default function FirearmsChecklist() {
         .filter((verification) => verification.firearm_id === firearm.id)
         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
 
-      const withGunsmith = firearm.rental_notes === 'With Gunsmith';
+      const withGunsmith =
+        firearm.rental_notes === 'With Gunsmith' ||
+        firearm.rental_notes === 'Out For Warranty Repair';
       const currentlyRentedOut = firearm.rental_notes === 'Currently Rented Out';
       const isVerifiedToday = latestVerification?.verification_date === today;
       const isVerified =
@@ -447,22 +450,23 @@ export default function FirearmsChecklist() {
         (item) =>
           item.notes === 'Verified' ||
           item.notes === 'With Gunsmith' ||
-          item.notes === 'Inspection Requested'
+          item.notes === 'Inspection Requested' ||
+          item.notes === 'Out For Warranty Repair'
       );
 
       if (!allFirearmsHandled) {
         toast.error(
-          'Not all firearms are verified or with the gunsmith. The checklist cannot be submitted until all firearms are handled.'
+          'Not all firearms are verified, with the gunsmith, or out for warranty repairs. The checklist cannot be submitted until all firearms are handled.'
         );
         setSubmittingChecklist(false);
         return;
       }
 
-      // Step 3: Filter firearms where rental_notes is "With Gunsmith" or "Inspection Requested" and verified_status is null or empty
+      // Step 3: Filter firearms where rental_notes is "With Gunsmith", "Inspection Requested", or "Out For Warranty" and verified_status is null or empty
       const firearmsToSubmit = data.filter(
         (item) =>
           ((!item.verified_status || item.verified_status.trim() === '') &&
-            item.notes === 'With Gunsmith') ||
+            (item.notes === 'With Gunsmith' || item.notes === 'Out For Warranty Repair')) ||
           item.notes === 'Inspection Requested'
       );
 
@@ -679,7 +683,8 @@ export default function FirearmsChecklist() {
                         data={data.map((item) => ({
                           ...item,
                           highlight:
-                            item.notes === 'With Gunsmith'
+                            item.notes === 'With Gunsmith' ||
+                            item.notes === 'Out For Warranty Repair'
                               ? 'amber'
                               : item.notes === 'Currently Rented Out'
                                 ? 'red'

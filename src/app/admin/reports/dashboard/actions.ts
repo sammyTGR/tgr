@@ -85,7 +85,7 @@ export const fetchDailyChecklistStatus = async () => {
   const { data, error } = await supabase
     .from('firearms_maintenance')
     .select('id, last_maintenance_date')
-    .eq('rental_notes', 'With Gunsmith');
+    .in('rental_notes', ['With Gunsmith', 'Out For Warranty Repair']);
 
   if (error) throw error;
 
