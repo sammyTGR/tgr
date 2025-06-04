@@ -364,8 +364,9 @@ export function CustomCalendarDashboard({
       return;
     }
 
-    // Pass the date directly without timezone conversion
-    onDateChange(date);
+    // Create a clean date at midnight local time
+    const cleanDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    onDateChange(cleanDate);
   };
 
   // Use the selected date directly for display
@@ -391,7 +392,9 @@ export function CustomCalendarDashboard({
           className="w-full"
           onClick={() => {
             const today = new Date();
-            onDateChange(today);
+            // Create clean date without time
+            const cleanToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            onDateChange(cleanToday);
           }}
         >
           Today

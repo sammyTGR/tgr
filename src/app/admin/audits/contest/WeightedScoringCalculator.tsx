@@ -88,11 +88,16 @@ export class WeightedScoringCalculator {
     // Get eligible employees (Operations or Sales departments)
     const { data: eligibleEmployees } = await this.supabase
       .from('employees')
-      .select('lanid')
-      .in('department', ['Operations', 'Sales'])
+      .select('lanid, department')
       .eq('status', 'active');
 
     if (!eligibleEmployees) return [];
+
+    // Debug log for employees data
+    console.log('WeightedScoringCalculator - Employees Data:', eligibleEmployees?.map(emp => ({
+      lanid: emp.lanid,
+      department: emp.department
+    })));
 
     const eligibleLanids = eligibleEmployees.map((emp) => emp.lanid);
 
@@ -163,6 +168,21 @@ export class WeightedScoringCalculator {
   get metrics() {
     const scores = this.calculateWeightedScore();
     const lanid = this.salesData[0]?.Lanid || '';
+
+    // Add debug logging
+    console.log('WeightedScoringCalculator Metrics:', {
+      lanid,
+      isOperations: this.isOperations,
+      totalDros: scores.totalDros,
+      isQualified: scores.isQualified,
+      disqualificationReason: !scores.isQualified
+        ? this.isOperations
+          ? 'Not Qualified (Ops Department)'
+          : scores.totalDros < this.minimumDros
+            ? `Not Qualified (< ${this.minimumDros} DROS)`
+            : 'Not Qualified'
+        : 'Qualified'
+    });
 
     return {
       Lanid: lanid,

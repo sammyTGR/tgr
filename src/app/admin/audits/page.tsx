@@ -459,12 +459,28 @@ const calculateSummaryData = (
   salesData: SalesData[],
   auditData: FormAuditData[],
   pointsCalculation: PointsCalculation[],
-  dateRange: { startDate: string; endDate: string }
+  dateRange: { startDate: string; endDate: string },
+  employeesData: Employee[] // Add this parameter
 ) => {
   try {
     console.log('Date Range:', dateRange);
     console.log('Total Sales Data:', salesData.length);
     console.log('Total Audit Data:', auditData.length);
+
+    // Create a map of employee departments
+    const employeeDepartmentMap = new Map<string, { department: string; isOperations: boolean }>();
+    
+    employeesData.forEach((employee) => {
+      const department = employee.department?.toLowerCase() || '';
+      const isOperations = department === 'operations';
+      
+      employeeDepartmentMap.set(employee.lanid, {
+        department: employee.department || '',
+        isOperations
+      });
+      
+      console.log(`Employee ${employee.lanid}: Department=${employee.department}, IsOperations=${isOperations}`);
+    });
 
     // Create a map to store employee data
     const employeeData = new Map<
@@ -477,15 +493,26 @@ const calculateSummaryData = (
       }
     >();
 
-    // Process sales data first to get employee departments
+    // Process sales data first
     salesData.forEach((sale) => {
       if (!sale.Lanid) return;
+
+      // Get department info from employees table, not sales data
+      const employeeInfo = employeeDepartmentMap.get(sale.Lanid);
+      const department = employeeInfo?.department || '';
+      const isOperations = employeeInfo?.isOperations || false;
+
+      console.log('Processing sale:', {
+        lanid: sale.Lanid,
+        department: department,
+        isOperations: isOperations
+      });
 
       const existingData = employeeData.get(sale.Lanid) || {
         sales: [],
         audits: [],
-        department: sale.Department || '',
-        isOperations: sale.Department === 'Operations',
+        department: department,
+        isOperations: isOperations,
       };
 
       // Transform sale data to match WeightedScoringCalculator.SalesData type
@@ -504,11 +531,13 @@ const calculateSummaryData = (
     auditData.forEach((audit) => {
       if (!audit.salesreps) return;
 
+      // Get or create employee data entry
+      const employeeInfo = employeeDepartmentMap.get(audit.salesreps);
       const existingData = employeeData.get(audit.salesreps) || {
         sales: [],
         audits: [],
-        department: '',
-        isOperations: false,
+        department: employeeInfo?.department || '',
+        isOperations: employeeInfo?.isOperations || false,
       };
 
       // Transform audit data to match WeightedScoringCalculator.AuditData type
@@ -524,17 +553,21 @@ const calculateSummaryData = (
       employeeData.set(audit.salesreps, existingData);
     });
 
-    // Calculate summary for each employee
+    // Calculate metrics for each employee
     const summaryData = Array.from(employeeData.entries()).map(([lanid, data]) => {
       console.log(`\nProcessing employee: ${lanid}`);
       console.log('Total sales before filtering:', data.sales.length);
       console.log('Total audits before filtering:', data.audits.length);
+      console.log('Department:', data.department);
+      console.log('Is Operations:', data.isOperations);
 
       // Filter sales data to include only transactions from start of month up to selected date
       const filteredSalesData = data.sales.filter((sale) => {
         const saleDate = new Date(sale.SoldDate);
         const startDate = new Date(dateRange.startDate);
         const endDate = new Date(dateRange.endDate);
+        // Set time to end of day for endDate to include the entire selected day
+        endDate.setHours(23, 59, 59, 999);
         return saleDate >= startDate && saleDate <= endDate;
       });
 
@@ -550,23 +583,18 @@ const calculateSummaryData = (
         const transDate = new Date(sale.SoldDate);
         const startDate = new Date(dateRange.startDate);
         const endDate = new Date(dateRange.endDate);
+        // Set time to end of day for endDate to include the entire selected day
+        endDate.setHours(23, 59, 59, 999);
         return transDate >= startDate && transDate <= endDate;
       });
 
       console.log('Filtered audits:', filteredAuditData.length);
-      if (filteredAuditData.length > 0) {
-        console.log('Sample audit:', {
-          dros_number: filteredAuditData[0].dros_number,
-          error_location: filteredAuditData[0].error_location,
-          audit_date: filteredAuditData[0].audit_date,
-        });
-      }
 
       const calculator = new WeightedScoringCalculator({
         salesData: filteredSalesData,
         auditData: filteredAuditData,
         pointsCalculation,
-        isOperations: data.isOperations,
+        isOperations: data.isOperations, // Use the correct isOperations flag
       });
 
       const metrics = calculator.metrics;
@@ -576,9 +604,14 @@ const calculateSummaryData = (
         MajorMistakes: metrics.MajorMistakes,
         CancelledDros: metrics.CancelledDros,
         WeightedErrorRate: metrics.WeightedErrorRate,
+        DisqualificationReason: metrics.DisqualificationReason,
+        IsOperations: data.isOperations,
       });
 
-      return metrics;
+      return {
+        ...metrics,
+        Department: data.department, // Add department to the returned metrics
+      };
     });
 
     // Sort by qualification status and error rate
@@ -962,7 +995,7 @@ const usePageParams = () => {
   const selectedLanid = searchParams.get('lanid') || null;
   const showAllEmployees = searchParams.get('showAll') === 'true';
   const dateParam = searchParams.get('date');
-  const selectedDate = dateParam ? new Date(dateParam) : null;
+  const selectedDate = dateParam ? new Date(dateParam + 'T00:00:00') : null;
   const searchText = searchParams.get('search') || '';
 
   const setParams = useCallback(
@@ -1105,7 +1138,7 @@ const calculateDailyMetrics = (
         id: audit.audits_id,
       })),
       pointsCalculation,
-      isOperations: employeeDepartment?.toString() === 'Operations',
+      isOperations: employeeDepartment?.toLowerCase() === 'operations',
       minimumDros: 0,
     });
 
@@ -1209,13 +1242,16 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
   // Date range calculation
   const dateRange = useMemo(() => {
     if (!selectedDate) return null;
-
-    // Create start date in local time (first day of month)
-    const startDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
-
-    // Create end date in local time (last day of month)
-    const endDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0);
-
+  
+    // Work with the selected date directly in UTC
+    const targetDate = new Date(selectedDate);
+    
+    // Create start date (first day of month) - keep it simple
+    const startDate = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1);
+    
+    // Create end date (selected date) - keep it simple  
+    const endDate = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+  
     console.log('Date Range Calculation:', {
       selectedDate: selectedDate.toISOString(),
       startDate: startDate.toISOString(),
@@ -1223,7 +1259,7 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
       formattedStartDate: format(startDate, 'yyyy-MM-dd'),
       formattedEndDate: format(endDate, 'yyyy-MM-dd'),
     });
-
+  
     return {
       startDate: format(startDate, 'yyyy-MM-dd'),
       endDate: format(endDate, 'yyyy-MM-dd'),
@@ -1365,26 +1401,34 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
   };
 
   // Computed summary data
-  const summaryData = useMemo(() => {
-    if (
-      !salesDataQuery.data ||
-      !contestAuditsQuery.data ||
-      !pointsCalculationQuery.data ||
-      !dateRange
-    ) {
-      return [];
-    }
+// Computed summary data
+const summaryData = useMemo(() => {
+  if (
+    !salesDataQuery.data ||
+    !contestAuditsQuery.data ||
+    !pointsCalculationQuery.data ||
+    !employeesQuery.data || // Add this check
+    !dateRange
+  ) {
+    return [];
+  }
 
-    // At this point, dateRange is guaranteed to be non-null
-    const { startDate, endDate } = dateRange as { startDate: string; endDate: string };
+  const { startDate, endDate } = dateRange as { startDate: string; endDate: string };
 
-    return calculateSummaryData(
-      salesDataQuery.data,
-      contestAuditsQuery.data as FormAuditData[],
-      pointsCalculationQuery.data,
-      { startDate, endDate }
-    );
-  }, [salesDataQuery.data, contestAuditsQuery.data, pointsCalculationQuery.data, dateRange]);
+  return calculateSummaryData(
+    salesDataQuery.data,
+    contestAuditsQuery.data as FormAuditData[],
+    pointsCalculationQuery.data,
+    { startDate, endDate },
+    employeesQuery.data // Add this parameter
+  );
+}, [
+  salesDataQuery.data, 
+  contestAuditsQuery.data, 
+  pointsCalculationQuery.data, 
+  employeesQuery.data, // Add this dependency
+  dateRange
+]);
 
   // Update metricsData to pass selectedDate
   const metricsData = useMemo(() => {
@@ -1430,20 +1474,25 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
         pageParams.setParams({ date: undefined });
         return;
       }
-
-      // Create a new date in local time
-      const localDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-
+  
+      // Create a clean date without time components to avoid timezone issues
+      const year = date.getFullYear();
+      const month = date.getMonth();
+      const day = date.getDate();
+      
+      // Create date in local timezone at midnight
+      const cleanDate = new Date(year, month, day);
+  
       console.log('handleDateChange:', {
         inputDate: date.toISOString(),
-        localDate: localDate.toISOString(),
-        formattedDate: format(localDate, 'yyyy-MM-dd'),
+        cleanDate: cleanDate.toISOString(),
+        formattedDate: format(cleanDate, 'yyyy-MM-dd'),
       });
-
-      // Format the date in local time
-      const formattedDate = format(localDate, 'yyyy-MM-dd');
+  
+      // Format the date
+      const formattedDate = format(cleanDate, 'yyyy-MM-dd');
       pageParams.setParams({ date: formattedDate });
-
+  
       // Invalidate queries to force refresh
       queryClient.invalidateQueries({ queryKey: ['salesData'] });
       queryClient.invalidateQueries({ queryKey: ['audits'] });
@@ -2138,21 +2187,16 @@ function AuditsPage() {
                 </CardHeader>
                 <CardContent>
                   <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full pl-3 text-left font-normal mb-2">
-                        {selectedDate ? (
-                          (() => {
-                            // Add one day to the selected date for display
-                            const displayDate = new Date(selectedDate);
-                            displayDate.setDate(displayDate.getDate() + 1);
-                            return format(displayDate, 'PPP');
-                          })()
-                        ) : (
-                          <span>Pick a date</span>
-                        )}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full pl-3 text-left font-normal mb-2">
+                      {selectedDate ? (
+                        format(selectedDate, 'PPP')
+                      ) : (
+                        <span>Pick a date</span>
+                      )}
+                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
                       <CustomCalendarDashboard
                         selectedDate={selectedDate}

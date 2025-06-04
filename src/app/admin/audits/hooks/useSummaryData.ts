@@ -27,14 +27,17 @@ export const useSummaryData = (
 
       // Use date-fns to handle date boundaries properly
       const startDate = startOfMonth(selectedDate);
-      const endDate = endOfMonth(selectedDate);
+      const endDate = selectedDate; // Use selected date as end date instead of end of month
 
       // Format dates for database query
       const formattedStartDate = format(startDate, "yyyy-MM-dd'T'HH:mm:ss.SSSxxx");
       const formattedEndDate = format(endDate, "yyyy-MM-dd'T'HH:mm:ss.SSSxxx");
 
       // Fetch all required data
-      let employeesQuery = supabase.from('employees').select('lanid, department');
+      let employeesQuery = supabase
+        .from('employees')
+        .select('lanid, department')
+        .eq('status', 'active');
 
       let salesQuery = supabase
         .from('detailed_sales_data')
@@ -67,6 +70,12 @@ export const useSummaryData = (
         throw new Error('Error fetching data');
       }
 
+      // Debug log for employees data
+      console.log('Employees Data:', employeesData?.map(emp => ({
+        lanid: emp.lanid,
+        department: emp.department
+      })));
+
       // Get unique lanids from audit data
       const auditLanids = new Set(auditData?.map((audit) => audit.salesreps));
 
@@ -86,8 +95,12 @@ export const useSummaryData = (
         ? Array.from(new Set(relevantSalesData.map((sale) => sale.Lanid)))
         : [selectedLanid];
 
+      // Create a map of employee departments with debug logging
       const employeeDepartments = new Map(
-        employeesData?.map((emp) => [emp.lanid, emp.department]) || []
+        employeesData?.map((emp) => {
+          console.log(`Processing employee: ${emp.lanid}, Department: ${emp.department}`);
+          return [emp.lanid, emp.department?.toLowerCase()];
+        }) || []
       );
 
       // Calculate summary data
@@ -126,8 +139,24 @@ export const useSummaryData = (
         const totalPoints = 300 - pointsDeducted;
         const errorRate = totalDros > 0 ? (pointsDeducted / totalDros) * 100 : 0;
         const department = employeeDepartments.get(lanid);
-        const isOperations = department?.toString() === 'Operations';
+        const isOperations = department === 'operations';
         const isQualified = !isOperations && totalDros >= 20;
+
+        // Add debug logging
+        console.log('Employee Summary:', {
+          lanid,
+          department,
+          isOperations,
+          totalDros,
+          isQualified,
+          disqualificationReason: !isQualified
+            ? isOperations
+              ? 'Not Qualified (Ops Department)'
+              : totalDros < 20
+                ? 'Not Qualified (< 20 DROS)'
+                : 'Not Qualified'
+            : 'Qualified'
+        });
 
         return {
           Lanid: lanid,
@@ -139,7 +168,7 @@ export const useSummaryData = (
           Qualified: isQualified,
           DisqualificationReason: !isQualified
             ? isOperations
-              ? 'Not Qualified (Operations Department)'
+              ? 'Not Qualified (Ops Department)'
               : totalDros < 20
                 ? 'Not Qualified (< 20 DROS)'
                 : 'Not Qualified'
