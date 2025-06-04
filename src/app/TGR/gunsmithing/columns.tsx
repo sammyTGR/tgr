@@ -9,6 +9,8 @@ export interface FirearmsMaintenanceData {
   maintenance_notes: string;
   status: string;
   assigned_to: string;
+  rental_notes: string | null;
+  verified_status: string | null;
 }
 
 export const columns: ColumnDef<FirearmsMaintenanceData>[] = [

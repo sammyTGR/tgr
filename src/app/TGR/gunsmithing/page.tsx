@@ -572,7 +572,7 @@ export default function GunsmithingMaintenance() {
         </AlertDialogContent>
       </AlertDialog>
       <div
-        className={`flex flex-col space-y-4 w-full overflow-hidden ml-6 md:ml-6 lg:ml-6 md:w-[calc(100vw-5rem)] lg:w-[calc(100vw-5rem)] transition-all duration-300`}
+        className={`flex flex-col space-y-4 w-full overflow-hidden ml-2 md:ml-2 lg:ml-2 md:w-[calc(100vw-5rem)] lg:w-[calc(100vw-5rem)] transition-all duration-300`}
       >
         <div className="flex-1 flex flex-col overflow-hidden">
           <Tabs
