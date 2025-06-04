@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { buttonVariants } from './button';
 import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
 import { startOfDay } from 'date-fns';
+import { Button } from './button';
 
 export type CalendarProps = React.ComponentProps<typeof DayPicker>;
 
@@ -352,109 +353,50 @@ export type CustomCalendarDashboardProps = {
   className?: string;
 };
 
-function CustomCalendarDashboard({
-  className,
-  classNames,
-  showOutsideDays = true,
+export function CustomCalendarDashboard({
   selectedDate,
   onDateChange,
   disabledDays,
-  ...props
 }: CustomCalendarDashboardProps) {
   const handleDateChange = (date: Date | undefined) => {
-    if (date) {
-      // Create a new date at the start of the day in local time
-      const localDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-
-      // Add 3 days to the date
-      localDate.setDate(localDate.getDate() + 3);
-
-      // Convert to UTC to avoid timezone issues
-      const utcDate = new Date(
-        Date.UTC(localDate.getFullYear(), localDate.getMonth(), localDate.getDate())
-      );
-
-      onDateChange(utcDate);
-    } else {
+    if (!date) {
       onDateChange(undefined);
+      return;
     }
+
+    // Pass the date directly without timezone conversion
+    onDateChange(date);
   };
 
-  // Convert UTC date to local for display
-  const displayDate = selectedDate
-    ? new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate())
-    : undefined;
+  // Use the selected date directly for display
+  const displayDate = selectedDate || undefined;
 
   return (
-    <DayPicker
-      showOutsideDays={showOutsideDays}
-      className={cn('p-3', className)}
-      classNames={{
-        months: 'flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0',
-        month: 'space-y-4',
-        caption: 'flex justify-center pt-1 relative items-center',
-        caption_label: 'text-sm font-medium',
-        nav: 'space-x-1 flex items-center',
-        nav_button: cn(
-          buttonVariants({ variant: 'outline' }),
-          'h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100'
-        ),
-        nav_button_previous: 'absolute left-1',
-        nav_button_next: 'absolute right-1',
-        table: 'w-full border-collapse space-y-1',
-        head_row: 'flex',
-        head_cell: 'text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]',
-        row: 'flex w-full mt-2',
-        cell: 'h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20',
-        day: cn(
-          buttonVariants({ variant: 'ghost' }),
-          'h-9 w-9 p-0 font-normal aria-selected:opacity-100'
-        ),
-        day_range_end: 'day-range-end',
-        day_selected:
-          'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground',
-        day_today: 'bg-accent text-accent-foreground',
-        day_outside:
-          'day-outside text-muted-foreground opacity-50 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30',
-        day_disabled: 'text-muted-foreground opacity-50',
-        day_range_middle: 'aria-selected:bg-accent aria-selected:text-accent-foreground',
-        day_hidden: 'invisible',
-        ...classNames,
-      }}
-      selected={displayDate}
-      onSelect={handleDateChange}
-      mode="single"
-      fromDate={new Date(2000, 0)}
-      toDate={new Date(2100, 11)}
-      modifiers={{
-        disabled: disabledDays,
-      }}
-      footer={
-        <div className="flex justify-between px-2 py-1">
-          <button
-            type="button"
-            onClick={() => {
-              const today = new Date();
-              const localToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-              // Add 3 days to today's date
-              localToday.setDate(localToday.getDate() + 3);
-              const utcToday = new Date(
-                Date.UTC(localToday.getFullYear(), localToday.getMonth(), localToday.getDate())
-              );
-              onDateChange(utcToday);
-            }}
-            className="text-sm text-primary-500"
-          >
-            Today
-          </button>
-        </div>
-      }
-      components={{
-        IconLeft: ({ ...props }) => <ChevronLeft className="h-4 w-4" />,
-        IconRight: ({ ...props }) => <ChevronRight className="h-4 w-4" />,
-      }}
-      {...props}
-    />
+    <div className="rounded-md border">
+      <Calendar
+        mode="single"
+        selected={displayDate}
+        onSelect={handleDateChange}
+        disabled={disabledDays}
+        initialFocus
+        fromDate={new Date(2000, 0)}
+        toDate={new Date(2100, 11)}
+        modifiers={{
+          disabled: disabledDays,
+        }}
+      />
+      <div className="p-3 border-t">
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={() => {
+            const today = new Date();
+            onDateChange(today);
+          }}
+        >
+          Today
+        </Button>
+      </div>
+    </div>
   );
 }
-export { CustomCalendarDashboard };

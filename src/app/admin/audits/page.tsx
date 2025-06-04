@@ -50,7 +50,11 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import LoadingIndicator from '@/components/LoadingIndicator';
-import { WeightedScoringCalculator } from './contest/WeightedScoringCalculator';
+import {
+  WeightedScoringCalculator,
+  type SalesData as CalculatorSalesData,
+  type AuditData as CalculatorAuditData,
+} from './contest/WeightedScoringCalculator';
 import { supabase } from '@/utils/supabase/client';
 import { toast } from 'sonner';
 import { useMemo, useState, useRef } from 'react';
@@ -73,6 +77,7 @@ import { CategoryForm } from './components/CategoryForm';
 import { ChevronUp } from 'lucide-react';
 import { ChevronDown } from 'lucide-react';
 import { CustomCalendarDashboard } from '@/components/ui/calendar';
+import type { AuditData as FormAuditData } from './submit/edit-audit-form';
 
 // Type definitions
 interface OptionType {
@@ -176,15 +181,12 @@ interface SummaryRowData {
   Department?: string;
 }
 
-interface SalesData {
-  Lanid: string;
+interface SalesData extends CalculatorSalesData {
   Date: string;
-  Desc: string;
-  SoldDate: string; // This will now be a datetime string
   dros_number: string;
   status: string;
-  id: number;
   cancelled_dros: number;
+  Department?: string;
 }
 
 interface AuditFilters {
@@ -279,11 +281,21 @@ const api = {
   },
 
   fetchAudits: async (filters?: AuditFilters): Promise<Audit[]> => {
-    let query = supabase.from('Auditsinput').select('*').order('audit_date', { ascending: false });
+    let query = supabase.from('Auditsinput').select('*').order('trans_date', { ascending: false });
 
     if (filters) {
-      if (filters.startDate) query = query.gte('audit_date', filters.startDate);
-      if (filters.endDate) query = query.lte('audit_date', filters.endDate);
+      if (filters.startDate) {
+        // Set to start of day in UTC
+        const startDate = new Date(filters.startDate);
+        startDate.setUTCHours(0, 0, 0, 0);
+        query = query.gte('trans_date', startDate.toISOString().split('T')[0]);
+      }
+      if (filters.endDate) {
+        // Set to end of day in UTC
+        const endDate = new Date(filters.endDate);
+        endDate.setUTCHours(23, 59, 59, 999);
+        query = query.lte('trans_date', endDate.toISOString().split('T')[0]);
+      }
       if (filters.lanid) query = query.eq('salesreps', filters.lanid);
       if (filters.auditType) query = query.eq('audit_type', filters.auditType);
     }
@@ -445,104 +457,141 @@ const sanitizeHtml = (html: string | null | undefined): string => {
 
 const calculateSummaryData = (
   salesData: SalesData[],
-  auditData: Audit[],
+  auditData: FormAuditData[],
   pointsCalculation: PointsCalculation[],
-  employeesData: Employee[],
-  showAllEmployees: boolean,
-  selectedLanid: string | null
-): SummaryRowData[] => {
-  const employeeDepartments = new Map(
-    employeesData?.map((emp: Employee) => [emp.lanid, emp.department]) || []
-  );
+  dateRange: { startDate: string; endDate: string }
+) => {
+  try {
+    console.log('Date Range:', dateRange);
+    console.log('Total Sales Data:', salesData.length);
+    console.log('Total Audit Data:', auditData.length);
 
-  const lanids = showAllEmployees
-    ? Array.from(new Set(salesData.map((sale) => sale.Lanid)))
-    : selectedLanid
-      ? [selectedLanid]
-      : [];
-
-  const calculatedData = lanids
-    .map((lanid): SummaryRowData | null => {
-      if (!lanid) return null;
-
-      const employeeSalesData = salesData.filter((sale) => sale.Lanid === lanid);
-      const employeeAuditData = auditData.filter((audit) => audit.salesreps === lanid);
-
-      const department = employeeDepartments.get(lanid);
-      const isOperations = department?.toString() === 'Operations';
-
-      try {
-        const calculator = new WeightedScoringCalculator({
-          salesData: employeeSalesData.map((sale) => ({
-            ...sale,
-            Desc: sale.Desc || '',
-            SoldDate: format(new Date(sale.SoldDate), 'yyyy-MM-dd HH:mm:ss'), // Format datetime
-            dros_cancel: sale.cancelled_dros?.toString() || '0',
-            Lanid: sale.Lanid,
-            id: sale.id,
-          })),
-          auditData: employeeAuditData.map((audit) => ({
-            ...audit,
-            id: audit.audits_id,
-          })),
-          pointsCalculation,
-          isOperations,
-          minimumDros: 20,
-        });
-
-        return {
-          ...calculator.metrics,
-          Department: department || 'Unknown',
-          Lanid: lanid,
-          TotalWeightedMistakes: calculator.metrics.TotalWeightedMistakes || null,
-        };
-      } catch (error) {
-        console.error(`Error calculating metrics for ${lanid}:`, error);
-        return null;
+    // Create a map to store employee data
+    const employeeData = new Map<
+      string,
+      {
+        sales: SalesData[];
+        audits: CalculatorAuditData[];
+        department: string;
+        isOperations: boolean;
       }
-    })
-    .filter((data): data is SummaryRowData => {
-      if (!data) return false;
-      return (
-        'Lanid' in data &&
-        'Department' in data &&
-        'TotalDros' in data &&
-        'MinorMistakes' in data &&
-        'MajorMistakes' in data &&
-        'CancelledDros' in data &&
-        'WeightedErrorRate' in data &&
-        'Qualified' in data &&
-        'DisqualificationReason' in data &&
-        'TotalWeightedMistakes' in data
-      );
+    >();
+
+    // Process sales data first to get employee departments
+    salesData.forEach((sale) => {
+      if (!sale.Lanid) return;
+
+      const existingData = employeeData.get(sale.Lanid) || {
+        sales: [],
+        audits: [],
+        department: sale.Department || '',
+        isOperations: sale.Department === 'Operations',
+      };
+
+      // Transform sale data to match WeightedScoringCalculator.SalesData type
+      const transformedSale: SalesData = {
+        ...sale,
+        dros_cancel: sale.cancelled_dros?.toString() || '0',
+        Desc: sale.Desc || '',
+        SoldDate: format(new Date(sale.SoldDate), 'yyyy-MM-dd HH:mm:ss'),
+      };
+
+      existingData.sales.push(transformedSale);
+      employeeData.set(sale.Lanid, existingData);
     });
 
-  // Sort data by qualification status and error rate
-  const qualifiedEmployees = calculatedData
-    .filter((emp) => emp.Qualified)
-    .sort((a, b) => (a.WeightedErrorRate || 0) - (b.WeightedErrorRate || 0));
+    // Process audit data
+    auditData.forEach((audit) => {
+      if (!audit.salesreps) return;
 
-  const unqualifiedEmployees = calculatedData
-    .filter((emp) => !emp.Qualified)
-    .sort((a, b) => (a.WeightedErrorRate || 0) - (b.WeightedErrorRate || 0));
+      const existingData = employeeData.get(audit.salesreps) || {
+        sales: [],
+        audits: [],
+        department: '',
+        isOperations: false,
+      };
 
-  if (showAllEmployees && qualifiedEmployees.length && unqualifiedEmployees.length) {
-    const divider: SummaryRowData = {
-      Lanid: '',
-      TotalDros: null,
-      MinorMistakes: null,
-      MajorMistakes: null,
-      CancelledDros: null,
-      WeightedErrorRate: null,
-      TotalWeightedMistakes: null,
-      Qualified: false,
-      DisqualificationReason: '',
-      isDivider: true,
-    };
-    return [...qualifiedEmployees, divider, ...unqualifiedEmployees];
+      // Transform audit data to match WeightedScoringCalculator.AuditData type
+      const transformedAudit: CalculatorAuditData = {
+        id: audit.audits_id,
+        salesreps: audit.salesreps,
+        error_location: audit.error_location || '',
+        audit_date: audit.audit_date || '',
+        dros_cancel: audit.dros_cancel || '',
+      };
+
+      existingData.audits.push(transformedAudit);
+      employeeData.set(audit.salesreps, existingData);
+    });
+
+    // Calculate summary for each employee
+    const summaryData = Array.from(employeeData.entries()).map(([lanid, data]) => {
+      console.log(`\nProcessing employee: ${lanid}`);
+      console.log('Total sales before filtering:', data.sales.length);
+      console.log('Total audits before filtering:', data.audits.length);
+
+      // Filter sales data to include only transactions from start of month up to selected date
+      const filteredSalesData = data.sales.filter((sale) => {
+        const saleDate = new Date(sale.SoldDate);
+        const startDate = new Date(dateRange.startDate);
+        const endDate = new Date(dateRange.endDate);
+        return saleDate >= startDate && saleDate <= endDate;
+      });
+
+      console.log('Filtered sales:', filteredSalesData.length);
+
+      // Filter audit data to include only audits for transactions from start of month up to selected date
+      const filteredAuditData = data.audits.filter((audit) => {
+        // Find the corresponding sale for this audit
+        const sale = data.sales.find((s) => s.dros_number === audit.dros_number);
+        if (!sale) return false;
+
+        // Use the transaction date from the sale
+        const transDate = new Date(sale.SoldDate);
+        const startDate = new Date(dateRange.startDate);
+        const endDate = new Date(dateRange.endDate);
+        return transDate >= startDate && transDate <= endDate;
+      });
+
+      console.log('Filtered audits:', filteredAuditData.length);
+      if (filteredAuditData.length > 0) {
+        console.log('Sample audit:', {
+          dros_number: filteredAuditData[0].dros_number,
+          error_location: filteredAuditData[0].error_location,
+          audit_date: filteredAuditData[0].audit_date,
+        });
+      }
+
+      const calculator = new WeightedScoringCalculator({
+        salesData: filteredSalesData,
+        auditData: filteredAuditData,
+        pointsCalculation,
+        isOperations: data.isOperations,
+      });
+
+      const metrics = calculator.metrics;
+      console.log('Calculated metrics:', {
+        TotalDros: metrics.TotalDros,
+        MinorMistakes: metrics.MinorMistakes,
+        MajorMistakes: metrics.MajorMistakes,
+        CancelledDros: metrics.CancelledDros,
+        WeightedErrorRate: metrics.WeightedErrorRate,
+      });
+
+      return metrics;
+    });
+
+    // Sort by qualification status and error rate
+    return summaryData.sort((a, b) => {
+      if (a.Qualified === b.Qualified) {
+        return a.WeightedErrorRate - b.WeightedErrorRate;
+      }
+      return a.Qualified ? -1 : 1;
+    });
+  } catch (error) {
+    console.error('Error calculating summary data:', error);
+    return [];
   }
-
-  return [...qualifiedEmployees, ...unqualifiedEmployees];
 };
 
 const formatDate = (date: Date): string => {
@@ -1161,11 +1210,19 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
   const dateRange = useMemo(() => {
     if (!selectedDate) return null;
 
-    // Get first day of the selected month in UTC
-    const startDate = new Date(Date.UTC(selectedDate.getFullYear(), selectedDate.getMonth(), 1));
+    // Create start date in local time (first day of month)
+    const startDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
 
-    // Use the actual selected date for end date in UTC
-    const endDate = new Date(Date.UTC(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0));
+    // Create end date in local time (last day of month)
+    const endDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0);
+
+    console.log('Date Range Calculation:', {
+      selectedDate: selectedDate.toISOString(),
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      formattedStartDate: format(startDate, 'yyyy-MM-dd'),
+      formattedEndDate: format(endDate, 'yyyy-MM-dd'),
+    });
 
     return {
       startDate: format(startDate, 'yyyy-MM-dd'),
@@ -1204,7 +1261,7 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
         lanid: selectedLanid || undefined,
       });
     },
-    enabled: pageParams.tab === 'contest' && !!dateRange, // Only run this query when on contest tab and dateRange exists
+    enabled: pageParams.tab === 'contest' && !!dateRange,
   });
 
   const auditsData = useMemo(() => {
@@ -1313,27 +1370,21 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
       !salesDataQuery.data ||
       !contestAuditsQuery.data ||
       !pointsCalculationQuery.data ||
-      !employeesQuery.data
+      !dateRange
     ) {
       return [];
     }
 
+    // At this point, dateRange is guaranteed to be non-null
+    const { startDate, endDate } = dateRange as { startDate: string; endDate: string };
+
     return calculateSummaryData(
       salesDataQuery.data,
-      contestAuditsQuery.data,
+      contestAuditsQuery.data as FormAuditData[],
       pointsCalculationQuery.data,
-      employeesQuery.data,
-      showAllEmployees,
-      selectedLanid
+      { startDate, endDate }
     );
-  }, [
-    salesDataQuery.data,
-    contestAuditsQuery.data,
-    pointsCalculationQuery.data,
-    employeesQuery.data,
-    showAllEmployees, // Make sure this dependency is included
-    selectedLanid,
-  ]);
+  }, [salesDataQuery.data, contestAuditsQuery.data, pointsCalculationQuery.data, dateRange]);
 
   // Update metricsData to pass selectedDate
   const metricsData = useMemo(() => {
@@ -1368,27 +1419,9 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
 
   // Update summaryTableData to always use monthly data
   const summaryTableData = useMemo(() => {
-    if (!salesDataQuery.data || !contestAuditsQuery.data) return [];
-
-    // Always calculate using the full month's data
-    const monthlyData = calculateSummaryData(
-      salesDataQuery.data,
-      contestAuditsQuery.data,
-      pointsCalculationQuery.data || [],
-      employeesQuery.data || [],
-      showAllEmployees,
-      selectedLanid
-    );
-
-    return monthlyData;
-  }, [
-    salesDataQuery.data,
-    contestAuditsQuery.data,
-    pointsCalculationQuery.data,
-    employeesQuery.data,
-    showAllEmployees,
-    selectedLanid,
-  ]);
+    if (!summaryData) return [];
+    return summaryData;
+  }, [summaryData]);
 
   // Event handlers that update URL params
   const handleDateChange = useCallback(
@@ -1398,12 +1431,17 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
         return;
       }
 
-      // Create a new date at the start of the day in UTC
-      const utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+      // Create a new date in local time
+      const localDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
 
-      // Format the date in UTC
-      const formattedDate = format(utcDate, 'yyyy-MM-dd');
+      console.log('handleDateChange:', {
+        inputDate: date.toISOString(),
+        localDate: localDate.toISOString(),
+        formattedDate: format(localDate, 'yyyy-MM-dd'),
+      });
 
+      // Format the date in local time
+      const formattedDate = format(localDate, 'yyyy-MM-dd');
       pageParams.setParams({ date: formattedDate });
 
       // Invalidate queries to force refresh
@@ -2102,14 +2140,26 @@ function AuditsPage() {
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button variant="outline" className="w-full pl-3 text-left font-normal mb-2">
-                        {selectedDate ? format(selectedDate, 'PPP') : <span>Pick a date</span>}
+                        {selectedDate ? (
+                          (() => {
+                            // Add one day to the selected date for display
+                            const displayDate = new Date(selectedDate);
+                            displayDate.setDate(displayDate.getDate() + 1);
+                            return format(displayDate, 'PPP');
+                          })()
+                        ) : (
+                          <span>Pick a date</span>
+                        )}
                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
                       <CustomCalendarDashboard
                         selectedDate={selectedDate}
-                        onDateChange={handleDateChange}
+                        onDateChange={(date) => {
+                          console.log('Calendar date selected:', date?.toISOString());
+                          handleDateChange(date);
+                        }}
                         disabledDays={() => false}
                       />
                     </PopoverContent>
