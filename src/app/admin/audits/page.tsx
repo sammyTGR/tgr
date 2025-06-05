@@ -617,7 +617,7 @@ const calculateSummaryData = (
     // Sort by qualification status and error rate
     return summaryData.sort((a, b) => {
       if (a.Qualified === b.Qualified) {
-        return a.WeightedErrorRate - b.WeightedErrorRate;
+        return (a.WeightedErrorRate || 0) - (b.WeightedErrorRate || 0);
       }
       return a.Qualified ? -1 : 1;
     });

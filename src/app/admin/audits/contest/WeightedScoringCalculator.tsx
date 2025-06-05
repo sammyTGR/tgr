@@ -169,20 +169,20 @@ export class WeightedScoringCalculator {
     const scores = this.calculateWeightedScore();
     const lanid = this.salesData[0]?.Lanid || '';
 
-    // Add debug logging
-    // console.log('WeightedScoringCalculator Metrics:', {
-    //   lanid,
-    //   isOperations: this.isOperations,
-    //   totalDros: scores.totalDros,
-    //   isQualified: scores.isQualified,
-    //   disqualificationReason: !scores.isQualified
-    //     ? this.isOperations
-    //       ? 'Not Qualified (Ops Department)'
-    //       : scores.totalDros < this.minimumDros
-    //         ? `Not Qualified (< ${this.minimumDros} DROS)`
-    //         : 'Not Qualified'
-    //     : 'Qualified'
-    // });
+    // If there's no lanid, return null values
+    if (!lanid) {
+      return {
+        Lanid: '',
+        TotalDros: null,
+        MinorMistakes: null,
+        MajorMistakes: null,
+        CancelledDros: null,
+        WeightedErrorRate: null,
+        TotalWeightedMistakes: null,
+        Qualified: false,
+        DisqualificationReason: ''
+      };
+    }
 
     return {
       Lanid: lanid,
@@ -199,7 +199,7 @@ export class WeightedScoringCalculator {
           : scores.totalDros < this.minimumDros
             ? `Not Qualified (< ${this.minimumDros} DROS)`
             : 'Not Qualified'
-        : 'Qualified',
+        : 'Qualified'
     };
   }
 }
