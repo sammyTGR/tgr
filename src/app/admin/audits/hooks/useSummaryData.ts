@@ -71,10 +71,10 @@ export const useSummaryData = (
       }
 
       // Debug log for employees data
-      console.log('Employees Data:', employeesData?.map(emp => ({
-        lanid: emp.lanid,
-        department: emp.department
-      })));
+      // console.log('Employees Data:', employeesData?.map(emp => ({
+      //   lanid: emp.lanid,
+      //   department: emp.department
+      // })));
 
       // Get unique lanids from audit data
       const auditLanids = new Set(auditData?.map((audit) => audit.salesreps));
@@ -98,7 +98,7 @@ export const useSummaryData = (
       // Create a map of employee departments with debug logging
       const employeeDepartments = new Map(
         employeesData?.map((emp) => {
-          console.log(`Processing employee: ${emp.lanid}, Department: ${emp.department}`);
+          // console.log(`Processing employee: ${emp.lanid}, Department: ${emp.department}`);
           return [emp.lanid, emp.department?.toLowerCase()];
         }) || []
       );
@@ -143,20 +143,20 @@ export const useSummaryData = (
         const isQualified = !isOperations && totalDros >= 20;
 
         // Add debug logging
-        console.log('Employee Summary:', {
-          lanid,
-          department,
-          isOperations,
-          totalDros,
-          isQualified,
-          disqualificationReason: !isQualified
-            ? isOperations
-              ? 'Not Qualified (Ops Department)'
-              : totalDros < 20
-                ? 'Not Qualified (< 20 DROS)'
-                : 'Not Qualified'
-            : 'Qualified'
-        });
+        // console.log('Employee Summary:', {
+        //   lanid,
+        //   department,
+        //   isOperations,
+        //   totalDros,
+        //   isQualified,
+        //   disqualificationReason: !isQualified
+        //     ? isOperations
+        //       ? 'Not Qualified (Ops Department)'
+        //       : totalDros < 20
+        //         ? 'Not Qualified (< 20 DROS)'
+        //         : 'Not Qualified'
+        //     : 'Qualified'
+        // });
 
         return {
           Lanid: lanid,

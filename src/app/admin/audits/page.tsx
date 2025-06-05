@@ -463,9 +463,9 @@ const calculateSummaryData = (
   employeesData: Employee[] // Add this parameter
 ) => {
   try {
-    console.log('Date Range:', dateRange);
-    console.log('Total Sales Data:', salesData.length);
-    console.log('Total Audit Data:', auditData.length);
+    // console.log('Date Range:', dateRange);
+    // console.log('Total Sales Data:', salesData.length);
+    // console.log('Total Audit Data:', auditData.length);
 
     // Create a map of employee departments
     const employeeDepartmentMap = new Map<string, { department: string; isOperations: boolean }>();
@@ -479,7 +479,7 @@ const calculateSummaryData = (
         isOperations
       });
       
-      console.log(`Employee ${employee.lanid}: Department=${employee.department}, IsOperations=${isOperations}`);
+      // console.log(`Employee ${employee.lanid}: Department=${employee.department}, IsOperations=${isOperations}`);
     });
 
     // Create a map to store employee data
@@ -502,11 +502,11 @@ const calculateSummaryData = (
       const department = employeeInfo?.department || '';
       const isOperations = employeeInfo?.isOperations || false;
 
-      console.log('Processing sale:', {
-        lanid: sale.Lanid,
-        department: department,
-        isOperations: isOperations
-      });
+      // console.log('Processing sale:', {
+      //   lanid: sale.Lanid,
+      //   department: department,
+      //   isOperations: isOperations
+      // });
 
       const existingData = employeeData.get(sale.Lanid) || {
         sales: [],
@@ -555,11 +555,11 @@ const calculateSummaryData = (
 
     // Calculate metrics for each employee
     const summaryData = Array.from(employeeData.entries()).map(([lanid, data]) => {
-      console.log(`\nProcessing employee: ${lanid}`);
-      console.log('Total sales before filtering:', data.sales.length);
-      console.log('Total audits before filtering:', data.audits.length);
-      console.log('Department:', data.department);
-      console.log('Is Operations:', data.isOperations);
+      // console.log(`\nProcessing employee: ${lanid}`);
+      // console.log('Total sales before filtering:', data.sales.length);
+      // console.log('Total audits before filtering:', data.audits.length);
+      // console.log('Department:', data.department);
+      // console.log('Is Operations:', data.isOperations);
 
       // Filter sales data to include only transactions from start of month up to selected date
       const filteredSalesData = data.sales.filter((sale) => {
@@ -571,7 +571,7 @@ const calculateSummaryData = (
         return saleDate >= startDate && saleDate <= endDate;
       });
 
-      console.log('Filtered sales:', filteredSalesData.length);
+      // console.log('Filtered sales:', filteredSalesData.length);
 
       // Filter audit data to include only audits for transactions from start of month up to selected date
       const filteredAuditData = data.audits.filter((audit) => {
@@ -588,7 +588,7 @@ const calculateSummaryData = (
         return transDate >= startDate && transDate <= endDate;
       });
 
-      console.log('Filtered audits:', filteredAuditData.length);
+      // console.log('Filtered audits:', filteredAuditData.length);
 
       const calculator = new WeightedScoringCalculator({
         salesData: filteredSalesData,
@@ -598,15 +598,15 @@ const calculateSummaryData = (
       });
 
       const metrics = calculator.metrics;
-      console.log('Calculated metrics:', {
-        TotalDros: metrics.TotalDros,
-        MinorMistakes: metrics.MinorMistakes,
-        MajorMistakes: metrics.MajorMistakes,
-        CancelledDros: metrics.CancelledDros,
-        WeightedErrorRate: metrics.WeightedErrorRate,
-        DisqualificationReason: metrics.DisqualificationReason,
-        IsOperations: data.isOperations,
-      });
+      // console.log('Calculated metrics:', {
+      //   TotalDros: metrics.TotalDros,
+      //   MinorMistakes: metrics.MinorMistakes,
+      //   MajorMistakes: metrics.MajorMistakes,
+      //   CancelledDros: metrics.CancelledDros,
+      //   WeightedErrorRate: metrics.WeightedErrorRate,
+      //   DisqualificationReason: metrics.DisqualificationReason,
+      //   IsOperations: data.isOperations,
+      // });
 
       return {
         ...metrics,
@@ -1252,13 +1252,13 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
     // Create end date (selected date) - keep it simple  
     const endDate = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
   
-    console.log('Date Range Calculation:', {
-      selectedDate: selectedDate.toISOString(),
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
-      formattedStartDate: format(startDate, 'yyyy-MM-dd'),
-      formattedEndDate: format(endDate, 'yyyy-MM-dd'),
-    });
+    // console.log('Date Range Calculation:', {
+    //   selectedDate: selectedDate.toISOString(),
+    //   startDate: startDate.toISOString(),
+    //   endDate: endDate.toISOString(),
+    //   formattedStartDate: format(startDate, 'yyyy-MM-dd'),
+    //   formattedEndDate: format(endDate, 'yyyy-MM-dd'),
+    // });
   
     return {
       startDate: format(startDate, 'yyyy-MM-dd'),
@@ -1483,11 +1483,11 @@ const summaryData = useMemo(() => {
       // Create date in local timezone at midnight
       const cleanDate = new Date(year, month, day);
   
-      console.log('handleDateChange:', {
-        inputDate: date.toISOString(),
-        cleanDate: cleanDate.toISOString(),
-        formattedDate: format(cleanDate, 'yyyy-MM-dd'),
-      });
+      // console.log('handleDateChange:', {
+      //   inputDate: date.toISOString(),
+      //   cleanDate: cleanDate.toISOString(),
+      //   formattedDate: format(cleanDate, 'yyyy-MM-dd'),
+      // });
   
       // Format the date
       const formattedDate = format(cleanDate, 'yyyy-MM-dd');
