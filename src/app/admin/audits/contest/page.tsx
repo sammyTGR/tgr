@@ -191,8 +191,13 @@ const ContestPage = () => {
     });
 
     // Sort summary data by Weighted Error Rate in ascending order (lower is better)
-    summary.sort((a, b) => a.WeightedErrorRate - b.WeightedErrorRate);
-    setSummaryData(summary);
+    summary.sort((a, b) => {
+      // Handle null values by treating them as infinity (they should be sorted last)
+      const rateA = a.WeightedErrorRate ?? Infinity;
+      const rateB = b.WeightedErrorRate ?? Infinity;
+      return rateA - rateB;
+    });
+    setSummaryData(summary as SummaryData[]);
   };
 
   return (
