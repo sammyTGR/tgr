@@ -19,6 +19,19 @@ import BannedFirearmsPage from '../banned/page';
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useSidebar } from '@/components/ui/sidebar';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { useForm } from 'react-hook-form';
+import { useRole } from '@/context/RoleContext';
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/dialog';
 
 type DataRow = string[];
 type Data = DataRow[];
@@ -38,10 +51,22 @@ interface DropdownItem {
   requirements: string;
 }
 
+// FSD Info Types
+interface FSDInfo {
+  id: number;
+  manufacturer: string;
+  lock_make: string;
+  lock_model: string;
+  notes: string;
+  created_at: string;
+}
+
 export default function DROSGuide() {
   const { state } = useSidebar();
   const queryClient = useQueryClient();
   const [activeDialogContentId, setActiveDialogContentId] = useState<string | null>(null);
+
+  const [selections, setSelections] = useState<(string | null)[]>(Array(8).fill(null));
 
   const { data: dropsData = [], isLoading } = useQuery({
     queryKey: ['drops-data'],
@@ -49,20 +74,6 @@ export default function DROSGuide() {
       const { data: fetchedData, error } = await supabase.from('Drops').select('*');
       if (error) throw error;
       return fetchedData as DropdownItem[];
-    },
-  });
-
-  const { data: selections = Array(8).fill(null) } = useQuery({
-    queryKey: ['selections'],
-    initialData: Array(8).fill(null),
-  });
-
-  const selectionsMutation = useMutation({
-    mutationFn: (newSelections: (string | null)[]) => {
-      return Promise.resolve(newSelections);
-    },
-    onSuccess: (newSelections) => {
-      queryClient.setQueryData(['selections'], newSelections);
     },
   });
 
@@ -108,21 +119,14 @@ export default function DROSGuide() {
   const handleSelectionChange = (selectIndex: number, value: string) => {
     const updatedSelections = [...selections];
     updatedSelections[selectIndex] = value;
-
     for (let i = selectIndex + 1; i < updatedSelections.length; i++) {
       updatedSelections[i] = null;
     }
-
-    const currentOptions = getOptionsForSelect(selectIndex + 1);
-    if (currentOptions.length === 0) {
-      selectionsMutation.mutate(updatedSelections);
-    } else {
-      selectionsMutation.mutate(updatedSelections);
-    }
+    setSelections(updatedSelections);
   };
 
   const resetSelections = () => {
-    selectionsMutation.mutate(Array(8).fill(null));
+    setSelections(Array(8).fill(null));
   };
 
   const canShowColumnH = () => {
@@ -158,6 +162,157 @@ export default function DROSGuide() {
       })?.requirements
     : '';
 
+  function FSDInfoTab() {
+    const queryClient = useQueryClient();
+    const {
+      register,
+      handleSubmit,
+      reset,
+      formState: { errors, isSubmitting },
+    } = useForm();
+    const { role } = useRole();
+    const [dialogOpen, setDialogOpen] = useState(false);
+
+    // Fetch FSD Info list from API
+    const { data: fsdList = [], isLoading: isFsdLoading } = useQuery({
+      queryKey: ['fsd-info-list'],
+      queryFn: async () => {
+        const res = await fetch('/api/fsd-info');
+        if (!res.ok) {
+          const error = await res.json();
+          throw new Error(error.error || 'Failed to fetch FSD Info');
+        }
+        return res.json();
+      },
+    });
+
+    // Add new FSD Info via API
+    const addFsdMutation = useMutation({
+      mutationFn: async (values: any) => {
+        const res = await fetch('/api/fsd-info', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(values),
+        });
+        if (!res.ok) {
+          const error = await res.json();
+          throw new Error(error.error || 'Failed to add FSD Info');
+        }
+        return res.json();
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['fsd-info-list'] });
+        reset();
+      },
+    });
+
+    const onSubmit = (data: any) => {
+      addFsdMutation.mutate(data);
+    };
+
+    return (
+      <div className="space-y-6">
+        {(role === 'admin' || role === 'super admin' || role === 'dev' || role === 'ceo') && (
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="mb-2" onClick={() => setDialogOpen(true)}>
+                Add Entry
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add FSD Info</DialogTitle>
+              </DialogHeader>
+              <form
+                onSubmit={handleSubmit((data) => {
+                  onSubmit(data);
+                  setDialogOpen(false);
+                })}
+                className="grid gap-4 md:grid-cols-2"
+              >
+                <div>
+                  <Input
+                    placeholder="Firearm Manufacturer"
+                    {...register('manufacturer', { required: true })}
+                    disabled={isSubmitting}
+                  />
+                  {errors.manufacturer && <span className="text-red-500 text-xs">Required</span>}
+                </div>
+                <div>
+                  <Input
+                    placeholder="Lock Make"
+                    {...register('lock_make', { required: true })}
+                    disabled={isSubmitting}
+                  />
+                  {errors.lock_make && <span className="text-red-500 text-xs">Required</span>}
+                </div>
+                <div>
+                  <Input
+                    placeholder="Lock Model"
+                    {...register('lock_model', { required: true })}
+                    disabled={isSubmitting}
+                  />
+                  {errors.lock_model && <span className="text-red-500 text-xs">Required</span>}
+                </div>
+                <div className="md:col-span-2">
+                  <Textarea placeholder="Notes" {...register('notes')} disabled={isSubmitting} />
+                </div>
+                <DialogFooter className="md:col-span-2 flex justify-end">
+                  <Button type="submit" disabled={isSubmitting || addFsdMutation.isPending}>
+                    {addFsdMutation.isPending ? 'Adding...' : 'Add Entry'}
+                  </Button>
+                  <DialogClose asChild>
+                    <Button type="button" variant="outline">
+                      Cancel
+                    </Button>
+                  </DialogClose>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        )}
+        <Card>
+          <CardHeader>
+            <CardTitle>FSD Info List</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isFsdLoading ? (
+              <div>Loading...</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead>
+                    <tr>
+                      <th className="px-2 py-1 text-left">Firearm Manufacturer</th>
+                      <th className="px-2 py-1 text-left">Lock Make</th>
+                      <th className="px-2 py-1 text-left">Lock Model</th>
+                      <th className="px-2 py-1 text-left">Notes</th>
+                      <th className="px-2 py-1 text-left">Added</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {fsdList.map((item: any) => (
+                      <tr key={item.id} className="border-t">
+                        <td className="px-2 py-1">{item.manufacturer}</td>
+                        <td className="px-2 py-1">{item.lock_make}</td>
+                        <td className="px-2 py-1">{item.lock_model}</td>
+                        <td className="px-2 py-1 whitespace-pre-wrap">{item.notes}</td>
+                        <td className="px-2 py-1">
+                          {item.created_at ? new Date(item.created_at).toLocaleDateString() : ''}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {fsdList.length === 0 && <div className="text-center py-4">No entries yet.</div>}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <RoleBasedWrapper allowedRoles={['user', 'auditor', 'admin', 'super admin', 'dev']}>
       <div
@@ -173,6 +328,7 @@ export default function DROSGuide() {
           <TabsList>
             <TabsTrigger value="dros-guide">DROS Guide</TabsTrigger>
             <TabsTrigger value="assault-weapons">Banned Assault Weapons</TabsTrigger>
+            <TabsTrigger value="fsd-info">FSD Info</TabsTrigger>
           </TabsList>
 
           <TabsContent value="dros-guide">
@@ -241,6 +397,10 @@ export default function DROSGuide() {
 
           <TabsContent value="assault-weapons">
             <BannedFirearmsPage />
+          </TabsContent>
+
+          <TabsContent value="fsd-info">
+            <FSDInfoTab />
           </TabsContent>
         </Tabs>
       </div>
