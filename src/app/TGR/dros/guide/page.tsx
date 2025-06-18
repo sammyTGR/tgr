@@ -32,6 +32,24 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
+import { TrashIcon, Pencil1Icon, DotsHorizontalIcon } from '@radix-ui/react-icons';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog';
 
 type DataRow = string[];
 type Data = DataRow[];
@@ -172,6 +190,10 @@ export default function DROSGuide() {
     } = useForm();
     const { role } = useRole();
     const [dialogOpen, setDialogOpen] = useState(false);
+    const [editDialogOpen, setEditDialogOpen] = useState(false);
+    const [editEntry, setEditEntry] = useState<FSDInfo | null>(null);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [entryToDelete, setEntryToDelete] = useState<number | null>(null);
 
     // Fetch FSD Info list from API
     const { data: fsdList = [], isLoading: isFsdLoading } = useQuery({
@@ -206,8 +228,59 @@ export default function DROSGuide() {
       },
     });
 
+    // Delete FSD Info via API
+    const deleteFsdMutation = useMutation({
+      mutationFn: async (id: number) => {
+        const res = await fetch(`/api/fsd-info?id=${id}`, {
+          method: 'DELETE',
+        });
+        if (!res.ok) {
+          const error = await res.json();
+          throw new Error(error.error || 'Failed to delete FSD Info');
+        }
+        return res.json();
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['fsd-info-list'] });
+      },
+    });
+
+    // Edit FSD Info via API
+    const editFsdMutation = useMutation({
+      mutationFn: async (values: any) => {
+        const res = await fetch(`/api/fsd-info?id=${editEntry?.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(values),
+        });
+        if (!res.ok) {
+          const error = await res.json();
+          throw new Error(error.error || 'Failed to edit FSD Info');
+        }
+        return res.json();
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['fsd-info-list'] });
+        setEditDialogOpen(false);
+        setEditEntry(null);
+        reset();
+      },
+    });
+
     const onSubmit = (data: any) => {
       addFsdMutation.mutate(data);
+    };
+
+    // Handler for edit button
+    const handleEdit = (entry: FSDInfo) => {
+      setEditEntry(entry);
+      setEditDialogOpen(true);
+      reset(entry); // prefill form
+    };
+
+    // Handler for delete button
+    const handleDelete = (id: number) => {
+      deleteFsdMutation.mutate(id);
     };
 
     return (
@@ -271,6 +344,57 @@ export default function DROSGuide() {
             </DialogContent>
           </Dialog>
         )}
+        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit FSD Info</DialogTitle>
+            </DialogHeader>
+            <form
+              onSubmit={handleSubmit((data) => {
+                editFsdMutation.mutate(data);
+              })}
+              className="grid gap-4 md:grid-cols-2"
+            >
+              <div>
+                <Input
+                  placeholder="Firearm Manufacturer"
+                  {...register('manufacturer', { required: true })}
+                  disabled={isSubmitting}
+                />
+                {errors.manufacturer && <span className="text-red-500 text-xs">Required</span>}
+              </div>
+              <div>
+                <Input
+                  placeholder="Lock Make"
+                  {...register('lock_make', { required: true })}
+                  disabled={isSubmitting}
+                />
+                {errors.lock_make && <span className="text-red-500 text-xs">Required</span>}
+              </div>
+              <div>
+                <Input
+                  placeholder="Lock Model"
+                  {...register('lock_model', { required: true })}
+                  disabled={isSubmitting}
+                />
+                {errors.lock_model && <span className="text-red-500 text-xs">Required</span>}
+              </div>
+              <div className="md:col-span-2">
+                <Textarea placeholder="Notes" {...register('notes')} disabled={isSubmitting} />
+              </div>
+              <DialogFooter className="md:col-span-2 flex justify-end">
+                <Button type="submit" disabled={isSubmitting || editFsdMutation.isPending}>
+                  {editFsdMutation.isPending ? 'Saving...' : 'Save Changes'}
+                </Button>
+                <DialogClose asChild>
+                  <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                </DialogClose>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
         <Card>
           <CardHeader>
             <CardTitle>FSD Info List</CardTitle>
@@ -288,6 +412,10 @@ export default function DROSGuide() {
                       <th className="px-2 py-1 text-left">Lock Model</th>
                       <th className="px-2 py-1 text-left">Notes</th>
                       <th className="px-2 py-1 text-left">Added</th>
+                      {(role === 'admin' ||
+                        role === 'super admin' ||
+                        role === 'dev' ||
+                        role === 'ceo') && <th className="px-2 py-1 text-left">Actions</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -300,6 +428,34 @@ export default function DROSGuide() {
                         <td className="px-2 py-1">
                           {item.created_at ? new Date(item.created_at).toLocaleDateString() : ''}
                         </td>
+                        {(role === 'admin' ||
+                          role === 'super admin' ||
+                          role === 'dev' ||
+                          role === 'ceo') && (
+                          <td className="px-2 py-1">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button size="icon" variant="ghost">
+                                  <DotsHorizontalIcon className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleEdit(item)}>
+                                  <Pencil1Icon className="w-4 h-4 mr-2" /> Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setEntryToDelete(item.id);
+                                    setDeleteDialogOpen(true);
+                                  }}
+                                  className="text-red-600"
+                                >
+                                  <TrashIcon className="w-4 h-4 mr-2" /> Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
@@ -309,6 +465,30 @@ export default function DROSGuide() {
             )}
           </CardContent>
         </Card>
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Entry</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this entry? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction asChild>
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    if (entryToDelete !== null) handleDelete(entryToDelete);
+                    setDeleteDialogOpen(false);
+                  }}
+                >
+                  Delete
+                </Button>
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     );
   }
