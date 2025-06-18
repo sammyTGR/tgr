@@ -24,7 +24,8 @@ function ReserveOfficer({ className }: { className?: string }) {
           <div className="max-w-full">
             <ul className="list-none pl-4">
               <li>
-                Reserve Level 1 Officers CAN Purchase Non-Roster Firearms AND They Are FSC Exempt
+                Reserve Level 1 Officers <span className="text-blue-500 font-bold">CAN</span>{' '}
+                Purchase Non-Roster Firearms AND They Are FSC Exempt
               </li>
               <ul className="list-none pl-4">
                 <li>

@@ -52,7 +52,7 @@ const InterimDl = dynamic(() => import('../../app/TGR/dros/cards/InterimDl'), {
 const PeaceOfficerDROS = dynamic(() => import('../../app/TGR/dros/cards/PeaceOfficer'), {
   ssr: false,
 });
-const ReserveInfo = dynamic(() => import('../../app/TGR/dros/cards/ReserveInfo'), { ssr: false });
+// const ReserveInfo = dynamic(() => import('../../app/TGR/dros/cards/ReserveInfo'), { ssr: false });
 const FedsAgentLeo = dynamic(() => import('../../app/TGR/dros/cards/FedsAgentLeo'), { ssr: false });
 const PartiucularLimDROS = dynamic(() => import('../../app/TGR/dros/cards/PartiucularLimDROS'), {
   ssr: false,
@@ -213,7 +213,7 @@ const dialogContentComponents = {
   RetiredMilitary: <RetiredMilitary />,
   InterimDl: <InterimDl />,
   PeaceOfficerDROS: <PeaceOfficerDROS />,
-  ReserveInfo: <ReserveInfo />,
+  // ReserveInfo: <ReserveInfo />,
   FedsAgentLeo: <FedsAgentLeo />,
   PartiucularLimDROS: <PartiucularLimDROS />,
   SecurityGuards: <SecurityGuards />,

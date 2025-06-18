@@ -48,9 +48,6 @@ function FedsCard({ className }: { className?: string }) {
                 etc.) Must Match The DL | ID
               </li>
             </ul>
-            <ul>
-              <li>All Other Docs (Fishing License, DMV Reg, etc.) Must Match The DL | ID</li>
-            </ul>
             Accepted Documents:
             <ul className="list-disc pl-4">
               <li>Valid, Unexpired U.S. Passport Or Passport Card</li>

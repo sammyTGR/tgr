@@ -19,8 +19,10 @@ function DeptId({ className }: { className?: string }) {
         <CardHeader>
           <CardTitle>Law Enforcement Department ID Verification</CardTitle>
           <CardDescription>
-            Check For Validity Dates & P.C. 832 | &quot;Sworn Officer&quot; Typically Located On The
-            Back Of The Department ID Cards
+            <span className="text-red-500">
+              Check For Validity Dates & P.C. 832 | &quot;Sworn Officer&quot; Typically Located On
+              The Back Of The Department ID Cards
+            </span>
           </CardDescription>
         </CardHeader>
         <CardContent>

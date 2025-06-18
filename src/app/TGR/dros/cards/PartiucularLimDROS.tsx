@@ -24,19 +24,11 @@ function ParticularLimDROS({ className }: { className?: string }) {
         </CardHeader>
         <CardContent>
           <div className="max-w-full">
-            <h2>
-              This Would Include County Correctional Officers, Security Guards, etc. (Think Of
-              Purcell & Marcus)
-            </h2>
             <hr className="my-4" />
             <ul className="list-none pl-4">
               <p>FSC Exemption Code</p>
               <ul className="list-none pl-4">
                 <li>(X91 - PARTICULAR AND LIMITED AUTHORITY PEACE OFFICER)</li>
-              </ul>
-              <p>30-Day Restriction Exemption</p>
-              <ul className="list-none pl-4">
-                <li>(PEACE OFFICER - CALIFORNIA - ACTIVE)</li>
               </ul>
               <p>Waiting Period Exemption | 10 Day Wait</p>
               <ul className="list-none pl-4">

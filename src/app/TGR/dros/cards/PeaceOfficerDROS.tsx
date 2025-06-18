@@ -41,7 +41,8 @@ function PeaceOfficerDROS({ className }: { className?: string }) {
             <hr className="my-4" />
             <span className="text-red-500">
               We Can NO LONGER Accept 10 Day Wait Exemption Letters For CDCR
-            </span>
+            </span>{' '}
+            <br />
             This Means <span className="text-blue-500">NO MORE</span> Same-Day Sales For CDCR
           </CardDescription>
         </CardHeader>
@@ -80,7 +81,6 @@ function PeaceOfficerDROS({ className }: { className?: string }) {
                       Officers&quot;
                     </li>
                     <li>(P.C. 831.x Found On Rear Of Department ID Card)</li>
-                    <li>(Example: Jeff Purcell &amp; Marcus Pereira)</li>
                   </ul>
                   <hr className="my-4" />
                   <li>You Can Verify Any Other PC Code Variations In The Link Below</li>
@@ -100,10 +100,6 @@ function PeaceOfficerDROS({ className }: { className?: string }) {
                   <p>FSC Exemption Code</p>
                   <ul className="list-none pl-4">
                     <li>(X31 - PEACE OFFICER - CALIFORNIA - ACTIVE)</li>
-                  </ul>
-                  <p>30-Day Restriction Exemption</p>
-                  <ul className="list-none pl-4">
-                    <li>(PEACE OFFICER - CALIFORNIA - ACTIVE)</li>
                   </ul>
                   <p>Waiting Period Exemption | 10 Day Wait</p>
                   <ul className="list-none pl-4">
@@ -130,10 +126,6 @@ function PeaceOfficerDROS({ className }: { className?: string }) {
                   <p>FSC Exemption Code</p>
                   <ul className="list-none pl-4">
                     <li>(X31 - PEACE OFFICER - CALIFORNIA - ACTIVE)</li>
-                  </ul>
-                  <p>30-Day Restriction Exemption</p>
-                  <ul className="list-none pl-4">
-                    <li>(PEACE OFFICER - ACTIVE - LETTER REQUIRED)</li>
                   </ul>
                   <p>Waiting Period Exemption | 10 Day Wait</p>
                   <ul className="list-none pl-4">

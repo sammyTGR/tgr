@@ -27,10 +27,9 @@ function Under21({ className }: { className?: string }) {
         </CardHeader>
         <CardContent>
           <div className="max-w-[425px]">
-            <p className="text-red-500 font-bold">DO NOT USE AN FSC Exemption Code</p>
-            <ul className="list-none pl-4">
-              <li>- Enter FSC Number</li>
-            </ul>
+            <p className="text-red-500 font-bold">
+              Use Valid Hunting License As FSC Exemption Or Enter FSC If Customer Has One
+            </p>
             <p className="font-bold">Age Exemption</p>
             <ul className="list-none pl-4">
               <li>- Valid Hunting License</li>

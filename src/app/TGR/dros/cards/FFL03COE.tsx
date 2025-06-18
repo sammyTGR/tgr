@@ -38,10 +38,6 @@ function FFL03COE({ className }: { className?: string }) {
             <ul className="list-none pl-4">
               <li>(X13 - FFL COLLECTOR W/COE CURIO/RELIC TRANSACTION)</li>
             </ul>
-            <p>30-Day Restriction Exemption</p>
-            <ul className="list-none pl-4">
-              <li>(COLLECTOR - 03 FFL - VALID COE)</li>
-            </ul>
             <hr className="my-4" />
             <p>
               <span className="text-red-500">

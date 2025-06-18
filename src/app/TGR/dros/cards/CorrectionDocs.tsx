@@ -41,7 +41,6 @@ function CorrectionDocs() {
                   <li>- Off Road Vehicle Registration</li>
                 </ul>
               </li>
-              <li>Valid CA CCW Permit</li>
               <li>Valid CA Hunting License</li>
               <li>Valid CA Fishing License</li>
               <li>Current & Valid Guard Card + Exposed Carry Card With Current Physical Address</li>
