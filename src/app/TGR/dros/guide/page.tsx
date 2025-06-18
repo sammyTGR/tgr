@@ -17,7 +17,7 @@ import RoleBasedWrapper from '@/components/RoleBasedWrapper';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import BannedFirearmsPage from '../banned/page';
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useSidebar } from '@/components/ui/sidebar';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -50,6 +50,7 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
 } from '@/components/ui/alert-dialog';
+import Link from 'next/link';
 
 type DataRow = string[];
 type Data = DataRow[];
@@ -464,6 +465,16 @@ export default function DROSGuide() {
               </div>
             )}
           </CardContent>
+          <CardFooter>
+            <Link
+              href="https://oag.ca.gov/firearms/certified-safety-devices/search-results"
+              className="text-purple-600 hover:text-purple-700"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Approved Safety Devices
+            </Link>
+          </CardFooter>
         </Card>
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <AlertDialogContent>
