@@ -36,11 +36,27 @@ export default function DrosGuidePage() {
     {
       id: 'banned-assault-weapons',
       title: 'Banned Assault Weapons',
-      content: `To review audits:
+      content: `To view the list of banned assault weapons:
         • From the "DROS Guidance" page, click the "Banned Assault Weapons" tab in the page tabs list
         • You can search for specific audits by utilizing the search bars at the top of the page
         • Filter which columns are visible by clicking on the Columns dropdown menu to the right of the search bars
         • Utilize the pagination at the bottom of the page to navigate through the audits and view more or less audits per page
+        `,
+    },
+    {
+      id: 'approved-devices',
+      title: 'Approved Devices',
+      content: `To view the list of approved FSDs:
+        • From the "DROS Guidance" page, click the "Approved Devices" tab in the page tabs list
+        • You can search for specific devices by utilizing the search bars at the top of the page
+        • Utilize the pagination at the bottom of the page to navigate through the devices and view more or less devices per page
+        `,
+    },
+    {
+      id: 'oem-fsd-info',
+      title: 'OEM FSD Info',
+      content: `To view the list of OEM FSDs:
+        • From the "DROS Guidance" page, click the "OEM FSD Info" tab in the page tabs list
         `,
     },
     // {
