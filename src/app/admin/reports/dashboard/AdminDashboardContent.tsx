@@ -1355,7 +1355,6 @@ function AdminDashboardContent() {
     });
   }
 
-
   // Add this near your other queries
   const drosCancellationsQuery = useQuery({
     queryKey: ['drosCancellations', dateRange?.from?.toISOString(), dateRange?.to?.toISOString()],
@@ -1402,17 +1401,43 @@ function AdminDashboardContent() {
 
         <Tabs defaultValue="reporting">
           <div className="flex items-center space-x-2">
-            <TabsList className="border-b border-gray-200 dark:border-gray-700">
-              <TabsTrigger value="reporting">Dashboard</TabsTrigger>
-              <TabsTrigger value="sales">Daily Sales Review</TabsTrigger>
-
-              <>
-                <TabsTrigger value="sales-glance">Sales At A Glance</TabsTrigger>
-              </>
-
-              <TabsTrigger value="sales-employee">Sales By Employee</TabsTrigger>
-              <TabsTrigger value="sales-kpis">KPIs</TabsTrigger>
-              <TabsTrigger value="metrics">Key Metrics</TabsTrigger>
+            <TabsList className="border border-zinc-800 shadow-sm rounded-md m-1 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-opacity-50 focus:z-10">
+              <TabsTrigger
+                value="reporting"
+                className="flex-1 relative py-2 text-sm font-medium whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
+              >
+                Dashboard
+              </TabsTrigger>
+              <TabsTrigger
+                value="sales"
+                className="flex-1 relative py-2 text-sm font-medium whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
+              >
+                Daily Sales Review
+              </TabsTrigger>
+              <TabsTrigger
+                value="sales-glance"
+                className="flex-1 relative py-2 text-sm font-medium whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
+              >
+                Sales At A Glance
+              </TabsTrigger>
+              <TabsTrigger
+                value="sales-employee"
+                className="flex-1 relative py-2 text-sm font-medium whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
+              >
+                Sales By Employee
+              </TabsTrigger>
+              <TabsTrigger
+                value="sales-kpis"
+                className="flex-1 relative py-2 text-sm font-medium whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
+              >
+                KPIs
+              </TabsTrigger>
+              <TabsTrigger
+                value="metrics"
+                className="flex-1 relative py-2 text-sm font-medium whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
+              >
+                Key Metrics
+              </TabsTrigger>
             </TabsList>
           </div>
 

@@ -299,9 +299,13 @@ export default function DailyDepositsPage() {
       >
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <div className="flex items-center justify-between">
-            <TabsList>
+            <TabsList className="border border-zinc-800 shadow-sm rounded-md m-1 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-opacity-50 focus:z-10">
               {registers.map((register, index) => (
-                <TabsTrigger key={index} value={`reg${index + 1}`}>
+                <TabsTrigger
+                  key={index}
+                  value={`reg${index + 1}`}
+                  className="flex-1 relative py-2 text-sm font-medium whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
+                >
                   {`Reg ${index + 1}`}
                 </TabsTrigger>
               ))}

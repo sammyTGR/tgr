@@ -469,16 +469,16 @@ const calculateSummaryData = (
 
     // Create a map of employee departments
     const employeeDepartmentMap = new Map<string, { department: string; isOperations: boolean }>();
-    
+
     employeesData.forEach((employee) => {
       const department = employee.department?.toLowerCase() || '';
       const isOperations = department === 'operations';
-      
+
       employeeDepartmentMap.set(employee.lanid, {
         department: employee.department || '',
-        isOperations
+        isOperations,
       });
-      
+
       // console.log(`Employee ${employee.lanid}: Department=${employee.department}, IsOperations=${isOperations}`);
     });
 
@@ -1242,16 +1242,16 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
   // Date range calculation
   const dateRange = useMemo(() => {
     if (!selectedDate) return null;
-  
+
     // Work with the selected date directly in UTC
     const targetDate = new Date(selectedDate);
-    
+
     // Create start date (first day of month) - keep it simple
     const startDate = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1);
-    
-    // Create end date (selected date) - keep it simple  
+
+    // Create end date (selected date) - keep it simple
     const endDate = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
-  
+
     // console.log('Date Range Calculation:', {
     //   selectedDate: selectedDate.toISOString(),
     //   startDate: startDate.toISOString(),
@@ -1259,7 +1259,7 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
     //   formattedStartDate: format(startDate, 'yyyy-MM-dd'),
     //   formattedEndDate: format(endDate, 'yyyy-MM-dd'),
     // });
-  
+
     return {
       startDate: format(startDate, 'yyyy-MM-dd'),
       endDate: format(endDate, 'yyyy-MM-dd'),
@@ -1401,34 +1401,34 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
   };
 
   // Computed summary data
-// Computed summary data
-const summaryData = useMemo(() => {
-  if (
-    !salesDataQuery.data ||
-    !contestAuditsQuery.data ||
-    !pointsCalculationQuery.data ||
-    !employeesQuery.data || // Add this check
-    !dateRange
-  ) {
-    return [];
-  }
+  // Computed summary data
+  const summaryData = useMemo(() => {
+    if (
+      !salesDataQuery.data ||
+      !contestAuditsQuery.data ||
+      !pointsCalculationQuery.data ||
+      !employeesQuery.data || // Add this check
+      !dateRange
+    ) {
+      return [];
+    }
 
-  const { startDate, endDate } = dateRange as { startDate: string; endDate: string };
+    const { startDate, endDate } = dateRange as { startDate: string; endDate: string };
 
-  return calculateSummaryData(
+    return calculateSummaryData(
+      salesDataQuery.data,
+      contestAuditsQuery.data as FormAuditData[],
+      pointsCalculationQuery.data,
+      { startDate, endDate },
+      employeesQuery.data // Add this parameter
+    );
+  }, [
     salesDataQuery.data,
-    contestAuditsQuery.data as FormAuditData[],
+    contestAuditsQuery.data,
     pointsCalculationQuery.data,
-    { startDate, endDate },
-    employeesQuery.data // Add this parameter
-  );
-}, [
-  salesDataQuery.data, 
-  contestAuditsQuery.data, 
-  pointsCalculationQuery.data, 
-  employeesQuery.data, // Add this dependency
-  dateRange
-]);
+    employeesQuery.data, // Add this dependency
+    dateRange,
+  ]);
 
   // Update metricsData to pass selectedDate
   const metricsData = useMemo(() => {
@@ -1474,25 +1474,25 @@ const summaryData = useMemo(() => {
         pageParams.setParams({ date: undefined });
         return;
       }
-  
+
       // Create a clean date without time components to avoid timezone issues
       const year = date.getFullYear();
       const month = date.getMonth();
       const day = date.getDate();
-      
+
       // Create date in local timezone at midnight
       const cleanDate = new Date(year, month, day);
-  
+
       // console.log('handleDateChange:', {
       //   inputDate: date.toISOString(),
       //   cleanDate: cleanDate.toISOString(),
       //   formattedDate: format(cleanDate, 'yyyy-MM-dd'),
       // });
-  
+
       // Format the date
       const formattedDate = format(cleanDate, 'yyyy-MM-dd');
       pageParams.setParams({ date: formattedDate });
-  
+
       // Invalidate queries to force refresh
       queryClient.invalidateQueries({ queryKey: ['salesData'] });
       queryClient.invalidateQueries({ queryKey: ['audits'] });
@@ -2044,11 +2044,31 @@ function AuditsPage() {
 
         <Tabs value={tab} onValueChange={handleTabChange}>
           <div className="flex items-center space-x-2">
-            <TabsList>
-              <TabsTrigger value="submit">Submit Audits</TabsTrigger>
-              <TabsTrigger value="review">Review Audits</TabsTrigger>
-              <TabsTrigger value="contest">Sales Performance</TabsTrigger>
-              <TabsTrigger value="guidelines">Auditing Guidelines</TabsTrigger>
+            <TabsList className="border border-zinc-800 shadow-sm rounded-md m-1 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-opacity-50 focus:z-10">
+              <TabsTrigger
+                value="submit"
+                className="flex-1 relative py-2 text-sm font-medium whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
+              >
+                Submit Audits
+              </TabsTrigger>
+              <TabsTrigger
+                value="review"
+                className="flex-1 relative py-2 text-sm font-medium whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
+              >
+                Review Audits
+              </TabsTrigger>
+              <TabsTrigger
+                value="contest"
+                className="flex-1 relative py-2 text-sm font-medium whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
+              >
+                Sales Performance
+              </TabsTrigger>
+              <TabsTrigger
+                value="guidelines"
+                className="flex-1 relative py-2 text-sm font-medium whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
+              >
+                Auditing Guidelines
+              </TabsTrigger>
             </TabsList>
           </div>
 
@@ -2187,16 +2207,12 @@ function AuditsPage() {
                 </CardHeader>
                 <CardContent>
                   <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full pl-3 text-left font-normal mb-2">
-                      {selectedDate ? (
-                        format(selectedDate, 'PPP')
-                      ) : (
-                        <span>Pick a date</span>
-                      )}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full pl-3 text-left font-normal mb-2">
+                        {selectedDate ? format(selectedDate, 'PPP') : <span>Pick a date</span>}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
                       <CustomCalendarDashboard
                         selectedDate={selectedDate}

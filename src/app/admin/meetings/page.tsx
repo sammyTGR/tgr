@@ -497,10 +497,25 @@ export default function TeamWeeklyNotes() {
 
           <Tabs defaultValue="weekly-notes" className="w-full">
             <div className="flex items-center space-x-2 mb-4">
-              <TabsList>
-                <TabsTrigger value="weekly-notes">Team Updates</TabsTrigger>
-                <TabsTrigger value="edit-notes">Edit Your Notes</TabsTrigger>
-                <TabsTrigger value="discussed-notes">Discussed Topics</TabsTrigger>
+              <TabsList className="border border-zinc-800 shadow-sm rounded-md m-1 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-opacity-50 focus:z-10">
+                <TabsTrigger
+                  value="weekly-notes"
+                  className="flex-1 relative py-2 text-sm font-medium whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
+                >
+                  Team Updates
+                </TabsTrigger>
+                <TabsTrigger
+                  value="edit-notes"
+                  className="flex-1 relative py-2 text-sm font-medium whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
+                >
+                  Edit Your Notes
+                </TabsTrigger>
+                <TabsTrigger
+                  value="discussed-notes"
+                  className="flex-1 relative py-2 text-sm font-medium whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
+                >
+                  Discussed Topics
+                </TabsTrigger>
               </TabsList>
             </div>
 
