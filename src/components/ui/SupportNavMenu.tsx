@@ -6,6 +6,7 @@ import { supabase } from '@/utils/supabase/client';
 import { Button } from './button';
 import RoleBasedWrapper from '../RoleBasedWrapper';
 import { ScrollArea, ScrollBar } from './scroll-area';
+import * as ScrollAreaPrimitive from '@radix-ui/react-scroll-area';
 import { Cross2Icon } from '@radix-ui/react-icons';
 
 // Verify and update the paths here
@@ -98,15 +99,40 @@ const Guardians = dynamic(() => import('../../app/TGR/dros/cards/Guardians'), {
 const SubItemsContainer = styled.div`
   position: fixed;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 4px;
-  padding: 4px;
-  background: muted;
-  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-  z-index: 20;
-  width: 700px;
-  max-width: calc(100vw - 20px);
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.5rem;
+  background: hsl(var(--background));
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  box-shadow: var(--shadow);
+  z-index: 50;
+  width: min(700px, calc(100vw - 2rem));
+  max-width: calc(100vw - 2rem);
   overflow-x: hidden;
+`;
+
+const NavigationWrapper = styled.div`
+  position: relative;
+  width: 100%;
+  border-bottom: 1px solid var(--border);
+  background-color: hsl(var(--muted));
+  padding: 1rem 0;
+  margin-bottom: 4rem;
+  z-index: 40;
+`;
+
+const NavigationList = styled(NavigationMenu.List)`
+  display: flex;
+  flex-direction: row;
+  list-style-type: none;
+  margin: 0;
+  padding: 0.5rem 0;
+  gap: 0.5rem;
+`;
+
+const NavigationItem = styled(NavigationMenu.Item)`
+  position: relative;
 `;
 
 // font-size controls the size of the text
@@ -115,7 +141,16 @@ const SubItemWrapper = styled.div`
   word-wrap: break-word;
   overflow-wrap: break-word;
   hyphens: auto;
-  font-size: 0.92rem;
+  font-size: 0.875rem;
+  padding: 0.5rem;
+  border-radius: 0.25rem;
+  transition: all 0.2s ease;
+  background-color: var(--background);
+
+  &:hover {
+    background-color: var(--accent);
+    color: var(--accent-foreground);
+  }
 `;
 
 // z-index: 100; ensures the dialog is above other content
@@ -125,21 +160,31 @@ const DialogContainer = styled.div`
   left: 50%;
   transform: translate(-50%, -50%);
   z-index: 1000;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  box-shadow: var(--shadow);
+  max-width: calc(100vw - 2rem);
+  max-height: calc(100vh - 2rem);
+  overflow: hidden;
 `;
 
 // Close Button - Styled component for the close button
 const CloseButton = styled.button`
-  position: fixed;
-  top: 1rem;
-  right: 1rem;
-  background: none;
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  background: transparent;
   border: none;
   cursor: pointer;
   z-index: 1001;
-  padding: 0.5rem;
-  color: #666;
+  padding: 0.25rem;
+  border-radius: 0.25rem;
+  color: var(--muted-foreground);
+
   &:hover {
-    color: #ff5733;
+    background-color: var(--accent);
+    color: var(--accent-foreground);
   }
 `;
 
@@ -158,17 +203,15 @@ const colorMapping = {
 };
 
 const applyColorToLabel = (label: string) => {
-  // function body
-
   const keywords = Object.keys(colorMapping);
   const foundKeyword = keywords.find((keyword) => label.includes(keyword));
 
   if (foundKeyword) {
     const parts = label.split(foundKeyword);
     const ColorStyledText = styled.span`
-      colorMapping[foundKeyword as keyof typeof colorMapping]
-        font-weight: bold; 
-      `;
+      color: ${colorMapping[foundKeyword as keyof typeof colorMapping]};
+      font-weight: bold;
+    `;
 
     return (
       <>
@@ -179,7 +222,6 @@ const applyColorToLabel = (label: string) => {
     );
   }
 
-  // Return the label as is if no keywords are found
   return label;
 };
 
@@ -231,6 +273,23 @@ const dialogContentComponents = {
   Guardians: <Guardians />,
   // Add other mappings as necessary
 };
+
+const StyledNavigationTrigger = styled(Button)`
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+  background-color: transparent;
+
+  &:hover {
+    background-color: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+  }
+
+  &:focus {
+    background-color: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+  }
+`;
 
 export default function SupportNavMenu() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
@@ -336,19 +395,20 @@ export default function SupportNavMenu() {
     const menuItem = event.currentTarget;
     const rect = menuItem.getBoundingClientRect();
     const viewportWidth = window.innerWidth;
-    const subItemsWidth = Math.min(300, viewportWidth - 20); // Adjust width based on viewport
+    const containerWidth = Math.min(700, viewportWidth - 40); // 40px for padding
 
     let left = rect.left;
-    let top = rect.bottom;
+    let top = rect.bottom + 4; // Add 4px gap between menu and dropdown
 
-    // Check if the sub-items container would overflow on the right
-    if (left + subItemsWidth > viewportWidth) {
-      // Align the right edge of the sub-items with the right edge of the menu item
-      left = rect.right - subItemsWidth;
+    // Check if the container would overflow on the right
+    if (left + containerWidth > viewportWidth - 20) {
+      // 20px safety margin
+      // Align with the right edge of the viewport with some padding
+      left = viewportWidth - containerWidth - 20;
     }
 
     // Ensure the container doesn't go off the left edge of the screen
-    left = Math.max(10, left);
+    left = Math.max(20, left); // 20px minimum padding from left
 
     setSubItemsPosition({ left, top });
     setHoveredIndex(index);
@@ -358,31 +418,19 @@ export default function SupportNavMenu() {
     <RoleBasedWrapper
       allowedRoles={['user', 'auditor', 'admin', 'super admin', 'dev', 'gunsmith', 'ceo']}
     >
-      <div
-        style={{
-          position: 'relative',
-          display: 'flex',
-          justifyContent: 'center',
-        }}
-      >
-        <NavigationMenu.Root>
-          <NavigationMenu.List
-            style={{
-              display: 'flex',
-              flexDirection: 'row',
-              listStyleType: 'none',
-            }}
-          >
+      <NavigationWrapper>
+        <NavigationMenu.Root className="relative">
+          <NavigationList>
             {menuItems.map((menuItem, index) => (
-              <NavigationMenu.Item
+              <NavigationItem
                 key={index}
                 onMouseEnter={(event) => handleMenuItemHover(index, event)}
                 onMouseLeave={() => setHoveredIndex(null)}
               >
                 <NavigationMenu.Trigger asChild>
-                  <Button variant="ghost" style={{ cursor: 'pointer' }}>
+                  <StyledNavigationTrigger variant="ghost">
                     {menuItem.label}
-                  </Button>
+                  </StyledNavigationTrigger>
                 </NavigationMenu.Trigger>
                 {hoveredIndex === index && (
                   <SubItemsContainer
@@ -401,17 +449,9 @@ export default function SupportNavMenu() {
                     ))}
                   </SubItemsContainer>
                 )}
-              </NavigationMenu.Item>
+              </NavigationItem>
             ))}
-            <NavigationMenu.Indicator
-              style={{
-                bottom: 0,
-                height: 5,
-                backgroundColor: 'aqua',
-                transition: 'all 0.5s ease',
-              }}
-            />
-          </NavigationMenu.List>
+          </NavigationList>
         </NavigationMenu.Root>
 
         {activeDialogContent && (
@@ -424,13 +464,15 @@ export default function SupportNavMenu() {
             >
               <Cross2Icon className="w-4 h-4" />
             </CloseButton>
-            <ScrollArea className="h-[calc(100vh-10rem)] rounded-md">
-              <div>{activeDialogContent}</div>
+            <ScrollAreaPrimitive.Root className="relative overflow-hidden h-[calc(100vh-10rem)]">
+              <ScrollAreaPrimitive.Viewport className="h-full w-full rounded-[inherit] p-4">
+                {activeDialogContent}
+              </ScrollAreaPrimitive.Viewport>
               <ScrollBar orientation="vertical" />
-            </ScrollArea>
+            </ScrollAreaPrimitive.Root>
           </DialogContainer>
         )}
-      </div>
+      </NavigationWrapper>
     </RoleBasedWrapper>
   );
 }

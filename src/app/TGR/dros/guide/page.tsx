@@ -714,119 +714,121 @@ export default function DROSGuide() {
 
   return (
     <RoleBasedWrapper allowedRoles={['user', 'auditor', 'admin', 'super admin', 'dev']}>
-      <div
-        className={`flex flex-col space-y-4 w-full ml-4 md:ml-4 lg:ml-4 overflow-hidden md:w-[calc(100vw-15rem)] lg:w-[calc(100vw-20rem)] transition-all duration-300`}
-      >
-        <div className="flex flow-row items-center justify-between mb-8">
-          <div className="flex justify-center items-center mx-auto mb-24 w-full">
-            <SupportMenu />
-          </div>
+      <div className="flex flex-col w-full space-y-6">
+        <div className="mx-auto sticky top-0 z-40 bg-background">
+          <SupportMenu />
         </div>
 
-        <Tabs defaultValue="dros-guide" className="space-y-6">
-          <TabsList className="border border-zinc-800 shadow-sm rounded-md m-1 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-opacity-50 focus:z-10">
-            <TabsTrigger
-              value="dros-guide"
-              className="flex-1 relative py-2 text-sm font-medium whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
-            >
-              DROS Guide
-            </TabsTrigger>
-            <TabsTrigger
-              value="assault-weapons"
-              className="flex-1 relative py-2 text-sm font-medium whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
-            >
-              Banned Assault Weapons
-            </TabsTrigger>
-            <TabsTrigger
-              value="approved-devices"
-              className="flex-1 relative py-2 text-sm font-medium whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
-            >
-              Approved Devices
-            </TabsTrigger>
-            <TabsTrigger
-              value="fsd-info"
-              className="flex-1 relative py-2 text-sm font-medium whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
-            >
-              OEM FSD Info
-            </TabsTrigger>
-          </TabsList>
+        <div className="container mx-auto px-4 pb-8">
+          <Tabs defaultValue="dros-guide" className="space-y-6">
+            <TabsList className="border border-zinc-800 shadow-sm rounded-md m-1 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-opacity-50 focus:z-10">
+              <TabsTrigger
+                value="dros-guide"
+                className="flex-1 relative py-2 text-sm font-medium whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
+              >
+                DROS Guide
+              </TabsTrigger>
+              <TabsTrigger
+                value="assault-weapons"
+                className="flex-1 relative py-2 text-sm font-medium whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
+              >
+                Banned Assault Weapons
+              </TabsTrigger>
+              <TabsTrigger
+                value="approved-devices"
+                className="flex-1 relative py-2 text-sm font-medium whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
+              >
+                Approved Devices
+              </TabsTrigger>
+              <TabsTrigger
+                value="fsd-info"
+                className="flex-1 relative py-2 text-sm font-medium whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
+              >
+                OEM FSD Info
+              </TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="dros-guide">
-            <div className="grid gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Selection Criteria</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {selections.map((selection, index) => {
-                      const shouldShow =
-                        index === 0 ||
-                        (selections[index - 1] !== null &&
-                          getOptionsForSelect(index).length > 0 &&
-                          getOptionsForSelect(index - 1).length > 0);
-
-                      if (!shouldShow) return null;
-
-                      return (
-                        <Select
-                          key={index}
-                          disabled={index > 0 && selections[index - 1] === null}
-                          onValueChange={(value) => handleSelectionChange(index, value)}
-                          value={selection || undefined}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder={selection === null ? `` : selection} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {getOptionsForSelect(index).map((option, optionIndex) => (
-                              <SelectItem key={optionIndex} value={option}>
-                                {option}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {columnHText && (
+            <TabsContent value="dros-guide">
+              <div className="grid gap-6">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Requirements</CardTitle>
+                    <CardTitle>Selection Criteria</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-1">
-                      {(columnHText as string).split('\n').map((line, index) => (
-                        <p key={index}>{line}</p>
-                      ))}
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                      {selections.map((selection, index) => {
+                        const shouldShow =
+                          index === 0 ||
+                          (selections[index - 1] !== null &&
+                            getOptionsForSelect(index).length > 0 &&
+                            getOptionsForSelect(index - 1).length > 0);
+
+                        if (!shouldShow) return null;
+
+                        return (
+                          <Select
+                            key={index}
+                            disabled={index > 0 && selections[index - 1] === null}
+                            onValueChange={(value) => handleSelectionChange(index, value)}
+                            value={selection || undefined}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder={selection === null ? `` : selection} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {getOptionsForSelect(index).map((option, optionIndex) => (
+                                <SelectItem key={optionIndex} value={option}>
+                                  {option}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        );
+                      })}
                     </div>
                   </CardContent>
                 </Card>
-              )}
 
-              <div className="flex justify-end">
-                <Button variant="gooeyLeft" onClick={resetSelections} className="w-full sm:w-auto">
-                  Reset Selections
-                </Button>
+                {columnHText && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Requirements</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-1">
+                        {(columnHText as string).split('\n').map((line, index) => (
+                          <p key={index}>{line}</p>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                <div className="flex justify-end">
+                  <Button
+                    variant="gooeyLeft"
+                    onClick={resetSelections}
+                    className="w-full sm:w-auto"
+                  >
+                    Reset Selections
+                  </Button>
+                </div>
               </div>
-            </div>
-          </TabsContent>
+            </TabsContent>
 
-          <TabsContent value="assault-weapons">
-            <BannedFirearmsPage />
-          </TabsContent>
+            <TabsContent value="assault-weapons">
+              <BannedFirearmsPage />
+            </TabsContent>
 
-          <TabsContent value="approved-devices">
-            <ApprovedDevicesTab />
-          </TabsContent>
+            <TabsContent value="approved-devices">
+              <ApprovedDevicesTab />
+            </TabsContent>
 
-          <TabsContent value="fsd-info">
-            <FSDInfoTab />
-          </TabsContent>
-        </Tabs>
+            <TabsContent value="fsd-info">
+              <FSDInfoTab />
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
     </RoleBasedWrapper>
   );
