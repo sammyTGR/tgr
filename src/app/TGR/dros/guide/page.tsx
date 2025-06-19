@@ -15,9 +15,9 @@ import dynamic from 'next/dynamic';
 import { supabase } from '../../../../utils/supabase/client';
 import FedsCard from '../cards/FedsCard';
 import RoleBasedWrapper from '@/components/RoleBasedWrapper';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import BannedFirearmsPage from '../banned/page';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useSidebar } from '@/components/ui/sidebar';
 import { Input } from '@/components/ui/input';
@@ -52,6 +52,8 @@ import {
   AlertDialogCancel,
 } from '@/components/ui/alert-dialog';
 import Link from 'next/link';
+import { useDebounce } from '@/hooks/use-debounce';
+import { XIcon } from 'lucide-react';
 
 type DataRow = string[];
 type Data = DataRow[];
@@ -505,6 +507,192 @@ export default function DROSGuide() {
     );
   }
 
+  function ApprovedDevicesTab() {
+    const [modelFilter, setModelFilter] = useState('');
+    const [manufacturerFilter, setManufacturerFilter] = useState('');
+    const [page, setPage] = useState(1);
+    const pageSize = 50;
+    const debouncedModelFilter = useDebounce(modelFilter, 300);
+    const queryClient = useQueryClient();
+
+    const { data, isLoading, isFetching } = useQuery({
+      queryKey: ['approved-devices', page, manufacturerFilter, debouncedModelFilter],
+      queryFn: async () => {
+        const params = new URLSearchParams({
+          limit: String(pageSize),
+          offset: String((page - 1) * pageSize),
+          model: debouncedModelFilter,
+          manufacturer: manufacturerFilter,
+        });
+        const res = await fetch(`/api/approved-devices?${params}`);
+        if (!res.ok) throw new Error('Failed to fetch approved devices');
+        return res.json();
+      },
+      placeholderData: keepPreviousData,
+    });
+
+    // Prefetch next page
+    const total = data?.total || 0;
+    const totalPages = Math.ceil(total / pageSize);
+    useEffect(() => {
+      if (page < totalPages) {
+        const params = new URLSearchParams({
+          limit: String(pageSize),
+          offset: String(page * pageSize),
+          model: debouncedModelFilter,
+          manufacturer: manufacturerFilter,
+        });
+        queryClient.prefetchQuery({
+          queryKey: ['approved-devices', page + 1, manufacturerFilter, debouncedModelFilter],
+          queryFn: async () => {
+            const res = await fetch(`/api/approved-devices?${params}`);
+            if (!res.ok) throw new Error('Failed to fetch approved devices');
+            return res.json();
+          },
+        });
+      }
+    }, [page, manufacturerFilter, debouncedModelFilter, totalPages, queryClient]);
+
+    // Get unique manufacturers for dropdown, filter out empty strings and non-strings
+    const manufacturers: string[] = data?.rows
+      ? (Array.from(
+          new Set(
+            data.rows
+              .map((row: any) => row.manufacturer)
+              .filter(
+                (m: unknown): m is string =>
+                  typeof m === 'string' && m.trim() !== '' && m.trim().length > 0
+              )
+          )
+        ).sort() as string[])
+      : [];
+
+    // Filtered rows (filtering is now done server-side, but keep for model/manufacturer filter)
+    const filteredRows = data?.rows
+      ? data.rows.filter((row: any) => {
+          const matchesModel = debouncedModelFilter
+            ? row.model?.toLowerCase().includes(debouncedModelFilter.toLowerCase())
+            : true;
+          const matchesManufacturer =
+            !manufacturerFilter || manufacturerFilter === 'all-manufacturers'
+              ? true
+              : row.manufacturer === manufacturerFilter;
+          return matchesModel && matchesManufacturer;
+        })
+      : [];
+
+    return (
+      <div className="space-y-4">
+        <div className="flex gap-2 mb-2 ml-1">
+          <Input
+            placeholder="Search by Model"
+            value={modelFilter}
+            onChange={(e) => setModelFilter(e.target.value)}
+            className="w-64"
+          />
+          <Select value={manufacturerFilter} onValueChange={setManufacturerFilter}>
+            <SelectTrigger className="w-64">
+              <SelectValue placeholder="Filter by Manufacturer" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all-manufacturers">All Manufacturers</SelectItem>
+              {manufacturers.map((manufacturer: string) => (
+                <SelectItem key={manufacturer} value={manufacturer}>
+                  {manufacturer}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {/* Hidden clear button for accessibility */}
+          {(modelFilter || (manufacturerFilter && manufacturerFilter !== 'all-manufacturers')) && (
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              aria-label="Clear search and reset manufacturer filter"
+              onClick={() => {
+                setModelFilter('');
+                setManufacturerFilter('all-manufacturers');
+              }}
+              className="self-center"
+            >
+              <XIcon className="w-4 h-4" />
+            </Button>
+          )}
+        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Approved Safety Devices</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div>Loading...</div>
+            ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-sm">
+                    <thead>
+                      <tr>
+                        <th className="px-2 py-1 text-left">Manufacturer</th>
+                        <th className="px-2 py-1 text-left">Model</th>
+                        <th className="px-2 py-1 text-left">Type</th>
+                        <th className="px-2 py-1 text-left">Description</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {isFetching && !isLoading
+                        ? // Skeleton rows for perceived performance
+                          Array.from({ length: pageSize }).map((_, i) => (
+                            <tr key={i} className="border-t animate-pulse">
+                              <td className="px-2 py-1 bg-muted">&nbsp;</td>
+                              <td className="px-2 py-1 bg-muted">&nbsp;</td>
+                              <td className="px-2 py-1 bg-muted">&nbsp;</td>
+                              <td className="px-2 py-1 bg-muted">&nbsp;</td>
+                            </tr>
+                          ))
+                        : filteredRows.map((row: any, i: number) => (
+                            <tr key={i} className="border-t">
+                              <td className="px-2 py-1">{row.manufacturer || 'N/A'}</td>
+                              <td className="px-2 py-1">{row.model || 'N/A'}</td>
+                              <td className="px-2 py-1">{row.type || 'N/A'}</td>
+                              <td className="px-2 py-1 whitespace-pre-wrap">
+                                {row.description || 'N/A'}
+                              </td>
+                            </tr>
+                          ))}
+                    </tbody>
+                  </table>
+                  {filteredRows.length === 0 && !isFetching && (
+                    <div className="text-center py-4">No results found.</div>
+                  )}
+                </div>
+                <div className="flex justify-between items-center mt-4">
+                  <button
+                    className="px-2 py-1 border rounded"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                  >
+                    Previous
+                  </button>
+                  <span>
+                    Page {page} of {totalPages}
+                  </span>
+                  <button
+                    className="px-2 py-1 border rounded"
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                  >
+                    Next
+                  </button>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <RoleBasedWrapper allowedRoles={['user', 'auditor', 'admin', 'super admin', 'dev']}>
       <div
@@ -517,9 +705,10 @@ export default function DROSGuide() {
         </div>
 
         <Tabs defaultValue="dros-guide" className="space-y-6">
-          <TabsList>
+          <TabsList className="bg-muted">
             <TabsTrigger value="dros-guide">DROS Guide</TabsTrigger>
             <TabsTrigger value="assault-weapons">Banned Assault Weapons</TabsTrigger>
+            <TabsTrigger value="approved-devices">Approved Devices</TabsTrigger>
             <TabsTrigger value="fsd-info">FSD Info</TabsTrigger>
           </TabsList>
 
@@ -589,6 +778,10 @@ export default function DROSGuide() {
 
           <TabsContent value="assault-weapons">
             <BannedFirearmsPage />
+          </TabsContent>
+
+          <TabsContent value="approved-devices">
+            <ApprovedDevicesTab />
           </TabsContent>
 
           <TabsContent value="fsd-info">
