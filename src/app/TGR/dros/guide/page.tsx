@@ -728,7 +728,7 @@ export default function DROSGuide() {
             <TabsTrigger value="dros-guide">DROS Guide</TabsTrigger>
             <TabsTrigger value="assault-weapons">Banned Assault Weapons</TabsTrigger>
             <TabsTrigger value="approved-devices">Approved Devices</TabsTrigger>
-            <TabsTrigger value="fsd-info">FSD Info</TabsTrigger>
+            <TabsTrigger value="fsd-info">OEM FSD Info</TabsTrigger>
           </TabsList>
 
           <TabsContent value="dros-guide">
