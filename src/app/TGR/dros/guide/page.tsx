@@ -724,11 +724,31 @@ export default function DROSGuide() {
         </div>
 
         <Tabs defaultValue="dros-guide" className="space-y-6">
-          <TabsList className="bg-muted border rounded-md active:bg-muted active:text-primary-foreground dark:active:bg-muted dark:active:text-muted-foreground">
-            <TabsTrigger value="dros-guide">DROS Guide</TabsTrigger>
-            <TabsTrigger value="assault-weapons">Banned Assault Weapons</TabsTrigger>
-            <TabsTrigger value="approved-devices">Approved Devices</TabsTrigger>
-            <TabsTrigger value="fsd-info">OEM FSD Info</TabsTrigger>
+          <TabsList className="border border-zinc-800 shadow-sm rounded-md m-1 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-opacity-50 focus:z-10">
+            <TabsTrigger
+              value="dros-guide"
+              className="flex-1 relative py-2 text-sm font-medium whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
+            >
+              DROS Guide
+            </TabsTrigger>
+            <TabsTrigger
+              value="assault-weapons"
+              className="flex-1 relative py-2 text-sm font-medium whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
+            >
+              Banned Assault Weapons
+            </TabsTrigger>
+            <TabsTrigger
+              value="approved-devices"
+              className="flex-1 relative py-2 text-sm font-medium whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
+            >
+              Approved Devices
+            </TabsTrigger>
+            <TabsTrigger
+              value="fsd-info"
+              className="flex-1 relative py-2 text-sm font-medium whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
+            >
+              OEM FSD Info
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="dros-guide">

@@ -233,7 +233,7 @@ export default function Pricing({ user, products, subscription }: Props) {
       <div className="sm:flex sm:flex-col sm:align-center">
         <div className="w-full mx-auto items-center justify-center max-w-3xl">
           <Image
-            src="https://utfs.io/f/9jzftpblGSv76VOWzBChTNu61XjtIdaxmyHDL2cV5f0WJsFE"
+            src="https://kxxn9fl00i.ufs.sh/f/9jzftpblGSv7ROHHGs4fVP6o2eAaJrB1Rt9lE3Wk7wqnNhxD"
             alt="Banner"
             width={1211}
             height={386}

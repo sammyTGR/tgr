@@ -8,6 +8,22 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'utfs.io',
+        pathname: '/f/**',
+        port: '',
+      },
+      {
+        protocol: 'https',
+        hostname: 'kxxn9fl00i.ufs.sh',
+        pathname: '/f/**',
+        port: '',
+      },
+    ],
+  },
 };
 
 module.exports = nextConfig;
