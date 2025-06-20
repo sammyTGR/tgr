@@ -23,19 +23,34 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { data, error } = await supabase
-      .from('approved_devices')
-      .select('manufacturer')
-      .not('manufacturer', 'is', null);
+    let allManufacturers: any[] = [];
+    let page = 0;
+    const pageSize = 1000; // Supabase default limit
+    let hasMore = true;
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+    while (hasMore) {
+      const { data, error } = await supabase
+        .from('approved_devices')
+        .select('manufacturer')
+        .not('manufacturer', 'is', null)
+        .range(page * pageSize, (page + 1) * pageSize - 1);
+
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+
+      if (data && data.length > 0) {
+        allManufacturers.push(...data);
+        page++;
+      } else {
+        hasMore = false;
+      }
     }
 
     // Extract unique manufacturers and sort them
     const manufacturers = Array.from(
       new Set(
-        data
+        allManufacturers
           .map((row) => row.manufacturer)
           .filter((m): m is string => typeof m === 'string' && m.trim() !== '')
       )
