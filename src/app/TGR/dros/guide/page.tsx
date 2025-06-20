@@ -616,7 +616,7 @@ export default function DROSGuide() {
             </Button>
           )}
         </div>
-        <Card>
+        <Card className="w-[calc(100vw-45rem)]">
           <CardHeader>
             <CardTitle>Approved Safety Devices</CardTitle>
           </CardHeader>
