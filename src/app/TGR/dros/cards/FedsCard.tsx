@@ -30,17 +30,21 @@ function FedsCard({ className }: { className?: string }) {
           <div className="max-w-full">
             <ul className="text-red-500">
               <li>
-                If One Of The Docs Below Contains A Suffix, It MUST BE Included On The DL | ID,
-                Otherwise They Need To Get An Interim DL | ID With Their Suffix
+                If Customer Is A &quot;Jr&quot;, It MUST BE Included On The DL | ID AND Their Doc
+                Below
+              </li>
+              <li className="text-blue-500">
+                If Customer Is A &quot;Sr&quot;, It Does NOT Need To Be Included On Doc Below
               </li>
             </ul>
+            <hr className="my-4" />
             <ul>
               <li>
                 If One Of The Docs Below DOES NOT Contain A Suffix, But The DL | ID Shows A Suffix,
-                Process The DROS With According To The Document, Not The DL | ID (Without The
-                Suffix)
+                Process The DROS According To The Document, Not The DL | ID (Without The Suffix)
               </li>
             </ul>
+            <br />
             <ul>
               <li>
                 If One Of the Docs Shows A Full Middle Name, But The DL | ID Shows A Middle Initial
@@ -48,6 +52,7 @@ function FedsCard({ className }: { className?: string }) {
                 etc.) Must Match The DL | ID
               </li>
             </ul>
+            <hr className="my-4" />
             Accepted Documents:
             <ul className="list-disc pl-4">
               <li>Valid, Unexpired U.S. Passport Or Passport Card</li>

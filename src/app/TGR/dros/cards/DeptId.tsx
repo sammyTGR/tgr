@@ -36,9 +36,17 @@ function DeptId({ className }: { className?: string }) {
               <ul className="list-none pl-4">
                 <li>- &quot;John Henry&quot;</li>
               </ul>
-              <li>Otherwise, First Name Can Be Shortened</li>
+              <li className="text-amber-500">
+                First Name Can Be Shortened ONLY If They Have A Letter From Their Agency Showing
+                Simple Statement In Regards To Their Name
+              </li>
               <ul className="list-none pl-4">
                 <li>- &quot;Nicholas&quot; -&gt; &quot;Nick&quot;</li>
+                <ul className="list-none pl-4">
+                  <li className="text-amber-500">
+                    - Letter Should State That &quot;Nick&quot; Is The Same As &quot;Nicholas&quot;
+                  </li>
+                </ul>
               </ul>
               <li>
                 If The Last Name Consists Of Multiple Names On The CA DL | CA ID, Department ID Must

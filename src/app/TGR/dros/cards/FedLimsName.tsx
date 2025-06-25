@@ -26,8 +26,12 @@ function FedLimsName({ className }: { className?: string }) {
               Their Name Doesn&apos;t Match The Proof Document
             </p>
             <p className="text-red-500">
-              If There Is A Suffix On One Of The Docs Below, It Must Be Included On The DL | ID,
-              Otherwise They Are Required To Get An Interim DL | ID To Match
+              If Customer Is A &quot;Jr&quot;, It MUST BE Included On The DL | ID AND Their Doc
+              Below
+              <br />
+              <p className="text-blue-500">
+                If Customer Is A &quot;Sr&quot;, It Does NOT Need To Be Included On Doc Below
+              </p>
             </p>
           </div>
         </CardHeader>

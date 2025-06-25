@@ -36,8 +36,8 @@ function IDsCard({ className }: { className?: string }) {
         </CardContent>
         <CardFooter className="flex justify-between">
           <p>
-            Temporary DL | ID&apos;s Are <span className="text-red-500">NOT</span> Accepted Forms Of
-            Proof Of Identity And Age
+            Both Interim & Temporary DL | ID&apos;s Are <span className="text-red-500">NOT</span>{' '}
+            Accepted Forms Of Proof Of Identity And Age
           </p>
         </CardFooter>
       </Card>
