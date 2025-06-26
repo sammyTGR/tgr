@@ -9,6 +9,7 @@ import {
   useQueryClient,
   UseMutationResult,
 } from '@tanstack/react-query';
+import { Suspense, useEffect, useCallback, useMemo, useState, useRef } from 'react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -56,10 +57,8 @@ import {
 } from './contest/WeightedScoringCalculator';
 import { supabase } from '@/utils/supabase/client';
 import { toast } from 'sonner';
-import { useMemo, useState, useRef } from 'react';
 import { ModalStateProvider, useModalState } from '@/context/ModalStateContext';
 import AuditChart from './AuditChart';
-import { useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -1318,27 +1317,65 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
       const { error } = await supabase.from('Auditsinput').update(data).eq('audits_id', auditId);
       if (error) throw error;
     },
+    onMutate: async ({ auditId, data }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['audits'] });
+
+      // Snapshot the previous value
+      const previousAudits = queryClient.getQueryData(['audits', 'review']);
+
+      // Optimistically update to the new value
+      queryClient.setQueryData(['audits', 'review'], (old: Audit[] = []) => {
+        return old.map((audit) => (audit.audits_id === auditId ? { ...audit, ...data } : audit));
+      });
+
+      return { previousAudits };
+    },
+    onError: (err, { auditId }, context) => {
+      // If the mutation fails, use the context to roll back
+      queryClient.setQueryData(['audits', 'review'], context?.previousAudits);
+      toast.error(
+        `Failed to update audit: ${err instanceof Error ? err.message : 'Unknown error'}`
+      );
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['audits'] });
       toast.success('Audit updated successfully');
     },
-    onError: (error) => {
-      toast.error(
-        `Failed to update audit: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
+    onSettled: () => {
+      // Always refetch after error or success to ensure cache consistency
+      queryClient.invalidateQueries({ queryKey: ['audits'] });
     },
   });
 
   const deleteAuditMutation = useMutation({
     mutationFn: api.deleteAudit,
+    onMutate: async (auditId) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['audits'] });
+
+      // Snapshot the previous value
+      const previousAudits = queryClient.getQueryData(['audits', 'review']);
+
+      // Optimistically update to the new value
+      queryClient.setQueryData(['audits', 'review'], (old: Audit[] = []) => {
+        return old.filter((audit) => audit.audits_id !== auditId);
+      });
+
+      return { previousAudits };
+    },
+    onError: (err, auditId, context) => {
+      // If the mutation fails, use the context to roll back
+      queryClient.setQueryData(['audits', 'review'], context?.previousAudits);
+      toast.error(`Error deleting audit: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['audits'] });
       toast.success('Audit deleted successfully');
     },
-    onError: (error) => {
-      toast.error(
-        `Error deleting audit: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
+    onSettled: () => {
+      // Always refetch after error or success to ensure cache consistency
+      queryClient.invalidateQueries({ queryKey: ['audits'] });
     },
   });
 
@@ -1774,7 +1811,38 @@ const useRealtimeSubscription = () => {
 const useAuditsPage = () => {
   const pageParams = usePageParams();
   const queries = useAuditsPageQueries(pageParams);
+  const queryClient = useQueryClient();
   useRealtimeSubscription();
+
+  // Prefetch common data on mount
+  useEffect(() => {
+    // Prefetch employees data
+    queryClient.prefetchQuery({
+      queryKey: ['employees'],
+      queryFn: api.fetchEmployees,
+      staleTime: Infinity,
+    });
+
+    // Prefetch points calculation data
+    queryClient.prefetchQuery({
+      queryKey: ['pointsCalculation'],
+      queryFn: api.fetchPointsCalculation,
+      staleTime: Infinity,
+    });
+
+    // Prefetch audit categories
+    queryClient.prefetchQuery({
+      queryKey: ['audit-categories'],
+      queryFn: api.fetchAuditCategories,
+    });
+
+    // Prefetch common audit data
+    queryClient.prefetchQuery({
+      queryKey: ['audits', 'review'],
+      queryFn: () => api.fetchAudits(),
+      staleTime: 0,
+    });
+  }, [queryClient]);
 
   return {
     ...pageParams,
@@ -2041,491 +2109,499 @@ function AuditsPage() {
           <SupportNavMenu />
         </div>
 
-        <Tabs value={tab} onValueChange={handleTabChange}>
-          <div className="flex items-center space-x-2">
-            <TabsList className="border border-zinc-800 shadow-sm rounded-md m-1 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-opacity-50 focus:z-10">
-              <TabsTrigger
-                value="submit"
-                className="flex-1 relative py-2 text-sm font-medium whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
-              >
-                Submit Audits
-              </TabsTrigger>
-              <TabsTrigger
-                value="review"
-                className="flex-1 relative py-2 text-sm font-medium whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
-              >
-                Review Audits
-              </TabsTrigger>
-              <TabsTrigger
-                value="contest"
-                className="flex-1 relative py-2 text-sm font-medium whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
-              >
-                Sales Performance
-              </TabsTrigger>
-              <TabsTrigger
-                value="guidelines"
-                className="flex-1 relative py-2 text-sm font-medium whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
-              >
-                Auditing Guidelines
-              </TabsTrigger>
-              <TabsTrigger
-                value="approved-devices"
-                className="flex-1 relative py-2 text-sm font-medium whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
-              >
-                Approved Devices
-              </TabsTrigger>
-              <TabsTrigger
-                value="fsd-info"
-                className="flex-1 relative py-2 text-sm font-medium whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
-              >
-                OEM FSD Info
-              </TabsTrigger>
-            </TabsList>
-          </div>
-
-          <TabsContent value="submit">
-            <Card>
-              <CardContent className="pt-6">
-                <SubmitAuditForm />
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="review">
-            <Card>
-              <CardContent className="pt-6">
-                {reviewAuditsQuery.isLoading ? (
-                  <div className="animate-pulse bg-muted h-64 w-full rounded-md" />
-                ) : reviewAuditsQuery.data ? (
-                  <>
-                    <DataTable
-                      columns={getAuditColumns(
-                        updateAuditMutation,
-                        deleteAuditMutation,
-                        handleDeleteAudit, // Add this parameter
-                        setModalState
-                      )}
-                      data={reviewAuditsQuery.data}
-                    />
-                    <Dialog
-                      open={modalState.isOpen}
-                      onOpenChange={(open) =>
-                        setModalState({
-                          isOpen: open,
-                          selectedAudit: open ? modalState.selectedAudit : null,
-                        })
-                      }
-                    >
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Edit Audit</DialogTitle>
-                        </DialogHeader>
-                        {modalState.selectedAudit && (
-                          <EditAuditForm
-                            audit={modalState.selectedAudit}
-                            handleSubmit={(data: Partial<AuditData>) => {
-                              const auditData: Partial<Audit> = {
-                                dros_number: data.dros_number || '',
-                                salesreps: data.salesreps || '',
-                                trans_date: data.trans_date || '',
-                                audit_date: data.audit_date || '',
-                                dros_cancel: data.dros_cancel || '',
-                                audit_type: data.audit_type || '',
-                                error_location: data.error_location || '',
-                                error_details: data.error_details || '',
-                                error_notes: data.error_notes || '',
-                              };
-
-                              editMutation.mutate({
-                                auditId: modalState.selectedAudit!.audits_id,
-                                data: auditData,
-                              });
-                            }}
-                            handleClose={() =>
-                              setModalState({
-                                isOpen: false,
-                                selectedAudit: null,
-                              })
-                            }
-                          />
-                        )}
-                      </DialogContent>
-                    </Dialog>
-                  </>
-                ) : null}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="contest">
-            <h1 className="text-xl font-bold mb-2 ml-2">
-              <TextGenerateEffect words="Monthly Sales" />
-            </h1>
-
-            {/* Controls Grid */}
-            <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
-              {/* Employee Selection Card */}
-              <Card className="mt-4">
-                <CardHeader>
-                  <CardTitle>Sales Rep</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="w-full">
-                    <Select
-                      value={selectedLanid || ''}
-                      onValueChange={handleEmployeeChange}
-                      disabled={showAllEmployees}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select Employee" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <Input
-                          placeholder="Search Employee..."
-                          value={searchText}
-                          onChange={(e) => handleSearchChange(e.target.value)}
-                          className="w-full px-3 py-2"
-                        />
-                        {employeesQuery.data
-                          ?.filter((emp) =>
-                            emp.lanid?.toLowerCase().includes(searchText.toLowerCase())
-                          )
-                          .map((emp) => (
-                            <SelectItem key={emp.lanid} value={emp.lanid}>
-                              {emp.lanid}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex items-center space-x-2 mt-4">
-                    <Switch
-                      id="show-all"
-                      checked={showAllEmployees}
-                      onCheckedChange={handleShowAllChange}
-                    />
-                    <Label htmlFor="show-all">
-                      {showAllEmployees ? 'Show Individual Employee' : 'Show All Employees'}
-                    </Label>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Date Selection Card */}
-              <Card className="mt-4">
-                <CardHeader>
-                  <CardTitle>Select A Date</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full pl-3 text-left font-normal mb-2">
-                        {selectedDate ? format(selectedDate, 'PPP') : <span>Pick a date</span>}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <CustomCalendarDashboard
-                        selectedDate={selectedDate}
-                        onDateChange={(date) => {
-                          console.log('Calendar date selected:', date?.toISOString());
-                          handleDateChange(date);
-                        }}
-                        disabledDays={() => false}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </CardContent>
-              </Card>
-
-              <Card className="mt-4">
-                <CardHeader>
-                  <CardTitle className="text-2xl font-bold">Mistake Definitions</CardTitle>
-                </CardHeader>
-                <CardContent className="p-4 space-y-4">
-                  <div>
-                    <h3 className="font-semibold text-lg text-primary mb-2">Minor Mistakes</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Correctable mistakes that can be resolved during pickup without requiring the
-                      customer to return.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="mt-4">
-                <CardHeader>
-                  <CardTitle className="text-2xl font-bold">Mistake Definitions</CardTitle>
-                </CardHeader>
-                <CardContent className="p-4 space-y-4">
-                  <div>
-                    <h3 className="font-semibold text-lg text-primary mb-2">Major Mistakes</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Serious errors that require the customer to make an additional trip back after
-                      pickup to resolve the issue.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Actions Card */}
-              <Card className="mt-4">
-                <CardHeader>
-                  <CardTitle>Actions</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-col gap-2">
-                    <Button variant="destructive" className="w-full" onClick={handleReset}>
-                      Clear All Selections
-                    </Button>
-                    <Button onClick={handleExport} className="w-full" disabled={!selectedDate}>
-                      Export to Excel
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+        <Suspense fallback={<div>Loading...</div>}>
+          <Tabs value={tab} onValueChange={handleTabChange}>
+            <div className="flex items-center space-x-2">
+              <TabsList className="border border-zinc-800 shadow-sm rounded-md m-1 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-opacity-50 focus:z-10">
+                <TabsTrigger
+                  value="submit"
+                  className="flex-1 relative py-2 text-sm font-medium whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
+                >
+                  Submit Audits
+                </TabsTrigger>
+                <TabsTrigger
+                  value="review"
+                  className="flex-1 relative py-2 text-sm font-medium whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
+                >
+                  Review Audits
+                </TabsTrigger>
+                <TabsTrigger
+                  value="contest"
+                  className="flex-1 relative py-2 text-sm font-medium whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
+                >
+                  Sales Performance
+                </TabsTrigger>
+                <TabsTrigger
+                  value="guidelines"
+                  className="flex-1 relative py-2 text-sm font-medium whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
+                >
+                  Auditing Guidelines
+                </TabsTrigger>
+                <TabsTrigger
+                  value="approved-devices"
+                  className="flex-1 relative py-2 text-sm font-medium whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
+                >
+                  Approved Devices
+                </TabsTrigger>
+                <TabsTrigger
+                  value="fsd-info"
+                  className="flex-1 relative py-2 text-sm font-medium whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
+                >
+                  OEM FSD Info
+                </TabsTrigger>
+              </TabsList>
             </div>
 
-            {/* Metrics Grid - Only shown for individual employee view */}
-            {/* {!showAllEmployees && selectedLanid && (
-              <MetricsSection
-                metricsData={metricsData}
-                showAllEmployees={showAllEmployees}
-                selectedLanid={selectedLanid}
-                selectedDate={selectedDate}
-              />
-            )} */}
+            <TabsContent value="submit">
+              <Card>
+                <CardContent className="pt-6">
+                  <SubmitAuditForm />
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-            {/* Summary Table */}
-            <Card>
-              <CardContent>
-                {selectedDate && (
-                  <div className="text-left">
-                    <DataTableProfile
-                      columns={summaryColumns.map((col) => ({
-                        Header: col.header as string,
-                        accessor: col.id as string,
-                        Cell: col.cell as any,
-                      }))}
-                      data={summaryTableData} // Use summaryTableData for the table
-                      {...tableOptions}
-                    />
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Audit Chart */}
-            {/* <Card>
-              <CardContent> */}
-            {selectedDate && (
-              <AuditChart
-                data={contestAuditsQuery.data || []}
-                isLoading={contestAuditsQuery.isLoading || salesDataQuery.isLoading}
-                showTimeRangeSelector={false} // This will hide the time range selector
-              />
-            )}
-            {/* </CardContent>
-            </Card> */}
-
-            {/* Historical Audit Chart */}
-            {/* <Card>
-              <CardContent> */}
-            {selectedLanid && (
-              <HistoricalAuditChart
-                data={historicalAuditsQuery.data || []}
-                selectedLanid={selectedLanid}
-              />
-            )}
-            {/* </CardContent>
-            </Card> */}
-          </TabsContent>
-
-          <TabsContent value="guidelines">
-            <Card>
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <CardTitle>Auditing Guidelines</CardTitle>
-                  <Dialog open={isAddDialogOpen} onOpenChange={(open) => setIsAddDialogOpen(open)}>
-                    <DialogTrigger asChild>
-                      <Button onClick={() => setIsAddDialogOpen(true)}>
-                        <PlusIcon className="h-4 w-4 mr-2" />
-                        Add Guideline
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[800px] w-[90vw]">
-                      <DialogHeader>
-                        <DialogTitle>Add Guideline</DialogTitle>
-                      </DialogHeader>
-                      <CategoryForm
-                        onSubmit={async (data) => {
-                          await createCategoryMutation.mutateAsync(data);
-                        }}
-                        onCancel={() => setIsAddDialogOpen(false)}
-                        isSubmitting={createCategoryMutation.isPending}
-                      />
-                    </DialogContent>
-                  </Dialog>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
-                  {categoriesQuery.isLoading ? (
+            <TabsContent value="review">
+              <Card>
+                <CardContent className="pt-6">
+                  {reviewAuditsQuery.isLoading ? (
                     <div className="animate-pulse bg-muted h-64 w-full rounded-md" />
-                  ) : categoriesQuery.data?.length === 0 ? (
-                    <div className="text-center text-muted-foreground py-8">
-                      No categories found. Add your first category to get started.
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 gap-6 md:grid-cols-3 lg:grid-cols-4">
-                      {categoriesQuery.data?.map((category) => (
-                        <ExpandableCard key={category.id} id={category.id} title={category.name}>
-                          <div className="flex justify-end gap-2 mb-4">
-                            <Dialog
-                              open={editingCategoryId === category.id}
-                              onOpenChange={(open) => {
-                                if (!open) setEditingCategoryId(null);
-                              }}
-                            >
-                              <DialogTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => setEditingCategoryId(category.id)}
-                                >
-                                  <Pencil1Icon className="h-4 w-4" />
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent className="sm:max-w-[800px] w-[90vw]">
-                                <DialogHeader>
-                                  <DialogTitle>Edit Category</DialogTitle>
-                                </DialogHeader>
-                                <CategoryForm
-                                  category={category}
-                                  onSubmit={async (data) => {
-                                    await updateCategoryMutation.mutateAsync({
-                                      id: category.id,
-                                      data,
-                                    });
-                                    setEditingCategoryId(null); // Close dialog after successful update
-                                  }}
-                                  onCancel={() => setEditingCategoryId(null)}
-                                  isSubmitting={updateCategoryMutation.isPending}
-                                />
-                              </DialogContent>
-                            </Dialog>
+                  ) : reviewAuditsQuery.data ? (
+                    <>
+                      <DataTable
+                        columns={getAuditColumns(
+                          updateAuditMutation,
+                          deleteAuditMutation,
+                          handleDeleteAudit, // Add this parameter
+                          setModalState
+                        )}
+                        data={reviewAuditsQuery.data}
+                      />
+                      <Dialog
+                        open={modalState.isOpen}
+                        onOpenChange={(open) =>
+                          setModalState({
+                            isOpen: open,
+                            selectedAudit: open ? modalState.selectedAudit : null,
+                          })
+                        }
+                      >
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Edit Audit</DialogTitle>
+                          </DialogHeader>
+                          {modalState.selectedAudit && (
+                            <EditAuditForm
+                              audit={modalState.selectedAudit}
+                              handleSubmit={(data: Partial<AuditData>) => {
+                                const auditData: Partial<Audit> = {
+                                  dros_number: data.dros_number || '',
+                                  salesreps: data.salesreps || '',
+                                  trans_date: data.trans_date || '',
+                                  audit_date: data.audit_date || '',
+                                  dros_cancel: data.dros_cancel || '',
+                                  audit_type: data.audit_type || '',
+                                  error_location: data.error_location || '',
+                                  error_details: data.error_details || '',
+                                  error_notes: data.error_notes || '',
+                                };
 
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="sm">
-                                  <TrashIcon className="h-4 w-4" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete Category</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Are you sure you want to delete this category? This action
-                                    cannot be undone.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={async () => {
-                                      try {
-                                        await deleteCategoryMutation.mutateAsync(category.id);
-                                        toast.success('Category deleted successfully');
-                                      } catch (error) {
-                                        // Error will be handled by onError callback
-                                      }
-                                    }}
-                                  >
-                                    Delete
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </div>
-                          <div
-                            className="prose dark:prose-invert max-w-none
-                              [&>ul]:list-disc [&>ol]:list-decimal 
-                              [&>ul]:ml-6 [&>ol]:ml-6 
-                              [&>ul]:my-4 [&>ol]:my-4
-                              [&>ul>li>ul]:list-[circle] [&_ol]:list-decimal
-                              [&>ul>li>ul]:ml-6 [&_ol]:ml-6 
-                              [&>ul>li>ul]:my-2 [&_ol]:my-2
-                              [&>ul>li>ul>li>ul]:list-[square]
-                              [&_blockquote]:border-l-4 [&_blockquote]:border-gray-300 
-                              [&_blockquote]:pl-4 [&_blockquote]:italic
-                              [&_code]:bg-gray-100 [&_code]:p-1 [&_code]:rounded
-                              dark:[&_code]:bg-gray-800
-                              [&_pre]:bg-gray-100 [&_pre]:p-4 [&_pre]:rounded
-                              dark:[&_pre]:bg-gray-800
-                              [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:my-4
-                              [&_h2]:text-xl [&_h2]:font-bold [&_h2]:my-3
-                              [&_h3]:text-lg [&_h3]:font-bold [&_h3]:my-2"
-                            dangerouslySetInnerHTML={{
-                              __html: DOMPurify.sanitize(category.guidelines, {
-                                ALLOWED_TAGS: [
-                                  'p',
-                                  'br',
-                                  'strong',
-                                  'em',
-                                  'u',
-                                  'h1',
-                                  'h2',
-                                  'h3',
-                                  'h4',
-                                  'h5',
-                                  'h6',
-                                  'ul',
-                                  'ol',
-                                  'li',
-                                  'blockquote',
-                                  'code',
-                                  'pre',
-                                  'div',
-                                  'span',
-                                  'a',
-                                  'img',
-                                  'table',
-                                  'thead',
-                                  'tbody',
-                                  'tr',
-                                  'th',
-                                  'td',
-                                ],
-                                ALLOWED_ATTR: [
-                                  'href',
-                                  'src',
-                                  'class',
-                                  'style',
-                                  'target',
-                                  'rel',
-                                  'data-type',
-                                  'data-align',
-                                ],
-                              }),
-                            }}
+                                editMutation.mutate({
+                                  auditId: modalState.selectedAudit!.audits_id,
+                                  data: auditData,
+                                });
+                              }}
+                              handleClose={() =>
+                                setModalState({
+                                  isOpen: false,
+                                  selectedAudit: null,
+                                })
+                              }
+                            />
+                          )}
+                        </DialogContent>
+                      </Dialog>
+                    </>
+                  ) : null}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="contest">
+              <h1 className="text-xl font-bold mb-2 ml-2">
+                <TextGenerateEffect words="Monthly Sales" />
+              </h1>
+
+              {/* Controls Grid */}
+              <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
+                {/* Employee Selection Card */}
+                <Card className="mt-4">
+                  <CardHeader>
+                    <CardTitle>Sales Rep</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="w-full">
+                      <Select
+                        value={selectedLanid || ''}
+                        onValueChange={handleEmployeeChange}
+                        disabled={showAllEmployees}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Employee" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <Input
+                            placeholder="Search Employee..."
+                            value={searchText}
+                            onChange={(e) => handleSearchChange(e.target.value)}
+                            className="w-full px-3 py-2"
                           />
-                        </ExpandableCard>
-                      ))}
+                          {employeesQuery.data
+                            ?.filter((emp) =>
+                              emp.lanid?.toLowerCase().includes(searchText.toLowerCase())
+                            )
+                            .map((emp) => (
+                              <SelectItem key={emp.lanid} value={emp.lanid}>
+                                {emp.lanid}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex items-center space-x-2 mt-4">
+                      <Switch
+                        id="show-all"
+                        checked={showAllEmployees}
+                        onCheckedChange={handleShowAllChange}
+                      />
+                      <Label htmlFor="show-all">
+                        {showAllEmployees ? 'Show Individual Employee' : 'Show All Employees'}
+                      </Label>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Date Selection Card */}
+                <Card className="mt-4">
+                  <CardHeader>
+                    <CardTitle>Select A Date</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-full pl-3 text-left font-normal mb-2"
+                        >
+                          {selectedDate ? format(selectedDate, 'PPP') : <span>Pick a date</span>}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <CustomCalendarDashboard
+                          selectedDate={selectedDate}
+                          onDateChange={(date) => {
+                            console.log('Calendar date selected:', date?.toISOString());
+                            handleDateChange(date);
+                          }}
+                          disabledDays={() => false}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </CardContent>
+                </Card>
+
+                <Card className="mt-4">
+                  <CardHeader>
+                    <CardTitle className="text-2xl font-bold">Mistake Definitions</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4 space-y-4">
+                    <div>
+                      <h3 className="font-semibold text-lg text-primary mb-2">Minor Mistakes</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Correctable mistakes that can be resolved during pickup without requiring
+                        the customer to return.
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="mt-4">
+                  <CardHeader>
+                    <CardTitle className="text-2xl font-bold">Mistake Definitions</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4 space-y-4">
+                    <div>
+                      <h3 className="font-semibold text-lg text-primary mb-2">Major Mistakes</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Serious errors that require the customer to make an additional trip back
+                        after pickup to resolve the issue.
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Actions Card */}
+                <Card className="mt-4">
+                  <CardHeader>
+                    <CardTitle>Actions</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-col gap-2">
+                      <Button variant="destructive" className="w-full" onClick={handleReset}>
+                        Clear All Selections
+                      </Button>
+                      <Button onClick={handleExport} className="w-full" disabled={!selectedDate}>
+                        Export to Excel
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Metrics Grid - Only shown for individual employee view */}
+              {/* {!showAllEmployees && selectedLanid && (
+                <MetricsSection
+                  metricsData={metricsData}
+                  showAllEmployees={showAllEmployees}
+                  selectedLanid={selectedLanid}
+                  selectedDate={selectedDate}
+                />
+              )} */}
+
+              {/* Summary Table */}
+              <Card>
+                <CardContent>
+                  {selectedDate && (
+                    <div className="text-left">
+                      <DataTableProfile
+                        columns={summaryColumns.map((col) => ({
+                          Header: col.header as string,
+                          accessor: col.id as string,
+                          Cell: col.cell as any,
+                        }))}
+                        data={summaryTableData} // Use summaryTableData for the table
+                        {...tableOptions}
+                      />
                     </div>
                   )}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                </CardContent>
+              </Card>
 
-          <TabsContent value="approved-devices">
-            <ApprovedDevices />
-          </TabsContent>
+              {/* Audit Chart */}
+              {/* <Card>
+                <CardContent> */}
+              {selectedDate && (
+                <AuditChart
+                  data={contestAuditsQuery.data || []}
+                  isLoading={contestAuditsQuery.isLoading || salesDataQuery.isLoading}
+                  showTimeRangeSelector={false} // This will hide the time range selector
+                />
+              )}
+              {/* </CardContent>
+              </Card> */}
 
-          <TabsContent value="fsd-info">
-            <OemFsd />
-          </TabsContent>
-        </Tabs>
+              {/* Historical Audit Chart */}
+              {/* <Card>
+                <CardContent> */}
+              {selectedLanid && (
+                <HistoricalAuditChart
+                  data={historicalAuditsQuery.data || []}
+                  selectedLanid={selectedLanid}
+                />
+              )}
+              {/* </CardContent>
+              </Card> */}
+            </TabsContent>
+
+            <TabsContent value="guidelines">
+              <Card>
+                <CardHeader>
+                  <div className="flex justify-between items-center">
+                    <CardTitle>Auditing Guidelines</CardTitle>
+                    <Dialog
+                      open={isAddDialogOpen}
+                      onOpenChange={(open) => setIsAddDialogOpen(open)}
+                    >
+                      <DialogTrigger asChild>
+                        <Button onClick={() => setIsAddDialogOpen(true)}>
+                          <PlusIcon className="h-4 w-4 mr-2" />
+                          Add Guideline
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-[800px] w-[90vw]">
+                        <DialogHeader>
+                          <DialogTitle>Add Guideline</DialogTitle>
+                        </DialogHeader>
+                        <CategoryForm
+                          onSubmit={async (data) => {
+                            await createCategoryMutation.mutateAsync(data);
+                          }}
+                          onCancel={() => setIsAddDialogOpen(false)}
+                          isSubmitting={createCategoryMutation.isPending}
+                        />
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    {categoriesQuery.isLoading ? (
+                      <div className="animate-pulse bg-muted h-64 w-full rounded-md" />
+                    ) : categoriesQuery.data?.length === 0 ? (
+                      <div className="text-center text-muted-foreground py-8">
+                        No categories found. Add your first category to get started.
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 gap-6 md:grid-cols-3 lg:grid-cols-4">
+                        {categoriesQuery.data?.map((category) => (
+                          <ExpandableCard key={category.id} id={category.id} title={category.name}>
+                            <div className="flex justify-end gap-2 mb-4">
+                              <Dialog
+                                open={editingCategoryId === category.id}
+                                onOpenChange={(open) => {
+                                  if (!open) setEditingCategoryId(null);
+                                }}
+                              >
+                                <DialogTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setEditingCategoryId(category.id)}
+                                  >
+                                    <Pencil1Icon className="h-4 w-4" />
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent className="sm:max-w-[800px] w-[90vw]">
+                                  <DialogHeader>
+                                    <DialogTitle>Edit Category</DialogTitle>
+                                  </DialogHeader>
+                                  <CategoryForm
+                                    category={category}
+                                    onSubmit={async (data) => {
+                                      await updateCategoryMutation.mutateAsync({
+                                        id: category.id,
+                                        data,
+                                      });
+                                      setEditingCategoryId(null); // Close dialog after successful update
+                                    }}
+                                    onCancel={() => setEditingCategoryId(null)}
+                                    isSubmitting={updateCategoryMutation.isPending}
+                                  />
+                                </DialogContent>
+                              </Dialog>
+
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" size="sm">
+                                    <TrashIcon className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete Category</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure you want to delete this category? This action
+                                      cannot be undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={async () => {
+                                        try {
+                                          await deleteCategoryMutation.mutateAsync(category.id);
+                                          toast.success('Category deleted successfully');
+                                        } catch (error) {
+                                          // Error will be handled by onError callback
+                                        }
+                                      }}
+                                    >
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                            <div
+                              className="prose dark:prose-invert max-w-none
+                                [&>ul]:list-disc [&>ol]:list-decimal 
+                                [&>ul]:ml-6 [&>ol]:ml-6 
+                                [&>ul]:my-4 [&>ol]:my-4
+                                [&>ul>li>ul]:list-[circle] [&_ol]:list-decimal
+                                [&>ul>li>ul]:ml-6 [&_ol]:ml-6 
+                                [&>ul>li>ul]:my-2 [&_ol]:my-2
+                                [&>ul>li>ul>li>ul]:list-[square]
+                                [&_blockquote]:border-l-4 [&_blockquote]:border-gray-300 
+                                [&_blockquote]:pl-4 [&_blockquote]:italic
+                                [&_code]:bg-gray-100 [&_code]:p-1 [&_code]:rounded
+                                dark:[&_code]:bg-gray-800
+                                [&_pre]:bg-gray-100 [&_pre]:p-4 [&_pre]:rounded
+                                dark:[&_pre]:bg-gray-800
+                                [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:my-4
+                                [&_h2]:text-xl [&_h2]:font-bold [&_h2]:my-3
+                                [&_h3]:text-lg [&_h3]:font-bold [&_h3]:my-2"
+                              dangerouslySetInnerHTML={{
+                                __html: DOMPurify.sanitize(category.guidelines, {
+                                  ALLOWED_TAGS: [
+                                    'p',
+                                    'br',
+                                    'strong',
+                                    'em',
+                                    'u',
+                                    'h1',
+                                    'h2',
+                                    'h3',
+                                    'h4',
+                                    'h5',
+                                    'h6',
+                                    'ul',
+                                    'ol',
+                                    'li',
+                                    'blockquote',
+                                    'code',
+                                    'pre',
+                                    'div',
+                                    'span',
+                                    'a',
+                                    'img',
+                                    'table',
+                                    'thead',
+                                    'tbody',
+                                    'tr',
+                                    'th',
+                                    'td',
+                                  ],
+                                  ALLOWED_ATTR: [
+                                    'href',
+                                    'src',
+                                    'class',
+                                    'style',
+                                    'target',
+                                    'rel',
+                                    'data-type',
+                                    'data-align',
+                                  ],
+                                }),
+                              }}
+                            />
+                          </ExpandableCard>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="approved-devices">
+              <ApprovedDevices />
+            </TabsContent>
+
+            <TabsContent value="fsd-info">
+              <OemFsd />
+            </TabsContent>
+          </Tabs>
+        </Suspense>
       </main>
     </RoleBasedWrapper>
   );
