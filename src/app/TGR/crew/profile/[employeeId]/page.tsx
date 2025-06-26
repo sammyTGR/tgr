@@ -1,6 +1,6 @@
 // TGR\crew\profile\[employeeId]\page.tsx
 'use client';
-import { Suspense, useCallback, useMemo } from 'react';
+import { Suspense, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -9,7 +9,6 @@ import { supabase } from '@/utils/supabase/client';
 import { TextGenerateEffect } from '@/components/ui/text-generate-effect';
 import SchedulesComponent from '@/components/SchedulesComponent';
 import { CalendarIcon } from 'lucide-react';
-import { CustomCalendar } from '@/components/ui/calendar';
 import {
   Select,
   SelectContent,
@@ -25,7 +24,6 @@ import {
   DialogTitle,
   DialogDescription,
   DialogOverlay,
-  DialogClose,
 } from '@radix-ui/react-dialog';
 import {
   AlertDialog,
@@ -44,35 +42,26 @@ import {
   format,
   startOfWeek,
   endOfWeek,
-  subWeeks,
   startOfDay,
   endOfDay,
   addDays,
-  isSunday,
-  previousSunday,
-  nextSaturday,
   startOfMonth,
   endOfMonth,
 } from 'date-fns';
 import { toZonedTime, format as formatTZ } from 'date-fns-tz';
 import { toast } from 'sonner';
-import TimeOffRequestComponent from '@/components/TimeOffRequestComponent';
 import { Textarea } from '@/components/ui/textarea';
 import { ClockIcon } from '@radix-ui/react-icons';
-import { DataTable } from '../../../../admin/audits/contest/data-table';
 import { Input } from '@/components/ui/input';
 import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import PointsForm from '@/components/PointsForm';
-import PointsComponent from '../../points/page';
 import { Label } from '@/components/ui/label';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import styles from './profiles.module.css';
 import classNames from 'classnames';
 import RoleBasedWrapper from '@/components/RoleBasedWrapper';
 import { CustomCalendarMulti } from '@/components/ui/calendar';
-import { Progress } from '@/components/ui/progress';
 import { ProgressBar } from '@/components/ProgressBar';
 import { Separator } from '@radix-ui/react-dropdown-menu';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';

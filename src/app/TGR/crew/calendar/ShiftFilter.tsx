@@ -50,6 +50,11 @@ export const ShiftFilter: React.FC<ShiftFilterProps> = ({ onSelect }) => {
 
   return (
     <div className="flex items-center space-x-2">
+      {selectedShifts.length > 0 && (
+        <Button variant="linkHover2" onClick={clearFilter}>
+          Clear Filter
+        </Button>
+      )}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="outline">
@@ -67,12 +72,6 @@ export const ShiftFilter: React.FC<ShiftFilterProps> = ({ onSelect }) => {
           ))}
         </DropdownMenuContent>
       </DropdownMenu>
-
-      {selectedShifts.length > 0 && (
-        <Button variant="linkHover2" onClick={clearFilter}>
-          Clear Filter
-        </Button>
-      )}
     </div>
   );
 };

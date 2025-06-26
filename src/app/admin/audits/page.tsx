@@ -49,7 +49,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import LoadingIndicator from '@/components/LoadingIndicator';
 import {
   WeightedScoringCalculator,
   type SalesData as CalculatorSalesData,
@@ -253,7 +252,7 @@ const LazyDataTable = dynamic<any>(
       default: mod.DataTable,
     })),
   {
-    loading: () => <LoadingIndicator />,
+    loading: () => <div className="animate-pulse bg-muted h-64 w-full rounded-md" />,
     ssr: false,
   }
 );
@@ -264,7 +263,7 @@ const LazyDataTableProfile = dynamic<any>(
       default: mod.DataTableProfile,
     })),
   {
-    loading: () => <LoadingIndicator />,
+    loading: () => <div className="animate-pulse bg-muted h-64 w-full rounded-md" />,
     ssr: false,
   }
 );
@@ -1836,7 +1835,7 @@ const AuditActions = ({ row }: { row: { original: Audit } }) => {
   if (isLoading) {
     return (
       <div className="flex items-center gap-2">
-        <LoadingIndicator />
+        <div className="animate-pulse bg-muted h-4 w-16 rounded" />
       </div>
     );
   }
@@ -2037,8 +2036,6 @@ function AuditsPage() {
 
   return (
     <RoleBasedWrapper allowedRoles={['auditor', 'admin', 'ceo', 'super admin', 'dev']}>
-      {isLoading && <LoadingIndicator />}
-
       <main className="grid flex-1 items-start my-4 mb-4 max-w-8xl gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
         <div className="mb-10 my-8">
           <SupportNavMenu />
@@ -2098,7 +2095,7 @@ function AuditsPage() {
             <Card>
               <CardContent className="pt-6">
                 {reviewAuditsQuery.isLoading ? (
-                  <LoadingIndicator />
+                  <div className="animate-pulse bg-muted h-64 w-full rounded-md" />
                 ) : reviewAuditsQuery.data ? (
                   <>
                     <DataTable
@@ -2374,7 +2371,7 @@ function AuditsPage() {
               <CardContent>
                 <div className="space-y-6">
                   {categoriesQuery.isLoading ? (
-                    <LoadingIndicator />
+                    <div className="animate-pulse bg-muted h-64 w-full rounded-md" />
                   ) : categoriesQuery.data?.length === 0 ? (
                     <div className="text-center text-muted-foreground py-8">
                       No categories found. Add your first category to get started.

@@ -15,7 +15,6 @@ import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { Separator } from '@/components/ui/separator';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import DOMPurify from 'isomorphic-dompurify';
-import LoadingIndicator from '@/components/LoadingIndicator';
 import dynamic from 'next/dynamic';
 import { useSidebar } from '@/components/ui/sidebar';
 
@@ -50,7 +49,11 @@ const LazySignIn = dynamic(
       default: module.default,
     })),
   {
-    loading: () => <LoadingIndicator />,
+    loading: () => (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    ),
   }
 );
 
@@ -178,7 +181,11 @@ export default function SignIn() {
     <div
       className={`relative place-items-center h-screen max-w-xl mx-auto ml-16 md:ml-16 lg:ml-16 md:w-xl lg:w-xl overflow-hidden flex-1 transition-all duration-300`}
     >
-      {isLoading && <LoadingIndicator />}
+      {isLoading && (
+        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        </div>
+      )}
       <Card className="mx-auto min-w-[350px]">
         <CardHeader>
           <CardTitle className="text-xl">Login</CardTitle>

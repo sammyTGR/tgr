@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, Suspense, useEffect } from 'react';
 import {
   Select,
   SelectContent,
@@ -48,8 +48,8 @@ import TimeoffForm from '@/components/TimeoffForm';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { ShiftFilter } from './ShiftFilter';
-import LoadingIndicator from '@/components/LoadingIndicator';
 import { toast } from 'sonner';
+import { Skeleton } from '@/components/ui/skeleton';
 
 import { isHoliday } from '@/utils/holidays';
 import styles from './calendar.module.css';
@@ -365,6 +365,51 @@ const fetchUserRole = async (): Promise<UserRoleResponse> => {
 // Component
 export default function Component() {
   const { state } = useSidebar();
+  const queryClient = useQueryClient();
+
+  // Prefetch calendar data for current and next week on mount
+  useEffect(() => {
+    const now = new Date();
+    const nextWeek = new Date(now);
+    nextWeek.setDate(now.getDate() + 7);
+
+    // Prefetch current week
+    queryClient.prefetchQuery({
+      queryKey: ['calendarData', now],
+      queryFn: () => fetchCalendarData(now),
+    });
+
+    // Prefetch next week
+    queryClient.prefetchQuery({
+      queryKey: ['calendarData', nextWeek],
+      queryFn: () => fetchCalendarData(nextWeek),
+    });
+
+    // Prefetch break room duty for current week
+    const formattedWeekStart = format(startOfWeek(now), 'yyyy-MM-dd');
+    queryClient.prefetchQuery({
+      queryKey: ['breakRoomDuty', formattedWeekStart],
+      queryFn: async () => {
+        const existingDutyResponse = await fetch(
+          `/api/break_room_duty?weekStart=${formattedWeekStart}`
+        );
+        if (!existingDutyResponse.ok) return null;
+        const existingDuty = await existingDutyResponse.json();
+        return existingDuty && existingDuty.length > 0 ? existingDuty[0] : null;
+      },
+    });
+  }, [queryClient]);
+
+  return (
+    <Suspense fallback={<div>Loading calendar...</div>}>
+      <CalendarContent />
+    </Suspense>
+  );
+}
+
+// Main calendar content component
+function CalendarContent() {
+  const { state } = useSidebar();
   // Replace useRole with useQuery
   const { data: roleData, isLoading: isRoleLoading } = useQuery({
     queryKey: ['userRole'],
@@ -581,6 +626,7 @@ export default function Component() {
     },
     enabled:
       !!calendarDataQuery.data && !!currentDateQuery.data && currentDateQuery.data instanceof Date,
+    initialData: null, // Ensure consistent initial state
   });
 
   const leftEarlyDataQuery = useQuery({
@@ -952,13 +998,47 @@ export default function Component() {
         throw error;
       }
     },
-    onSuccess: () => {
+    onMutate: async ({ employee_id, schedule_date, status }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['calendarData'] });
+
+      // Snapshot the previous value
+      const previousCalendarData = queryClient.getQueryData(['calendarData']);
+
+      // Optimistically update the calendar data
+      queryClient.setQueryData(['calendarData'], (old: any) => {
+        if (!old) return old;
+        return old.map((employee: any) => {
+          if (employee.employee_id === employee_id) {
+            return {
+              ...employee,
+              events: employee.events.map((event: any) => {
+                if (event.schedule_date === schedule_date) {
+                  return { ...event, status };
+                }
+                return event;
+              }),
+            };
+          }
+          return employee;
+        });
+      });
+
+      // Return a context object with the snapshotted value
+      return { previousCalendarData };
+    },
+    onError: (err, variables, context) => {
+      // If the mutation fails, use the context returned from onMutate to roll back
+      if (context?.previousCalendarData) {
+        queryClient.setQueryData(['calendarData'], context.previousCalendarData);
+      }
+      console.error('Failed to update status and send email:', err);
+    },
+    onSettled: () => {
+      // Always refetch after error or success
       queryClient.invalidateQueries({ queryKey: ['calendarData'] });
       queryClient.invalidateQueries({ queryKey: ['timesheets'] });
       updatePopoverOpenMutation.mutate(false);
-    },
-    onError: (error) => {
-      console.error('Failed to update status and send email:', error);
     },
   });
 
@@ -1012,7 +1092,9 @@ export default function Component() {
                       </div>
                     ) : null)}
                   {breakRoomDutyQuery.data &&
+                  breakRoomDutyQuery.data.employee &&
                   breakRoomDutyQuery.data.employee.employee_id === employee.employee_id &&
+                  breakRoomDutyQuery.data.dutyDate &&
                   isSameDay(
                     parseISO(calendarEvent.schedule_date),
                     breakRoomDutyQuery.data.dutyDate
@@ -1422,7 +1504,7 @@ export default function Component() {
     calendarDataQuery.isLoading ||
     breakRoomDutyQuery.isLoading
   ) {
-    return <LoadingIndicator />;
+    return null;
   }
 
   if (calendarDataQuery.error) {
@@ -1435,11 +1517,7 @@ export default function Component() {
   }
 
   if (calendarDataQuery.isLoading || breakRoomDutyQuery.isLoading) {
-    return <LoadingIndicator />;
-  }
-
-  if (calendarDataQuery.error) {
-    return <div>Error loading calendar data</div>;
+    return null;
   }
 
   return (
@@ -1506,47 +1584,51 @@ export default function Component() {
                   <div
                     className={`overflow-hidden ${selectedDayQuery.data ? 'max-w-sm mr-auto' : ''}`}
                   >
-                    <Table
-                      className={`w-full overflow-hidden ${
-                        selectedDayQuery.data ? 'max-w-sm mr-auto' : ''
-                      }`}
-                    >
-                      <TableHeader className="sticky top-0 z-5 bg-background">
-                        <TableRow>
-                          <TableHead className="text-left w-30 max-w-sm bg-background sticky left-0 z-5">
-                            Employee
-                          </TableHead>
-                          {DAYS_OF_WEEK.map((day) => (
-                            <TableHead
-                              key={day}
-                              className={`text-left w-30 max-w-sm ${
-                                selectedDayQuery.data === day ? 'bg-muted' : ''
-                              } ${
-                                role && ['admin', 'super admin', 'dev', 'user'].includes(role)
-                                  ? 'hover:bg-muted cursor-pointer'
-                                  : ''
-                              } ${
-                                selectedDayQuery.data && day !== selectedDayQuery.data
-                                  ? 'hidden'
-                                  : ''
-                              }`}
-                              onClick={() => handleDayClick(day)}
-                            >
-                              {day} {weekDates[day]}
-                            </TableHead>
-                          ))}
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {sortedFilteredCalendarData.length > 0 ? (
-                          sortedFilteredCalendarData.map((employee) => renderEmployeeRow(employee))
-                        ) : (
+                    <Suspense fallback={<div>Loading table...</div>}>
+                      <Table
+                        className={`w-full overflow-hidden ${
+                          selectedDayQuery.data ? 'max-w-sm mr-auto' : ''
+                        }`}
+                      >
+                        <TableHeader className="sticky top-0 z-5 bg-background">
                           <TableRow>
-                            <TableCell colSpan={8}>No schedules found</TableCell>
+                            <TableHead className="text-left w-30 max-w-sm bg-background sticky left-0 z-5">
+                              Employee
+                            </TableHead>
+                            {DAYS_OF_WEEK.map((day) => (
+                              <TableHead
+                                key={day}
+                                className={`text-left w-30 max-w-sm ${
+                                  selectedDayQuery.data === day ? 'bg-muted' : ''
+                                } ${
+                                  role && ['admin', 'super admin', 'dev', 'user'].includes(role)
+                                    ? 'hover:bg-muted cursor-pointer'
+                                    : ''
+                                } ${
+                                  selectedDayQuery.data && day !== selectedDayQuery.data
+                                    ? 'hidden'
+                                    : ''
+                                }`}
+                                onClick={() => handleDayClick(day)}
+                              >
+                                {day} {weekDates[day]}
+                              </TableHead>
+                            ))}
                           </TableRow>
-                        )}
-                      </TableBody>
-                    </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {sortedFilteredCalendarData.length > 0 ? (
+                            sortedFilteredCalendarData.map((employee) =>
+                              renderEmployeeRow(employee)
+                            )
+                          ) : (
+                            <TableRow>
+                              <TableCell colSpan={8}>No schedules found</TableCell>
+                            </TableRow>
+                          )}
+                        </TableBody>
+                      </Table>
+                    </Suspense>
                   </div>
                   <ScrollBar orientation="vertical" />
                   <ScrollBar orientation="horizontal" />

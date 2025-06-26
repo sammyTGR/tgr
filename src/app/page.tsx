@@ -4,7 +4,6 @@ import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import DOMPurify from 'isomorphic-dompurify';
 import { supabase } from '@/utils/supabase/client';
-import LoadingIndicator from '@/components/LoadingIndicator';
 import dynamic from 'next/dynamic';
 
 interface UserSession {
@@ -14,7 +13,11 @@ interface UserSession {
 }
 
 const LazyLandingPageCustomer = dynamic(() => import('@/components/LandingPageCustomer'), {
-  loading: () => <LoadingIndicator />,
+  loading: () => (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+    </div>
+  ),
 });
 
 export default function Home() {
@@ -92,7 +95,11 @@ export default function Home() {
 
   // Handle loading state
   if (isLoading) {
-    return <LoadingIndicator />;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
   }
 
   // Handle no user state

@@ -9,7 +9,7 @@ import {
   isSameMonth,
 } from 'date-fns';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import LoadingIndicator from '@/components/LoadingIndicator';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useQuery } from '@tanstack/react-query';
 import { fetchKPIData, KPIResult } from './api';
 import {
@@ -29,24 +29,13 @@ import {
   ChartLegendContent,
   ChartConfig,
 } from '@/components/ui/chart';
-import React from 'react';
-import { BarChart as RechartsBarChart } from '@/components/BarChart';
+import { DateRange } from 'react-day-picker';
 
 interface DashboardWeeklyKPIProps {
-  dateRange: { from: Date | undefined; to: Date | undefined } | undefined;
-  setDateRange: (range: { from: Date | undefined; to: Date | undefined } | undefined) => void;
-  getDefaultDateRange: () => { from: Date; to: Date };
+  dateRange: DateRange;
+  setDateRange: (range: DateRange | undefined) => void;
+  getDefaultDateRange: () => DateRange;
   formatter: Intl.NumberFormat;
-}
-
-interface WeekData {
-  weekStart: Date;
-  weekEnd: Date;
-  data: Record<string, KPIResult>;
-  totals: {
-    qty: number;
-    revenue: number;
-  };
 }
 
 function DashboardWeeklyKPI({
@@ -55,20 +44,30 @@ function DashboardWeeklyKPI({
   getDefaultDateRange,
   formatter,
 }: DashboardWeeklyKPIProps) {
-  // Get the current month's date range
-  const currentMonthStart = startOfMonth(new Date());
-  const currentMonthEnd = endOfMonth(new Date());
+  // Get the effective date range with validation
+  const effectiveDateRange = dateRange || getDefaultDateRange();
 
-  // Use the provided dateRange if available, otherwise use the current month
-  const effectiveDateRange =
-    dateRange?.from && dateRange?.to
-      ? { from: dateRange.from, to: dateRange.to }
-      : { from: currentMonthStart, to: currentMonthEnd };
+  // Validate that we have valid dates
+  if (!effectiveDateRange.from || !effectiveDateRange.to) {
+    return (
+      <TabsContent value="weekly-kpis">
+        <div className="flex items-center justify-center h-96">
+          <p className="text-red-500">Invalid date range. Please select a valid date range.</p>
+        </div>
+      </TabsContent>
+    );
+  }
 
-  // Get all weeks in the current month
+  const currentMonthStart = startOfMonth(effectiveDateRange.from);
+  const currentMonthEnd = endOfMonth(effectiveDateRange.from);
+
+  // Generate weeks for the current month
   const weeksInMonth = eachWeekOfInterval(
-    { start: effectiveDateRange.from, end: effectiveDateRange.to },
-    { weekStartsOn: 0 } // 0 = Sunday
+    {
+      start: currentMonthStart,
+      end: currentMonthEnd,
+    },
+    { weekStartsOn: 0 }
   );
 
   // Create a query for each week
@@ -85,7 +84,22 @@ function DashboardWeeklyKPI({
         format(weekStart, 'yyyy-MM-dd'),
         format(adjustedWeekEnd, 'yyyy-MM-dd'),
       ],
-      queryFn: () => fetchKPIData(weekStart, adjustedWeekEnd),
+      queryFn: async () => {
+        try {
+          console.log('Fetching KPI data for week:', {
+            start: format(weekStart, 'yyyy-MM-dd'),
+            end: format(adjustedWeekEnd, 'yyyy-MM-dd'),
+          });
+          const result = await fetchKPIData(weekStart, adjustedWeekEnd);
+          console.log('KPI data result:', result);
+          return result;
+        } catch (error) {
+          console.error('Error fetching KPI data:', error);
+          throw error;
+        }
+      },
+      retry: 1, // Only retry once to avoid infinite loops
+      retryDelay: 1000, // Wait 1 second before retrying
     });
   });
 
@@ -95,357 +109,188 @@ function DashboardWeeklyKPI({
   // Check if any query has an error
   const error = weekQueries.find((query) => query.error)?.error;
 
-  // Process the data for each week
-  const weeklyData = React.useMemo(() => {
-    return weekQueries.map((query, index) => {
+  // Process data for charts
+  const weeklyData = weekQueries
+    .map((query, index) => {
+      if (!query.data) return null;
+
       const weekStart = weeksInMonth[index];
       const weekEnd = endOfWeek(weekStart, { weekStartsOn: 0 });
-      const adjustedWeekEnd =
-        weekEnd > (effectiveDateRange.to || currentMonthEnd)
-          ? effectiveDateRange.to || currentMonthEnd
-          : weekEnd;
-      const weekKpiData = query.data || {};
 
-      // Calculate week totals
-      const weekTotals = {
-        qty: 0,
-        revenue: 0,
-      };
-
-      Object.values(weekKpiData).forEach((data: KPIResult) => {
-        weekTotals.qty += data.qty;
-        weekTotals.revenue += data.revenue;
-      });
+      // Calculate totals from the KPIResult structure
+      const totalSales = Object.values(query.data).reduce(
+        (sum, category) => sum + (category.revenue || 0),
+        0
+      );
+      const totalTransactions = Object.values(query.data).reduce(
+        (sum, category) => sum + (category.qty || 0),
+        0
+      );
+      const averageTransactionValue = totalTransactions > 0 ? totalSales / totalTransactions : 0;
 
       return {
-        weekStart,
-        weekEnd: adjustedWeekEnd,
-        data: weekKpiData,
-        totals: weekTotals,
+        week: `Week ${index + 1}`,
+        startDate: format(weekStart, 'MMM dd'),
+        endDate: format(weekEnd, 'MMM dd'),
+        totalSales,
+        totalTransactions,
+        averageTransactionValue,
       };
-    });
-  }, [weekQueries, weeksInMonth, effectiveDateRange.to, currentMonthEnd]);
+    })
+    .filter((week): week is NonNullable<typeof week> => week !== null);
 
-  // Calculate monthly totals
-  const monthlyTotals = React.useMemo(() => {
-    return weeklyData.reduce(
-      (acc, week) => ({
-        qty: acc.qty + week.totals.qty,
-        revenue: acc.revenue + week.totals.revenue,
-      }),
-      { qty: 0, revenue: 0 }
-    );
-  }, [weeklyData]);
-
-  // Check loading and error states
   if (isLoading) {
-    return <LoadingIndicator />;
+    return (
+      <TabsContent value="weekly-kpis">
+        <Skeleton className="h-96 w-full" />
+      </TabsContent>
+    );
   }
 
   if (error) {
+    console.error('Weekly KPI Error:', error);
     return (
-      <div className="p-4 text-center">
-        <h2 className="text-xl font-bold text-red-500 mb-2">Error loading weekly KPI data</h2>
-        <p className="text-muted-foreground">
-          Please try again later or contact support if the issue persists.
-        </p>
-      </div>
+      <TabsContent value="weekly-kpis">
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center">
+            <p className="text-red-500 mb-2">Error loading weekly KPI data</p>
+            <p className="text-sm text-gray-500">
+              {error instanceof Error ? error.message : 'Unknown error occurred'}
+            </p>
+          </div>
+        </div>
+      </TabsContent>
     );
-  }
-
-  // Check if we have any data
-  if (weeklyData.length === 0) {
-    return (
-      <div className="p-4 text-center">
-        <h2 className="text-xl font-bold mb-2">No Weekly KPI Data Available</h2>
-        <p className="text-muted-foreground">There is no data available for the current month.</p>
-      </div>
-    );
-  }
-
-  // Prepare data for charts
-  const weeklyChartData = weeklyData.map((week, index) => ({
-    dateRange: `${format(week.weekStart, 'MMM d')} - ${format(week.weekEnd, 'MMM d')}`,
-    weekQuantity: week.totals.qty,
-    weekRevenue: week.totals.revenue,
-  }));
-
-  // Prepare data for group comparison chart
-  const groupComparisonData = weeklyData.map((week, index) => {
-    const result: any = {
-      name: `Week ${index + 1}`,
-      dateRange: `${format(week.weekStart, 'MMM d')} - ${format(week.weekEnd, 'MMM d')}`,
-    };
-
-    // Group the data by group
-    const groupedData = groupKPIs(week.data);
-
-    // Add each group's revenue to the result
-    Object.entries(groupedData).forEach(([group, data]) => {
-      result[group] = data.revenue;
-    });
-
-    return result;
-  });
-
-  // Get all unique groups across all weeks
-  const allGroups = Array.from(
-    new Set(weeklyData.flatMap((week) => Object.keys(groupKPIs(week.data))))
-  );
-
-  // Define chart configurations
-  const quantityRevenueConfig = {
-    weekQuantity: {
-      label: 'Quantity',
-      color: 'hsl(var(--chart-1))',
-    },
-    weekRevenue: {
-      label: 'Revenue',
-      color: 'hsl(var(--chart-2))',
-    },
-  } satisfies ChartConfig;
-
-  // Create group config dynamically
-  const groupConfig = allGroups.reduce((acc, group, index) => {
-    acc[group] = {
-      label: group,
-      color: `hsl(var(--chart-${(index % 12) + 1}))`,
-    };
-    return acc;
-  }, {} as ChartConfig);
-
-  const groupOrder = [
-    'Sales',
-    'Services',
-    'Classes',
-    'Range Protection',
-    'Range Rentals',
-    'Firearms',
-  ];
-
-  // Helper function to group KPIs by their group property
-  function groupKPIs(kpiData: Record<string, KPIResult>) {
-    const grouped: Record<string, { qty: number; revenue: number }> = {};
-
-    Object.values(kpiData).forEach((data) => {
-      const group = data.group || 'Other';
-      if (!grouped[group]) {
-        grouped[group] = { qty: 0, revenue: 0 };
-      }
-      grouped[group].qty += data.qty;
-      grouped[group].revenue += data.revenue;
-    });
-
-    return grouped;
   }
 
   return (
     <TabsContent value="weekly-kpis">
-      <div className="space-y-8">
-        {/* Monthly Summary */}
-        <div>
-          <h2 className="text-2xl font-bold mb-4">
-            Monthly Summary ({format(effectiveDateRange.from || new Date(), 'MMMM yyyy')} -{' '}
-            {format(effectiveDateRange.to || new Date(), 'MMMM yyyy')})
-          </h2>
-          <Card className="mb-6 overflow-hidden border-2 border-primary">
-            <CardHeader className="bg-primary/10 p-4">
-              <CardTitle className="text-xl">Monthly Total</CardTitle>
+      <div className="space-y-6">
+        {/* Weekly KPI Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Monthly Total Sales</CardTitle>
             </CardHeader>
-            <CardContent className="p-4">
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Quantity</p>
-                  <p className="text-2xl font-bold">{monthlyTotals.qty}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm text-muted-foreground">Total Revenue</p>
-                  <p className="text-2xl font-bold">{formatter.format(monthlyTotals.revenue)}</p>
-                </div>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {formatter.format(
+                  weeklyData.reduce((sum, week) => sum + (week.totalSales || 0), 0)
+                )}
               </div>
             </CardContent>
           </Card>
-        </div>
 
-        {/* Weekly Comparison Charts */}
-        <div>
-          <h2 className="text-2xl font-bold mb-4">Weekly Comparisons</h2>
-
-          {/* Quantity and Revenue Chart */}
-          <Card className="mb-6 overflow-hidden">
-            <CardHeader className="bg-muted/50 p-4">
-              <CardTitle className="text-lg">Weekly Quantity & Revenue</CardTitle>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Monthly Total Transactions</CardTitle>
             </CardHeader>
-            <CardContent className="p-4">
-              <ChartContainer
-                config={quantityRevenueConfig}
-                className="min-h-[20px] max-h-[300px] w-full"
-              >
-                <BarChart
-                  data={weeklyChartData}
-                  margin={{ top: 10, right: 10, left: 10, bottom: 10 }}
-                >
-                  <CartesianGrid vertical={false} />
-                  <XAxis dataKey="dateRange" tickLine={false} tickMargin={10} axisLine={false} />
-                  <YAxis tickLine={false} tickMargin={8} axisLine={false} fontSize={12} />
-                  <ChartTooltip
-                    cursor={false}
-                    content={({ active, payload, label }) => {
-                      if (active && payload && payload.length) {
-                        return (
-                          <div className="rounded-lg border border-border/50 bg-background p-2 shadow-xl">
-                            <p className="font-medium">{label}</p>
-                            <div className="space-y-1">
-                              <p className="text-muted-foreground">Quantity</p>
-                              <p className="font-mono font-medium">{payload[0].value as number}</p>
-                              <p className="text-muted-foreground">Revenue</p>
-                              <p className="font-mono font-medium">
-                                {formatter.format(payload[1].value as number)}
-                              </p>
-                            </div>
-                          </div>
-                        );
-                      }
-                      return null;
-                    }}
-                  />
-                  <Bar
-                    dataKey="weekQuantity"
-                    name="Quantity"
-                    fill={quantityRevenueConfig.weekQuantity.color}
-                    radius={[4, 4, 0, 0]}
-                    maxBarSize={60}
-                  />
-                  <Bar
-                    dataKey="weekRevenue"
-                    name="Revenue"
-                    fill={quantityRevenueConfig.weekRevenue.color}
-                    radius={[4, 4, 0, 0]}
-                    maxBarSize={60}
-                  />
-                </BarChart>
-              </ChartContainer>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {weeklyData.reduce((sum, week) => sum + (week.totalTransactions || 0), 0)}
+              </div>
             </CardContent>
           </Card>
 
-          {/* Group Comparison Chart */}
-          <Card className="mb-6 overflow-hidden">
-            <CardHeader className="bg-muted/50 p-4">
-              <CardTitle className="text-lg">Revenue by Group</CardTitle>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Average Weekly Sales</CardTitle>
             </CardHeader>
-            <CardContent className="p-4">
-              <ChartContainer config={groupConfig} className="min-h-[20px] max-h-[300px] w-full">
-                <BarChart
-                  data={groupComparisonData}
-                  margin={{ top: 10, right: 10, left: 10, bottom: 10 }}
-                >
-                  <XAxis dataKey="dateRange" />
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {formatter.format(
+                  weeklyData.length > 0
+                    ? weeklyData.reduce((sum, week) => sum + (week.totalSales || 0), 0) /
+                        weeklyData.length
+                    : 0
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Weeks in Month</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{weeklyData.length}</div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Weekly Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Weekly Sales Trend</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={weeklyData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="week" />
                   <YAxis />
-                  <ChartTooltip
-                    content={({ active, payload, label }) => {
-                      if (active && payload && payload.length) {
-                        return (
-                          <div className="rounded-lg border border-border/50 bg-background p-2 shadow-xl">
-                            <p className="font-medium">{label}</p>
-                            <div className="space-y-1">
-                              {payload.map((entry, index) => (
-                                <div key={index}>
-                                  <p className="text-muted-foreground">{entry.name}</p>
-                                  <p className="font-mono font-medium">
-                                    {formatter.format(entry.value as number)}
-                                  </p>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        );
-                      }
-                      return null;
-                    }}
-                    cursor={{ fill: 'transparent' }}
-                  />
-                  <ChartLegendContent />
-                  {groupOrder.map((group, index) => (
-                    <Bar
-                      key={group}
-                      dataKey={group}
-                      name={group}
-                      stackId="a"
-                      fill={`hsl(var(--chart-${(index % 12) + 1}))`}
-                      radius={[4, 4, 0, 0]}
-                      maxBarSize={60}
-                    />
-                  ))}
+                  <Tooltip formatter={(value) => formatter.format(Number(value))} />
+                  <Bar dataKey="totalSales" fill="#8884d8" />
                 </BarChart>
-              </ChartContainer>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Weekly Transactions</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={weeklyData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="week" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="totalTransactions" fill="#82ca9d" />
+                </BarChart>
+              </ResponsiveContainer>
             </CardContent>
           </Card>
         </div>
 
-        {/* Weekly Details */}
-        <div>
-          <h2 className="text-2xl font-bold mb-4">Weekly Details</h2>
-          <div className="grid grid-cols-1 gap-6">
-            {weeklyData.map((week, index) => (
-              <Card key={index} className="overflow-hidden">
-                <CardHeader className="bg-muted/50 p-4">
-                  <CardTitle className="text-lg">
-                    Week {index + 1}: {format(week.weekStart, 'MMM d')} -{' '}
-                    {format(week.weekEnd, 'MMM d, yyyy')}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-4">
-                  {/* Week Summary */}
-                  <div className="mb-4 p-4 bg-muted/30 rounded-md">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Week Total Quantity</p>
-                        <p className="text-xl font-bold">{week.totals.qty}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm text-muted-foreground">Week Total Revenue</p>
-                        <p className="text-xl font-bold">{formatter.format(week.totals.revenue)}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Grouped KPIs */}
-                  <div className="space-y-4">
-                    {Object.entries(groupKPIs(week.data))
-                      .sort((a, b) => {
-                        const aIndex = groupOrder.indexOf(a[0]);
-                        const bIndex = groupOrder.indexOf(b[0]);
-                        if (aIndex === -1) return 1;
-                        if (bIndex === -1) return -1;
-                        return aIndex - bIndex;
-                      })
-                      .map(([group, data]) => (
-                        <div key={group} className="border rounded-md p-3">
-                          <h3 className="font-semibold mb-2">{group}</h3>
-                          <div className="flex justify-between items-center mb-2">
-                            <div>
-                              <p className="text-sm text-muted-foreground">Quantity</p>
-                              <p className="font-bold">{data.qty}</p>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-sm text-muted-foreground">Revenue</p>
-                              <p className="font-bold">{formatter.format(data.revenue)}</p>
-                            </div>
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            Categories:{' '}
-                            {Object.keys(week.data)
-                              .filter((category) => week.data[category].group === group)
-                              .join(', ')}
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
+        {/* Weekly Data Table */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Weekly Breakdown</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-2">Week</th>
+                    <th className="text-left py-2">Period</th>
+                    <th className="text-right py-2">Sales</th>
+                    <th className="text-right py-2">Transactions</th>
+                    <th className="text-right py-2">Avg Transaction</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {weeklyData.map((week, index) => (
+                    <tr key={index} className="border-b">
+                      <td className="py-2">{week.week}</td>
+                      <td className="py-2">
+                        {week.startDate} - {week.endDate}
+                      </td>
+                      <td className="text-right py-2">{formatter.format(week.totalSales || 0)}</td>
+                      <td className="text-right py-2">{week.totalTransactions || 0}</td>
+                      <td className="text-right py-2">
+                        {formatter.format(week.averageTransactionValue || 0)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </TabsContent>
   );

@@ -1,7 +1,7 @@
-'use client';
+// 'use client';
 
-import AdminDashboardContent from './AdminDashboardContent';
+// import AdminDashboardContent from './AdminDashboardContent';
 
-export default function AdminDashboard() {
-  return <AdminDashboardContent />;
-}
+// export default function AdminDashboard() {
+//   return <AdminDashboardContent />;
+// }

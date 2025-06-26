@@ -1,13 +1,13 @@
+import { supabase } from '@/utils/supabase/client';
+import { Cross2Icon } from '@radix-ui/react-icons';
 import * as NavigationMenu from '@radix-ui/react-navigation-menu';
+import * as ScrollAreaPrimitive from '@radix-ui/react-scroll-area';
 import dynamic from 'next/dynamic';
 import React, { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
-import { supabase } from '@/utils/supabase/client';
-import { Button } from './button';
 import RoleBasedWrapper from '../RoleBasedWrapper';
-import { ScrollArea, ScrollBar } from './scroll-area';
-import * as ScrollAreaPrimitive from '@radix-ui/react-scroll-area';
-import { Cross2Icon } from '@radix-ui/react-icons';
+import { Button } from './button';
+import { ScrollBar } from './scroll-area';
 
 // Verify and update the paths here
 const DeptId = dynamic(() => import('../../app/TGR/dros/cards/DeptId'), {
@@ -146,10 +146,27 @@ const SubItemWrapper = styled.div`
   border-radius: 0.25rem;
   transition: all 0.2s ease;
   background-color: var(--background);
+  border: 1px solid transparent;
+  outline: none;
 
   &:hover {
     background-color: var(--accent);
     color: var(--accent-foreground);
+    border-color: var(--border);
+    box-shadow: 0 0 0 2px hsl(217.2 91.2% 59.8% / 0.5);
+  }
+
+  &:focus {
+    background-color: var(--accent);
+    color: var(--accent-foreground);
+    border-color: var(--border);
+    outline: none;
+    box-shadow: 0 0 0 2px hsl(217.2 91.2% 59.8% / 0.5);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px hsl(217.2 91.2% 59.8% / 0.5);
   }
 `;
 
@@ -188,41 +205,11 @@ const CloseButton = styled.button`
   }
 `;
 
-const LineSeparator = styled.div`
-  height: 1px;
-  background-color: #ccc;
-  width: 100%;
-  margin: 8px 0;
-`;
-
 const colorMapping = {
   Special: '#f00', // Red
   Important: '#00f', // Blue
   Note: '#0f0', // Green
   // Add more mappings as needed
-};
-
-const applyColorToLabel = (label: string) => {
-  const keywords = Object.keys(colorMapping);
-  const foundKeyword = keywords.find((keyword) => label.includes(keyword));
-
-  if (foundKeyword) {
-    const parts = label.split(foundKeyword);
-    const ColorStyledText = styled.span`
-      color: ${colorMapping[foundKeyword as keyof typeof colorMapping]};
-      font-weight: bold;
-    `;
-
-    return (
-      <>
-        {parts[0]}
-        <ColorStyledText>{foundKeyword}</ColorStyledText>
-        {parts.slice(1).join(foundKeyword)}
-      </>
-    );
-  }
-
-  return label;
 };
 
 type SubItem = {
@@ -279,15 +266,29 @@ const StyledNavigationTrigger = styled(Button)`
   font-size: 0.875rem;
   transition: all 0.2s ease;
   background-color: transparent;
+  border: 1px solid transparent;
+  border-radius: 0.375rem;
+  margin: 0.25rem;
 
   &:hover {
     background-color: hsl(var(--accent));
     color: hsl(var(--accent-foreground));
+    border-color: hsl(var(--border));
+    outline: none;
+    box-shadow: 0 0 0 2px hsl(217.2 91.2% 59.8% / 0.5);
   }
 
   &:focus {
     background-color: hsl(var(--accent));
     color: hsl(var(--accent-foreground));
+    border-color: hsl(var(--border));
+    outline: none;
+    box-shadow: 0 0 0 2px hsl(217.2 91.2% 59.8% / 0.5);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px hsl(217.2 91.2% 59.8% / 0.5);
   }
 `;
 
@@ -297,7 +298,9 @@ export default function SupportNavMenu() {
   const [activeDialogContent, setActiveDialogContent] = useState<React.ReactNode | null>(null);
   const [activeDialog, setActiveDialog] = useState(null);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [clickedIndex, setClickedIndex] = useState<number | null>(null);
   const [subItemsPosition, setSubItemsPosition] = useState({ left: 0, top: 0 });
+  const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const fetchMenuItems = async () => {
@@ -339,19 +342,24 @@ export default function SupportNavMenu() {
   // Close active dialog
   const closeDialog = () => setActiveDialog(null);
 
-  // Render dialog content based on the active dialog
-  const renderDialogContent = () => {
-    if (!activeDialog) return null;
-    const ContentComponent = dialogContentComponents[activeDialog];
-    return (
-      <DialogContainer ref={dialogRef}>
-        {ContentComponent}
-        <CloseButton onClick={closeDialog}>
-          <Cross2Icon className="w-4 h-4" />
-        </CloseButton>
-      </DialogContainer>
-    );
+  // Clear close timeout
+  const clearCloseTimeout = () => {
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
   };
+
+  // Set close timeout with delay
+  const setCloseTimeout = () => {
+    clearCloseTimeout();
+    closeTimeoutRef.current = setTimeout(() => {
+      setHoveredIndex(null);
+      setClickedIndex(null);
+    }, 300); // 300ms delay before closing
+  };
+
+  // Render dialog content based on the active dialog
 
   const handleSubItemClick = (contentId: string) => {
     const contentComponent =
@@ -374,12 +382,12 @@ export default function SupportNavMenu() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const setSubItemsDisplay = (index: number, displayType: 'grid' | 'none') => {
-    const subitemsElement = document.getElementById(`subitems-${index}`);
-    if (subitemsElement) {
-      subitemsElement.style.display = displayType;
-    }
-  };
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      clearCloseTimeout();
+    };
+  }, []);
 
   // Define a component to render subitem labels with styles
   const StyledSubItemLabel = ({ label }: { label: string }) => {
@@ -392,6 +400,7 @@ export default function SupportNavMenu() {
   };
 
   const handleMenuItemHover = (index: number, event: React.MouseEvent<HTMLLIElement>) => {
+    clearCloseTimeout();
     const menuItem = event.currentTarget;
     const rect = menuItem.getBoundingClientRect();
     const viewportWidth = window.innerWidth;
@@ -414,6 +423,36 @@ export default function SupportNavMenu() {
     setHoveredIndex(index);
   };
 
+  const handleMenuItemClick = (index: number, event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    clearCloseTimeout();
+
+    if (clickedIndex === index) {
+      // If clicking the same item, close it
+      setClickedIndex(null);
+      setHoveredIndex(null);
+    } else {
+      // Open the clicked item
+      setClickedIndex(index);
+      handleMenuItemHover(index, event as any);
+    }
+  };
+
+  const handleMenuItemLeave = () => {
+    setCloseTimeout();
+  };
+
+  const handleSubMenuEnter = () => {
+    clearCloseTimeout();
+  };
+
+  const handleSubMenuLeave = () => {
+    setCloseTimeout();
+  };
+
+  // Determine which index should be active (hover takes precedence over click)
+  const activeIndex = hoveredIndex !== null ? hoveredIndex : clickedIndex;
+
   return (
     <RoleBasedWrapper
       allowedRoles={['user', 'auditor', 'admin', 'super admin', 'dev', 'gunsmith', 'ceo']}
@@ -425,19 +464,24 @@ export default function SupportNavMenu() {
               <NavigationItem
                 key={index}
                 onMouseEnter={(event) => handleMenuItemHover(index, event)}
-                onMouseLeave={() => setHoveredIndex(null)}
+                onMouseLeave={handleMenuItemLeave}
               >
                 <NavigationMenu.Trigger asChild>
-                  <StyledNavigationTrigger variant="ghost">
+                  <StyledNavigationTrigger
+                    variant="ghost"
+                    onClick={(event) => handleMenuItemClick(index, event)}
+                  >
                     {menuItem.label}
                   </StyledNavigationTrigger>
                 </NavigationMenu.Trigger>
-                {hoveredIndex === index && (
+                {activeIndex === index && (
                   <SubItemsContainer
                     style={{
                       left: `${subItemsPosition.left}px`,
                       top: `${subItemsPosition.top}px`,
                     }}
+                    onMouseEnter={handleSubMenuEnter}
+                    onMouseLeave={handleSubMenuLeave}
                   >
                     {menuItem.subItems.map((subItem, subIndex) => (
                       <SubItemWrapper

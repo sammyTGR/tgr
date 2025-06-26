@@ -1,7 +1,6 @@
 'use client';
 
 import SalesRangeStackedBarChart from '@/app/admin/reports/charts/SalesRangeStackedBarChart';
-import LoadingIndicator from '@/components/LoadingIndicator';
 import RoleBasedWrapper from '@/components/RoleBasedWrapper';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
   TableBody,
@@ -60,7 +60,7 @@ import { formatInTimeZone, format as formatTZ, toZonedTime } from 'date-fns-tz';
 import DOMPurify from 'isomorphic-dompurify';
 import dynamic from 'next/dynamic';
 import { usePathname, useSearchParams } from 'next/navigation';
-import React, { Suspense, useState } from 'react';
+import React, { Suspense, useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 import TodoWrapper from '../../todo/todo-wrapper';
@@ -206,7 +206,7 @@ const LazySalesDataTable = dynamic(
   {
     loading: () => (
       <div className="relative w-full h-[400px]">
-        <LoadingIndicator />
+        <Skeleton className="w-full h-full" />
       </div>
     ),
   }
@@ -224,7 +224,7 @@ const columns = [
   }),
 ];
 
-function AdminDashboardContent() {
+function AdminDashboardContent({ handleTabHover }: { handleTabHover?: (tab: string) => void }) {
   const { state } = useSidebar();
   const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
 
@@ -310,7 +310,7 @@ function AdminDashboardContent() {
     if (isMetricsLoading) {
       return (
         <div className="flex items-center justify-center p-8">
-          <LoadingIndicator />
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
       );
     }
@@ -330,7 +330,7 @@ function AdminDashboardContent() {
         {/* Metrics Section */}
         {isMetricsLoading ? (
           <div className="flex items-center justify-center p-8">
-            <LoadingIndicator />
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
         ) : (
           <>
@@ -687,13 +687,46 @@ function AdminDashboardContent() {
 
       return { suggestion, replyText };
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['suggestions'] });
-      toast.success('Reply sent successfully!');
+    onMutate: async ({ suggestion, replyText }) => {
+      // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
+      await queryClient.cancelQueries({ queryKey: ['suggestions'] });
+
+      // Snapshot the previous value
+      const previousSuggestions = queryClient.getQueryData(['suggestions']);
+
+      // Optimistically update to the new value
+      queryClient.setQueryData(['suggestions'], (old: Suggestion[] | undefined) => {
+        if (!old) return old;
+        return old.map((s) =>
+          s.id === suggestion.id
+            ? {
+                ...s,
+                is_read: true,
+                reply: replyText,
+                replied_by: 'Admin',
+                replied_at: new Date().toISOString(),
+              }
+            : s
+        );
+      });
+
+      // Return a context object with the snapshotted value
+      return { previousSuggestions };
     },
-    onError: (error: Error) => {
-      console.error('Reply error:', error);
-      toast.error(`Failed to send reply: ${error.message}`);
+    onError: (err, variables, context) => {
+      // If the mutation fails, use the context returned from onMutate to roll back
+      if (context?.previousSuggestions) {
+        queryClient.setQueryData(['suggestions'], context.previousSuggestions);
+      }
+      console.error('Reply error:', err);
+      toast.error(`Failed to send reply: ${err.message}`);
+    },
+    onSettled: () => {
+      // Always refetch after error or success
+      queryClient.invalidateQueries({ queryKey: ['suggestions'] });
+    },
+    onSuccess: () => {
+      toast.success('Reply sent successfully!');
     },
   });
 
@@ -2004,12 +2037,14 @@ function AdminDashboardContent() {
               <TabsTrigger
                 value="sales-kpis"
                 className="flex-1 relative py-2 text-sm font-medium whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
+                onMouseEnter={() => handleTabHover?.('sales-kpis')}
               >
                 KPIs
               </TabsTrigger>
               <TabsTrigger
                 value="metrics"
                 className="flex-1 relative py-2 text-sm font-medium whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
+                onMouseEnter={() => handleTabHover?.('metrics')}
               >
                 Key Metrics
               </TabsTrigger>
@@ -2019,7 +2054,9 @@ function AdminDashboardContent() {
           <div className="relative section w-full overflow-hidden">
             {isLoading && (
               <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50">
-                <LoadingIndicator />
+                <div className="flex items-center justify-center h-full">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
               </div>
             )}
 
@@ -2748,26 +2785,30 @@ function AdminDashboardContent() {
             </TabsContent>
 
             <TabsContent value="sales-kpis">
-              <DashboardKPI
-                kpiQuery={kpiQuery}
-                drosCancellationsQuery={drosCancellationsQuery} // Add this line
-                dateRange={dateRange}
-                setDateRange={setDateRange}
-                getDefaultDateRange={getDefaultDateRange}
-                formatter={formatter}
-              />
+              <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+                <DashboardKPI
+                  kpiQuery={kpiQuery}
+                  drosCancellationsQuery={drosCancellationsQuery} // Add this line
+                  dateRange={dateRange}
+                  setDateRange={setDateRange}
+                  getDefaultDateRange={getDefaultDateRange}
+                  formatter={formatter}
+                />
+              </Suspense>
             </TabsContent>
 
             <TabsContent value="weekly-kpis">
-              <DashboardWeeklyKPI
-                dateRange={{
-                  from: dateRange?.from,
-                  to: dateRange?.to ?? new Date(), // provide a default value for to if it's undefined
-                }}
-                setDateRange={setDateRange}
-                getDefaultDateRange={getDefaultDateRange}
-                formatter={formatter}
-              />
+              <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+                <DashboardWeeklyKPI
+                  dateRange={{
+                    from: dateRange?.from || getDefaultDateRange().from,
+                    to: dateRange?.to || getDefaultDateRange().to,
+                  }}
+                  setDateRange={setDateRange}
+                  getDefaultDateRange={getDefaultDateRange}
+                  formatter={formatter}
+                />
+              </Suspense>
             </TabsContent>
 
             <TabsContent value="metrics">
@@ -3102,5 +3143,34 @@ function AdminDashboardContent() {
 }
 
 export default function AdminDashboard() {
-  return <AdminDashboardContent />;
+  const queryClient = useQueryClient();
+
+  // Prefetch KPI and weekly KPI data for both tabs on mount
+  useEffect(() => {
+    // Prefetch for current month
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    lastDay.setHours(23, 59, 59, 999);
+    queryClient.prefetchQuery({
+      queryKey: ['kpis', firstDay.toISOString(), lastDay.toISOString()],
+      queryFn: () => fetchKPIData(firstDay, lastDay),
+    });
+  }, [queryClient]);
+
+  // Prefetch on tab hover
+  const handleTabHover = (tab: string) => {
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    lastDay.setHours(23, 59, 59, 999);
+    if (tab === 'sales-kpis') {
+      queryClient.prefetchQuery({
+        queryKey: ['kpis', firstDay.toISOString(), lastDay.toISOString()],
+        queryFn: () => fetchKPIData(firstDay, lastDay),
+      });
+    }
+  };
+
+  return <AdminDashboardContent handleTabHover={handleTabHover} />;
 }

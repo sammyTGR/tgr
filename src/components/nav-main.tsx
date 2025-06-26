@@ -32,8 +32,10 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from '@/components/ui/sidebar';
-import { useQuery } from '@tanstack/react-query';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/utils/supabase/client';
+import { useEffect } from 'react';
 
 // Define role types
 type Role = 'super admin' | 'ceo' | 'dev' | 'admin' | 'gunsmith' | 'user' | 'customer' | 'auditor';
@@ -276,6 +278,29 @@ const navigationSections: { [key: string]: NavigationSection } = {
 };
 
 export function NavMain() {
+  const queryClient = useQueryClient();
+
+  // Prefetch common pages on mount
+  useEffect(() => {
+    // Prefetch commonly accessed pages
+    const commonPages = [
+      '/admin/dashboard',
+      '/TGR/crew/calendar',
+      '/admin/audits',
+      '/TGR/dros/guide',
+      '/patch-notes',
+    ];
+
+    commonPages.forEach((page) => {
+      // Prefetch the page data
+      queryClient.prefetchQuery({
+        queryKey: ['pageData', page],
+        queryFn: () => fetch(page).then((res) => res.ok),
+        staleTime: 5 * 60 * 1000, // 5 minutes
+      });
+    });
+  }, [queryClient]);
+
   // User data and role queries
   const { data: currentUser } = useQuery({
     queryKey: ['currentUser'],
@@ -303,6 +328,16 @@ export function NavMain() {
   });
 
   const userRole = userData?.role as Role;
+
+  // Function to handle hover-based prefetching
+  const handleItemHover = (url: string) => {
+    // Prefetch the page data when user hovers over a navigation item
+    queryClient.prefetchQuery({
+      queryKey: ['pageData', url],
+      queryFn: () => fetch(url).then((res) => res.ok),
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    });
+  };
 
   // Add debug logs
   // console.log("Current User Role:", userRole);
@@ -335,75 +370,81 @@ export function NavMain() {
   return (
     <SidebarGroup>
       <SidebarGroupLabel>Navigation</SidebarGroupLabel>
-      <SidebarMenu>
-        {Object.entries(navigationSections).map(([key, section]) => {
-          // Add debug logs for each section
-          // console.log(`Checking section: ${key}`, {
-          //   isDevelopment: key === "development",
-          //   userRole,
-          //   shouldShow: key === "development" ? userRole === "dev" : true,
-          // });
+      <ScrollArea className="h-[calc(100vh-20rem)]">
+        <SidebarMenu>
+          {Object.entries(navigationSections).map(([key, section]) => {
+            // Add debug logs for each section
+            // console.log(`Checking section: ${key}`, {
+            //   isDevelopment: key === "development",
+            //   userRole,
+            //   shouldShow: key === "development" ? userRole === "dev" : true,
+            // });
 
-          // Skip Staff Management section for non-admin roles
-          if (key === 'management' && !['super admin', 'ceo', 'dev', 'admin'].includes(userRole)) {
-            return null;
-          }
+            // Skip Staff Management section for non-admin roles
+            if (
+              key === 'management' &&
+              !['super admin', 'ceo', 'dev', 'admin'].includes(userRole)
+            ) {
+              return null;
+            }
 
-          // Skip Auditing section for gunsmiths
-          if (key === 'auditing' && userRole === 'gunsmith') {
-            return null;
-          }
+            // Skip Auditing section for gunsmiths
+            if (key === 'auditing' && userRole === 'gunsmith') {
+              return null;
+            }
 
-          // Skip Development section for non-dev roles
-          if (key === 'development' && userRole !== 'dev') {
-            // console.log("Development section skipped - role check failed");
-            return null;
-          }
+            // Skip Development section for non-dev roles
+            if (key === 'development' && userRole !== 'dev') {
+              // console.log("Development section skipped - role check failed");
+              return null;
+            }
 
-          const visibleItems = getVisibleItems(section.items);
-          // console.log(`Visible items for ${key}:`, visibleItems.length);
-          if (visibleItems.length === 0) return null;
+            const visibleItems = getVisibleItems(section.items);
+            // console.log(`Visible items for ${key}:`, visibleItems.length);
+            if (visibleItems.length === 0) return null;
 
-          return (
-            <Collapsible key={section.title} asChild>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  tooltip={
-                    key === 'auditing' && userRole === 'user' ? 'DROS Support' : section.title
-                  }
-                >
-                  <a href={section.url}>
-                    <section.icon className="h-4 w-4" />
-                    <span>
-                      {key === 'auditing' && userRole === 'user' ? 'DROS Support' : section.title}
-                    </span>
-                  </a>
-                </SidebarMenuButton>
-                <CollapsibleTrigger asChild>
-                  <SidebarMenuAction className="data-[state=open]:rotate-90">
-                    <ChevronRight />
-                    <span className="sr-only">Toggle</span>
-                  </SidebarMenuAction>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <SidebarMenuSub>
-                    {visibleItems.map((item) => (
-                      <SidebarMenuSubItem key={item.title}>
-                        <SidebarMenuSubButton asChild>
-                          <a href={item.url}>
-                            <span>{item.title}</span>
-                          </a>
-                        </SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-                    ))}
-                  </SidebarMenuSub>
-                </CollapsibleContent>
-              </SidebarMenuItem>
-            </Collapsible>
-          );
-        })}
-      </SidebarMenu>
+            return (
+              <Collapsible key={section.title} asChild>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    tooltip={
+                      key === 'auditing' && userRole === 'user' ? 'DROS Support' : section.title
+                    }
+                  >
+                    <a href={section.url} onMouseEnter={() => handleItemHover(section.url)}>
+                      <section.icon className="h-4 w-4" />
+                      <span>
+                        {key === 'auditing' && userRole === 'user' ? 'DROS Support' : section.title}
+                      </span>
+                    </a>
+                  </SidebarMenuButton>
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuAction className="data-[state=open]:rotate-90">
+                      <ChevronRight />
+                      <span className="sr-only">Toggle</span>
+                    </SidebarMenuAction>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarMenuSub>
+                      {visibleItems.map((item) => (
+                        <SidebarMenuSubItem key={item.title}>
+                          <SidebarMenuSubButton asChild>
+                            <a href={item.url} onMouseEnter={() => handleItemHover(item.url)}>
+                              <span>{item.title}</span>
+                            </a>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      ))}
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                </SidebarMenuItem>
+              </Collapsible>
+            );
+          })}
+        </SidebarMenu>
+        <ScrollBar orientation="vertical" />
+      </ScrollArea>
     </SidebarGroup>
   );
 }

@@ -4,7 +4,6 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { KPICard } from '@/components/kpi-card';
-import LoadingIndicator from '@/components/LoadingIndicator';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { DateRange } from 'react-day-picker';
 import React, { useState } from 'react';
@@ -238,7 +237,9 @@ function DashboardKPI({
         </div>
 
         {kpiQuery.isLoading ? (
-          <LoadingIndicator />
+          <div className="flex items-center justify-center">
+            <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-primary"></div>
+          </div>
         ) : kpiQuery.error ? (
           <div>Error loading KPI data: {kpiQuery.error.message}</div>
         ) : (

@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/utils/supabase/client';
-import LoadingIndicator from '@/components/LoadingIndicator';
 
 // Define role types
 type Role = 'super admin' | 'ceo' | 'dev' | 'admin' | 'gunsmith' | 'user' | 'customer' | 'auditor';
@@ -99,28 +98,22 @@ export default function SupportPage() {
         </p>
       </div>
 
-      {isLoading ? (
-        <div className="flex justify-center items-center h-[calc(100vh-250px)]">
-          <LoadingIndicator />
+      <ScrollArea className="h-[calc(100vh-250px)]">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {supportSections
+            .filter((section) => isSectionVisible(section.title))
+            .map((section) => (
+              <Link href={section.href} key={section.title}>
+                <Card className="hover:bg-accent transition-colors cursor-pointer h-full">
+                  <CardHeader>
+                    <CardTitle>{section.title}</CardTitle>
+                    <CardDescription>{section.description}</CardDescription>
+                  </CardHeader>
+                </Card>
+              </Link>
+            ))}
         </div>
-      ) : (
-        <ScrollArea className="h-[calc(100vh-250px)]">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {supportSections
-              .filter((section) => isSectionVisible(section.title))
-              .map((section) => (
-                <Link href={section.href} key={section.title}>
-                  <Card className="hover:bg-accent transition-colors cursor-pointer h-full">
-                    <CardHeader>
-                      <CardTitle>{section.title}</CardTitle>
-                      <CardDescription>{section.description}</CardDescription>
-                    </CardHeader>
-                  </Card>
-                </Link>
-              ))}
-          </div>
-        </ScrollArea>
-      )}
+      </ScrollArea>
     </div>
   );
 }
