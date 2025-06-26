@@ -78,6 +78,8 @@ import { ChevronUp } from 'lucide-react';
 import { ChevronDown } from 'lucide-react';
 import { CustomCalendarDashboard } from '@/components/ui/calendar';
 import type { AuditData as FormAuditData } from './submit/edit-audit-form';
+import ApprovedDevices from '@/app/TGR/dros/guide/_components/ApprovedDevices';
+import OemFsd from '@/app/TGR/dros/guide/_components/OemFsd';
 
 // Type definitions
 interface OptionType {
@@ -2069,6 +2071,18 @@ function AuditsPage() {
               >
                 Auditing Guidelines
               </TabsTrigger>
+              <TabsTrigger
+                value="approved-devices"
+                className="flex-1 relative py-2 text-sm font-medium whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
+              >
+                Approved Devices
+              </TabsTrigger>
+              <TabsTrigger
+                value="fsd-info"
+                className="flex-1 relative py-2 text-sm font-medium whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
+              >
+                OEM FSD Info
+              </TabsTrigger>
             </TabsList>
           </div>
 
@@ -2505,6 +2519,14 @@ function AuditsPage() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="approved-devices">
+            <ApprovedDevices />
+          </TabsContent>
+
+          <TabsContent value="fsd-info">
+            <OemFsd />
           </TabsContent>
         </Tabs>
       </main>
