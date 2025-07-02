@@ -41,11 +41,28 @@ function AmmoPurchase({ className }: { className?: string }) {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="" className="w-full">
-            <TabsList className=" grid grid-cols-2 mb-4">
-              <TabsTrigger value="address">Address Correction</TabsTrigger>
-              <TabsTrigger value="federal">Federal Limits Apply</TabsTrigger>
-              <TabsTrigger value="oos">Out Of State Military (ACTIVE DUTY WITH PCS)</TabsTrigger>
-            </TabsList>
+            <div className="w-full items-center space-x-2">
+              <TabsList className="border border-zinc-800 shadow-sm rounded-md m-1 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-opacity-50 focus:z-10">
+                <TabsTrigger
+                  value="address"
+                  className="flex-1 relative py-2 text-sm font-medium whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
+                >
+                  Address Correction
+                </TabsTrigger>
+                <TabsTrigger
+                  value="federal"
+                  className="flex-1 relative py-2 text-sm font-medium whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
+                >
+                  Federal Limits Apply
+                </TabsTrigger>
+                <TabsTrigger
+                  value="oos"
+                  className="flex-1 relative py-2 text-sm font-medium whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
+                >
+                  Active Duty With PCS
+                </TabsTrigger>
+              </TabsList>
+            </div>
             <TabsContent value="address">
               <div className="flex flex-col w-full">
                 <h2>
