@@ -103,7 +103,7 @@ function AmmoPurchase({ className }: { className?: string }) {
                   Found Below)
                   <hr className="my-4" />
                   We Must <span className="text-red-500">ALWAYS & ONLY</span> Process Their DROS
-                  With The Address On Their ID | DL
+                  With The Address On Their Proof Of Residence Docs (Local Address)
                 </p>
               </div>
             </TabsContent>
