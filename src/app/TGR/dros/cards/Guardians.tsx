@@ -116,7 +116,7 @@ function Guardians({ className }: { className?: string }) {
         </CardContent>
         <CardFooter className="flex justify-between">
           <HoveredLink href="https://www.smith-wesson.com/american-guardians">
-            <span className="text-muted-foreground">American Guardians</span>
+            <span className="text-blue-500">American Guardians</span>
           </HoveredLink>
         </CardFooter>
       </Card>

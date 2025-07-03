@@ -10,6 +10,17 @@ import {
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { HoveredLink, Menu, MenuItem, ProductItem } from '@/components/ui/navbar-menu';
+import styled from 'styled-components';
+
+const StyledTabsList = styled(TabsList)`
+  display: flex;
+  flex-wrap: nowrap; // Prevent wrapping of tabs
+  overflow-x: auto; // Allow horizontal scrolling
+  -webkit-overflow-scrolling: touch; // Smooth scrolling on touch devices
+  &::-webkit-scrollbar {
+    display: none; // Optionally hide the scrollbar
+  }
+`;
 
 function LocalActive({ className }: { className?: string }) {
   const router = useRouter();
@@ -27,11 +38,21 @@ function LocalActive({ className }: { className?: string }) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="" className="w-full">
-            <TabsList className=" grid grid-cols-2 mb-4">
-              <TabsTrigger value="active">Local Active Duty</TabsTrigger>
-              <TabsTrigger value="activereserve">Local Active Reserve</TabsTrigger>
-            </TabsList>
+          <Tabs defaultValue="active" className="w-full">
+            <StyledTabsList className="border border-zinc-800 shadow-sm rounded-md m-1 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-opacity-50 focus:z-10 w-full">
+              <TabsTrigger
+                value="active"
+                className="flex-1 relative py-2 text-sm font-medium text-center items-center whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
+              >
+                Local Active Duty
+              </TabsTrigger>
+              <TabsTrigger
+                value="activereserve"
+                className="flex-1 relative py-2 text-sm font-medium text-center items-center whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
+              >
+                Local Active Reserve
+              </TabsTrigger>
+            </StyledTabsList>
             <TabsContent value="active">
               <div className="max-w-full">
                 <hr className="my-4" />

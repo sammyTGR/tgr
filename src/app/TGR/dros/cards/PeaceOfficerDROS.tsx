@@ -17,7 +17,7 @@ const StyledTabsList = styled(TabsList)`
   flex-wrap: nowrap; // Prevent wrapping of tabs
   overflow-x: auto; // Allow horizontal scrolling
   -webkit-overflow-scrolling: touch; // Smooth scrolling on touch devices
-  border-bottom: 1px solid #ccc; // Optional: adds a line under your tabs
+  // border-bottom: 1px solid #ccc; // Optional: adds a line under your tabs
   &::-webkit-scrollbar {
     display: none; // Optionally hide the scrollbar
   }
@@ -47,13 +47,27 @@ function PeaceOfficerDROS({ className }: { className?: string }) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="" className="w-full">
-            <TabsList className=" grid grid-cols-2 mb-4">
-              <TabsTrigger value="info">Peace vs Public Officer Info</TabsTrigger>
-              <br />
-              <TabsTrigger value="withoutletter">Without 10 Day Exemption</TabsTrigger>
-              <TabsTrigger value="withletter">With 10 Day Exemption</TabsTrigger>
-            </TabsList>
+          <Tabs defaultValue="info" className="w-full">
+            <StyledTabsList className="border border-zinc-800 shadow-sm rounded-md m-1 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-opacity-50 focus:z-10 w-full">
+              <TabsTrigger
+                value="info"
+                className="flex-1 relative py-2 text-sm font-medium text-center items-center whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
+              >
+                Public Officer
+              </TabsTrigger>
+              <TabsTrigger
+                value="withoutletter"
+                className="flex-1 relative py-2 text-sm font-medium text-center items-center whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
+              >
+                W/O 10 Day Exemption
+              </TabsTrigger>
+              <TabsTrigger
+                value="withletter"
+                className="flex-1 relative py-2 text-sm font-medium text-center items-center whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
+              >
+                Same Day Sale
+              </TabsTrigger>
+            </StyledTabsList>
             <TabsContent value="info">
               <div className="max-w-full">
                 <h2 className="flex justify-center">

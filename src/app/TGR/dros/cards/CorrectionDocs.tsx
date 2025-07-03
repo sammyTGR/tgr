@@ -20,44 +20,45 @@ function CorrectionDocs() {
         </CardHeader>
         <CardContent>
           <div className="max-w-full">
-            <p>Customer Must Have A Valid FSC Card OR Valid CA CCW Permit In Addition To:</p>
+            <p>
+              Any Current, Government-Issued (City, County, State Or Federal) License, Permit, Or
+              Registration Must Bear Full Name & Current Physical Address, Which Can Be Any Of The
+              Following:
+            </p>
+            <br />
             <ul className="list-disc pl-4">
-              <li>
-                A Valid CA CCW Permit Can Be Used As An Address Corrector & Second Proof Of Address
-              </li>
-              <li>
-                Valid CA Disabled Person Placard Identification Card
-                <ul className="list-none list-inside pl-4">
-                  <li>- AKA Handicap Placard Registration Card</li>
-                </ul>
-              </li>
-              <li>
-                Valid CA DMV Registration With The Current Physical Address For Any Of The
-                Following:
-                <ul className="list-none list-inside pl-4">
-                  <li>- Vehicle Registration</li>
-                  <li>- Boat Registration</li>
-                  <li>- Motorcycle Registration</li>
-                  <li>- Off Road Vehicle Registration</li>
-                </ul>
-              </li>
-              <li>Valid CA Hunting License</li>
-              <li>Valid CA Fishing License</li>
+              <li>Hunting License (Must Be Valid For 1 Year)</li>
+              <li>Fishing License (Must Be Valid For 1 Year)</li>
+              <li>Valid CA CCW Permit</li>
+              <li>Valid CA Disabled Person Placard Registration Card</li>
+              <li>Any Valid CA DMV Registration:</li>
+              <ul className="list-none list-inside pl-4">
+                <li>- Vehicle Registration</li>
+                <li>- Boat Registration</li>
+                <li>- Motorcycle Registration</li>
+                <li>- Off Road Vehicle Registration</li>
+              </ul>
+            </ul>
+            <ul className="list-disc pl-4">
               <li>Current & Valid Guard Card + Exposed Carry Card With Current Physical Address</li>
               <ul className="list-none list-inside pl-4">
                 <li>- Both Must Have The Same Address</li>
               </ul>
               <li>
-                Most Recent Property Tax Bill (Meets ATF Federal Req), With One Of The Following:
+                Most Recent Property Tax Bill (Meets Federal Req), With One Of The Following To Meet
+                State Requirements:
               </li>
               <ul className="list-none list-inside pl-4">
-                <li>- Property Deed (Meets DOJ State Req)</li>
+                <li>- Property Deed Of Trust</li>
+                <li>- Property Title Issued By A Licensed Title Insurance Company</li>
                 <li>- Current (Within 90 Days) Utility Bill</li>
               </ul>
-              <li>Most Recent W-2 + Current (Within 90 Days) Utility Bill</li>
+              <li>
+                Most Recent W-2 (Meets Federal Req) + Current (Within 90 Days) Utility Bill (Meets
+                State Req)
+              </li>
               <ul className="list-none list-inside pl-4">
                 <li>- Exception For long guns - no utility bill needed, only needs W-2</li>
-
                 <li>- Cannot Accept W-2s After April 30th</li>
               </ul>
               <li>W2 Exception For LEO - W-2 Along With Department ID And Valid CA ID | DL</li>

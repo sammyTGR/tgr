@@ -17,7 +17,7 @@ const StyledTabsList = styled(TabsList)`
   flex-wrap: nowrap; // Prevent wrapping of tabs
   overflow-x: auto; // Allow horizontal scrolling
   -webkit-overflow-scrolling: touch; // Smooth scrolling on touch devices
-  border-bottom: 1px solid #ccc; // Optional: adds a line under your tabs
+  // border-bottom: 1px solid #ccc; // Optional: adds a line under your tabs
   &::-webkit-scrollbar {
     display: none; // Optionally hide the scrollbar
   }
@@ -40,28 +40,28 @@ function AmmoPurchase({ className }: { className?: string }) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="" className="w-full">
-            <div className="w-full items-center space-x-2">
-              <TabsList className="border border-zinc-800 shadow-sm rounded-md m-1 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-opacity-50 focus:z-10">
+          <Tabs defaultValue="address" className="w-full">
+            <div className="max-w-full items-center space-x-2">
+              <StyledTabsList className="border border-zinc-800 shadow-sm rounded-md m-1 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-opacity-50 focus:z-10">
                 <TabsTrigger
                   value="address"
-                  className="flex-1 relative py-2 text-sm font-medium whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
+                  className="flex-1 relative py-2 text-sm font-medium text-center items-center whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
                 >
                   Address Correction
                 </TabsTrigger>
                 <TabsTrigger
                   value="federal"
-                  className="flex-1 relative py-2 text-sm font-medium whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
+                  className="flex-1 relative py-2 text-sm font-medium text-center items-center whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
                 >
-                  Federal Limits Apply
+                  FLA
                 </TabsTrigger>
                 <TabsTrigger
                   value="oos"
-                  className="flex-1 relative py-2 text-sm font-medium whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
+                  className="flex-1 relative py-2 text-sm font-medium text-center items-center whitespace-nowrap data-[state=active]:ring-2 data-[state=active]:ring-blue-600 data-[state=active]:ring-opacity-50"
                 >
-                  Active Duty With PCS
+                  Active Duty (PCS)
                 </TabsTrigger>
-              </TabsList>
+              </StyledTabsList>
             </div>
             <TabsContent value="address">
               <div className="flex flex-col w-full">
@@ -110,8 +110,9 @@ function AmmoPurchase({ className }: { className?: string }) {
                   <span className="text-orange-500">Federal Worksheet (Link Below)</span>{' '}
                 </p>
                 <p>
+                  <br />
                   <span className="text-red-500">DO NOT USE</span> Any Other Address Other Than
-                  What&apos;s Listed On Their ID | DL
+                  What&apos;s Listed On Their Proof Of Residence Docs (Local Address)
                 </p>
                 <hr className="my-4" />
                 <p>
@@ -123,36 +124,6 @@ function AmmoPurchase({ className }: { className?: string }) {
                   With The Address On Their Proof Of Residence Docs (Local Address)
                 </p>
               </div>
-            </TabsContent>
-            <TabsContent value="withletter">
-              <div className="flex flex-col w-full">
-                <h2>
-                  <span className="text-amber-500">
-                    Start By Selecting &quot;Peace Officer Non-Roster Handgun Sale (Letter
-                    Required)&quot;
-                  </span>
-                </h2>
-                <hr className="my-4" />
-                <ul className="list-none pl-4">
-                  <p>FSC Exemption Code</p>
-                  <ul className="list-none pl-4">
-                    <li>(X31 - PEACE OFFICER - CALIFORNIA - ACTIVE)</li>
-                  </ul>
-                  <p>30-Day Restriction Exemption</p>
-                  <ul className="list-none pl-4">
-                    <li>(PEACE OFFICER - ACTIVE - LETTER REQUIRED)</li>
-                  </ul>
-                  <p>Waiting Period Exemption | 10 Day Wait</p>
-                  <ul className="list-none pl-4">
-                    <li>(PEACE OFFICER (LETTER REQUIRED))</li>
-                  </ul>
-                  <p>Non-Roster Exemption</p>
-                  <ul className="list-none pl-4">
-                    <li>(AGENCY THEY ARE EMPLOYED WITH)</li>
-                  </ul>
-                </ul>
-              </div>
-              <hr className="my-4" />
             </TabsContent>
           </Tabs>
         </CardContent>
