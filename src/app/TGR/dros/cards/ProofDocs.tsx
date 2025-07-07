@@ -36,8 +36,11 @@ function ProofDocs({ className }: { className?: string }) {
               As An Address, Even If It Is A REAL ID.
             </p>
             <p className="text-blue-500">
-              All Docs Must Have The Full First & Last Names. (Middle Names & Suffixes Are Not
-              Always Printed On Documents)
+              All Government-Issued Docs Must Have The Full First & Last Names. (Middle Names &
+              Suffixes Are Not Always Printed On Documents)
+            </p>
+            <p className="text-amber-500">
+              Exception: Utility Bills Are Acceptable Without Middle Name Or Suffix.
             </p>
             <p>
               In Addition To A Valid CA DL | ID, Any ONE Of The Following Docs Below Will Suffice:
@@ -111,7 +114,8 @@ function ProofDocs({ className }: { className?: string }) {
               <div className="max-w-full">
                 <p>
                   A Current Statement Of Charges (Within 90 Days) For Providing Direct Service To
-                  Physical Residence:
+                  Physical Residence Must Show Full Name (Middle Name And/Or Suffix Missing Is
+                  Acceptable) & Current Physical Address:
                 </p>
                 <br />
                 <ul className="list-disc pl-4">
