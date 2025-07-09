@@ -91,7 +91,7 @@ function ProofDocs({ className }: { className?: string }) {
                   <li>Valid CA CCW Permit</li>
                   <li>Valid CA Disabled Person Placard Registration Card</li>
                   <li>Any Valid CA DMV Registration:</li>
-                  <ul className="list-none list-inside pl-4">
+                  <ul className="list-dash list-inside pl-4">
                     <li>- Vehicle Registration</li>
                     <li>- Boat Registration</li>
                     <li>- Motorcycle Registration</li>
@@ -100,7 +100,8 @@ function ProofDocs({ className }: { className?: string }) {
                 </ul>
                 <ul className="list-disc pl-4">
                   <li>LEO Requirements:</li>
-                  <ul className="list-none list-inside pl-4">
+                  <ul className="list-inside list-item pl-4">
+                    <li>- Full First & Last Name (Middle Name & Suffix Missing Is Acceptable)</li>
                     <li>
                       - Current (Non Expired) Department ID Show Active, Reserve, Retired, etc.
                     </li>
