@@ -21,14 +21,14 @@ function Under21({ className }: { className?: string }) {
           <CardDescription>
             <span className="text-purple-500">
               You <span className="text-red-500">MUST</span> PUT THE GO ID# & Expiration Date In The
-              DROS Comments Section
+              Dropdown Menu For The Age Exemption
             </span>
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="max-w-[425px]">
             <p className="text-red-500 font-bold">
-              Use Valid Hunting License As FSC Exemption Or Enter FSC If Customer Has One
+              Use Valid Hunting License As FSC Exemption
             </p>
             <p className="font-bold">Age Exemption</p>
             <ul className="list-none pl-4">
@@ -38,17 +38,7 @@ function Under21({ className }: { className?: string }) {
             <h2>Breakdown Of Under 21 Docs That Are Required</h2>
             <ul className="list-disc pl-4">
               <li>Valid CA DL | CA ID</li>
-              <li>Valid FSC Card</li>
               <li>Valid Hunting License</li>
-            </ul>
-            <hr className="my-4" />
-
-            <ul className="list-disc pl-4">
-              <li>FSC Card & Hunting License Are BOTH Required, Along With Their CA DL | CA ID</li>
-              <li>
-                You Are <span className="text-red-500">REQUIRED</span> To Enter The Hunting License
-                GO ID # & Expiration Date In The DROS Comment Field
-              </li>
             </ul>
             <hr className="my-4" />
             <h2>Long Gun Features For Under 21 Purchases</h2>
